@@ -1,31 +1,97 @@
 
 import { useState } from 'react';
-import { Camera, Upload, Mic, FileText, Zap } from 'lucide-react';
+import { Camera, Upload, Mic, FileText, Zap, Brain } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const EmotionsPage = () => {
-  const [analysisMode, setAnalysisMode] = useState<'camera' | 'upload' | 'voice' | 'text'>('camera');
+  const [analysisMode, setAnalysisMode] = useState<'camera' | 'upload' | 'voice' | 'text'>('text');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [textInput, setTextInput] = useState('');
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const { toast } = useToast();
 
   const analysisMethods = [
+    { id: 'text', label: 'Text Analysis', icon: FileText, color: 'from-yellow-500 to-orange-500' },
     { id: 'camera', label: 'Live Camera', icon: Camera, color: 'from-blue-500 to-purple-500' },
     { id: 'upload', label: 'Upload Photo', icon: Upload, color: 'from-green-500 to-teal-500' },
     { id: 'voice', label: 'Voice Analysis', icon: Mic, color: 'from-red-500 to-pink-500' },
-    { id: 'text', label: 'Text Analysis', icon: FileText, color: 'from-yellow-500 to-orange-500' },
   ];
 
-  const handleAnalysis = () => {
-    setIsAnalyzing(true);
-    // Simulate analysis
-    setTimeout(() => {
-      setIsAnalyzing(false);
-    }, 3000);
+  const handleAnalysis = async () => {
+    if (analysisMode === 'text') {
+      if (!textInput.trim()) {
+        toast({
+          title: "Error",
+          description: "Please enter some text to analyze",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setIsAnalyzing(true);
+      try {
+        // Use Gemini for emotion analysis
+        const { data, error } = await supabase.functions.invoke('ai-mood-analysis', {
+          body: { text: textInput, provider: 'gemini' }
+        });
+
+        if (error) throw error;
+
+        setAnalysisResult(data.analysis);
+
+        toast({
+          title: "Analysis Complete!",
+          description: `Detected mood: ${data.analysis.mood} (${data.analysis.intensity}/10)`,
+        });
+      } catch (error: any) {
+        console.error('Analysis error:', error);
+        toast({
+          title: "Analysis Failed",
+          description: error.message || "Failed to analyze emotion",
+          variant: "destructive",
+        });
+      } finally {
+        setIsAnalyzing(false);
+      }
+    } else {
+      // Simulate analysis for other modes
+      setIsAnalyzing(true);
+      setTimeout(() => {
+        setAnalysisResult({
+          mood: 'happy',
+          intensity: 7,
+          music_suggestions: ['pop', 'upbeat', 'energetic']
+        });
+        setIsAnalyzing(false);
+        toast({
+          title: "Analysis Complete!",
+          description: "Emotion detected successfully",
+        });
+      }, 3000);
+    }
+  };
+
+  const getMoodEmoji = (mood: string) => {
+    const emojiMap: { [key: string]: string } = {
+      happy: '😊',
+      sad: '😢',
+      energetic: '⚡',
+      calm: '😌',
+      angry: '😠',
+      excited: '🤩',
+      melancholic: '😔',
+      peaceful: '🕊️',
+      neutral: '😐'
+    };
+    return emojiMap[mood] || '😐';
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white pb-20">
       <div className="pt-8 px-6">
         <h1 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-yellow-400 to-teal-400 bg-clip-text text-transparent">
-          Emotion Analysis
+          AI Emotion Analysis
         </h1>
 
         {/* Analysis Methods */}
@@ -52,7 +118,7 @@ const EmotionsPage = () => {
             {analysisMode === 'camera' && 'Position your face in the frame'}
             {analysisMode === 'upload' && 'Select a photo to analyze'}
             {analysisMode === 'voice' && 'Speak naturally for 10 seconds'}
-            {analysisMode === 'text' && 'Type how you feel'}
+            {analysisMode === 'text' && 'Describe your feelings or thoughts'}
           </h2>
 
           {analysisMode === 'camera' && (
@@ -79,7 +145,9 @@ const EmotionsPage = () => {
 
           {analysisMode === 'text' && (
             <textarea
-              placeholder="Describe your current mood and feelings..."
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder="Describe your current mood and feelings... (e.g., 'I'm feeling excited about my new job but also a bit nervous')"
               className="w-full bg-gray-700 rounded-xl p-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 mb-6"
               rows={4}
             />
@@ -92,37 +160,59 @@ const EmotionsPage = () => {
           >
             {isAnalyzing ? (
               <div className="flex items-center justify-center">
-                <Zap className="animate-spin mr-2" size={20} />
-                Analyzing...
+                <Brain className="animate-pulse mr-2" size={20} />
+                Analyzing with AI...
               </div>
             ) : (
-              'Analyze Emotion'
+              <div className="flex items-center justify-center">
+                <Zap className="mr-2" size={20} />
+                Analyze Emotion
+              </div>
             )}
           </button>
         </div>
 
-        {/* Results Section */}
-        {isAnalyzing && (
+        {/* Enhanced Results Section */}
+        {analysisResult && (
           <div className="bg-gray-800/50 rounded-2xl p-6 backdrop-blur-sm">
-            <h3 className="text-lg font-semibold mb-4">Analysis Results</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span>Happiness</span>
-                <div className="w-32 bg-gray-700 rounded-full h-2">
-                  <div className="bg-yellow-400 h-2 rounded-full w-3/4 animate-pulse"></div>
+            <h3 className="text-lg font-semibold mb-6 flex items-center">
+              <Brain className="text-purple-400 mr-2" size={20} />
+              AI Analysis Results
+            </h3>
+            
+            {/* Mood Display */}
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-2">{getMoodEmoji(analysisResult.mood)}</div>
+              <h4 className="text-2xl font-bold capitalize text-white mb-2">{analysisResult.mood}</h4>
+              <p className="text-gray-400">Intensity: {analysisResult.intensity}/10</p>
+            </div>
+
+            {/* Detailed Breakdown */}
+            <div className="space-y-4">
+              <div>
+                <h5 className="text-white font-semibold mb-2">Recommended Music Genres:</h5>
+                <div className="flex flex-wrap gap-2">
+                  {analysisResult.music_suggestions?.map((genre: string, index: number) => (
+                    <span 
+                      key={index}
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-sm font-medium"
+                    >
+                      {genre}
+                    </span>
+                  ))}
                 </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span>Energy</span>
-                <div className="w-32 bg-gray-700 rounded-full h-2">
-                  <div className="bg-green-400 h-2 rounded-full w-2/3 animate-pulse"></div>
+
+              {/* Intensity Bar */}
+              <div>
+                <h5 className="text-white font-semibold mb-2">Emotional Intensity:</h5>
+                <div className="w-full bg-gray-700 rounded-full h-3">
+                  <div 
+                    className="bg-gradient-to-r from-yellow-400 to-orange-500 h-3 rounded-full transition-all duration-1000"
+                    style={{ width: `${(analysisResult.intensity / 10) * 100}%` }}
+                  ></div>
                 </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Calm</span>
-                <div className="w-32 bg-gray-700 rounded-full h-2">
-                  <div className="bg-blue-400 h-2 rounded-full w-1/2 animate-pulse"></div>
-                </div>
+                <p className="text-gray-400 text-sm mt-1">{analysisResult.intensity}/10</p>
               </div>
             </div>
           </div>
