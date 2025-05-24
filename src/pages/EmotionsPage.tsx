@@ -1,25 +1,27 @@
 
 import { useState, useRef } from 'react';
-import { Camera, Upload, Mic, FileText, Zap, Brain, CameraOff } from 'lucide-react';
+import { Camera, Mic, FileText, Zap, Brain, CameraOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const EmotionsPage = () => {
-  const [analysisMode, setAnalysisMode] = useState<'camera' | 'upload' | 'voice' | 'text'>('text');
+  const [analysisMode, setAnalysisMode] = useState<'camera' | 'voice' | 'text'>('text');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [textInput, setTextInput] = useState('');
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const { toast } = useToast();
 
   const analysisMethods = [
     { id: 'text', label: 'Text Analysis', icon: FileText, color: 'from-yellow-500 to-orange-500' },
     { id: 'camera', label: 'Live Camera', icon: Camera, color: 'from-blue-500 to-purple-500' },
-    { id: 'upload', label: 'Upload Photo', icon: Upload, color: 'from-green-500 to-teal-500' },
     { id: 'voice', label: 'Voice Analysis', icon: Mic, color: 'from-red-500 to-pink-500' },
   ];
 
@@ -69,6 +71,92 @@ const EmotionsPage = () => {
     }
   };
 
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await analyzeVoiceEmotion(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+
+      // Auto-stop after 10 seconds
+      setTimeout(() => {
+        if (mediaRecorderRef.current && isRecording) {
+          stopVoiceRecording();
+        }
+      }, 10000);
+
+      toast({
+        title: "Recording Started",
+        description: "Speak naturally for up to 10 seconds",
+      });
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      toast({
+        title: "Microphone Error",
+        description: "Could not access microphone. Please check permissions.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const analyzeVoiceEmotion = async (audioBlob: Blob) => {
+    setIsAnalyzing(true);
+    try {
+      // Convert audio blob to base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Audio = (reader.result as string).split(',')[1];
+        
+        const { data, error } = await supabase.functions.invoke('voice-emotion-analysis', {
+          body: { audio: base64Audio }
+        });
+
+        if (error) throw error;
+
+        setAnalysisResult({
+          mood: data.emotion,
+          intensity: data.confidence * 10,
+          music_suggestions: getMusicSuggestions(data.emotion)
+        });
+
+        toast({
+          title: "Voice Analysis Complete!",
+          description: `Detected emotion: ${data.emotion}`,
+        });
+      };
+      reader.readAsDataURL(audioBlob);
+    } catch (error: any) {
+      console.error('Voice analysis error:', error);
+      toast({
+        title: "Analysis Failed",
+        description: error.message || "Failed to analyze voice emotion",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const analyzeCameraEmotion = async () => {
     if (!capturedImage) {
       toast({
@@ -81,38 +169,78 @@ const EmotionsPage = () => {
 
     setIsAnalyzing(true);
     try {
-      // Convert data URL to blob
-      const response = await fetch(capturedImage);
-      const blob = await response.blob();
-      
-      // Convert blob to base64
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64Image = reader.result as string;
-        
-        const { data, error } = await supabase.functions.invoke('camera-emotion-detection', {
-          body: { image: base64Image }
-        });
+      const { data, error } = await supabase.functions.invoke('camera-emotion-detection', {
+        body: { image: capturedImage }
+      });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        setAnalysisResult({
-          mood: data.emotion,
-          intensity: data.confidence * 10,
-          music_suggestions: getMusicSuggestions(data.emotion)
-        });
+      setAnalysisResult({
+        mood: data.emotion,
+        intensity: data.confidence * 10,
+        music_suggestions: getMusicSuggestions(data.emotion)
+      });
 
-        toast({
-          title: "Analysis Complete!",
-          description: `Detected emotion: ${data.emotion} (${Math.round(data.confidence * 100)}% confidence)`,
-        });
-      };
-      reader.readAsDataURL(blob);
+      toast({
+        title: "Analysis Complete!",
+        description: `Detected emotion: ${data.emotion} (${Math.round(data.confidence * 100)}% confidence)`,
+      });
     } catch (error: any) {
       console.error('Camera analysis error:', error);
       toast({
         title: "Analysis Failed",
         description: error.message || "Failed to analyze emotion from camera",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const analyzeTextEmotion = async () => {
+    if (!textInput.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter some text to analyze",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-mood-analysis', {
+        body: { text: textInput, provider: 'gemini' }
+      });
+
+      if (error) throw error;
+
+      // Ensure mood is one of the allowed emotions
+      const allowedEmotions = ['happy', 'sad', 'neutral', 'angry'];
+      let mood = data.analysis.mood.toLowerCase();
+      if (!allowedEmotions.includes(mood)) {
+        // Map other emotions to our allowed set
+        if (['excited', 'energetic', 'joyful'].includes(mood)) mood = 'happy';
+        else if (['melancholic', 'depressed', 'down'].includes(mood)) mood = 'sad';
+        else if (['furious', 'mad', 'rage'].includes(mood)) mood = 'angry';
+        else mood = 'neutral';
+      }
+
+      setAnalysisResult({
+        mood,
+        intensity: data.analysis.intensity,
+        music_suggestions: getMusicSuggestions(mood)
+      });
+
+      toast({
+        title: "Analysis Complete!",
+        description: `Detected mood: ${mood} (${data.analysis.intensity}/10)`,
+      });
+    } catch (error: any) {
+      console.error('Text analysis error:', error);
+      toast({
+        title: "Analysis Failed",
+        description: error.message || "Failed to analyze emotion",
         variant: "destructive",
       });
     } finally {
@@ -133,58 +261,14 @@ const EmotionsPage = () => {
   const handleAnalysis = async () => {
     if (analysisMode === 'camera') {
       await analyzeCameraEmotion();
-      return;
-    }
-
-    if (analysisMode === 'text') {
-      if (!textInput.trim()) {
-        toast({
-          title: "Error",
-          description: "Please enter some text to analyze",
-          variant: "destructive",
-        });
-        return;
+    } else if (analysisMode === 'text') {
+      await analyzeTextEmotion();
+    } else if (analysisMode === 'voice') {
+      if (isRecording) {
+        stopVoiceRecording();
+      } else {
+        await startVoiceRecording();
       }
-
-      setIsAnalyzing(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('ai-mood-analysis', {
-          body: { text: textInput, provider: 'gemini' }
-        });
-
-        if (error) throw error;
-
-        setAnalysisResult(data.analysis);
-
-        toast({
-          title: "Analysis Complete!",
-          description: `Detected mood: ${data.analysis.mood} (${data.analysis.intensity}/10)`,
-        });
-      } catch (error: any) {
-        console.error('Analysis error:', error);
-        toast({
-          title: "Analysis Failed",
-          description: error.message || "Failed to analyze emotion",
-          variant: "destructive",
-        });
-      } finally {
-        setIsAnalyzing(false);
-      }
-    } else {
-      // Simulate analysis for other modes
-      setIsAnalyzing(true);
-      setTimeout(() => {
-        setAnalysisResult({
-          mood: 'happy',
-          intensity: 7,
-          music_suggestions: ['pop', 'upbeat', 'energetic']
-        });
-        setIsAnalyzing(false);
-        toast({
-          title: "Analysis Complete!",
-          description: "Emotion detected successfully",
-        });
-      }, 3000);
     }
   };
 
@@ -192,12 +276,7 @@ const EmotionsPage = () => {
     const emojiMap: { [key: string]: string } = {
       happy: '😊',
       sad: '😢',
-      energetic: '⚡',
-      calm: '😌',
       angry: '😠',
-      excited: '🤩',
-      melancholic: '😔',
-      peaceful: '🕊️',
       neutral: '😐'
     };
     return emojiMap[mood] || '😐';
@@ -211,7 +290,7 @@ const EmotionsPage = () => {
         </h1>
 
         {/* Analysis Methods */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-4 mb-8">
           {analysisMethods.map(({ id, label, icon: Icon, color }) => (
             <button
               key={id}
@@ -219,6 +298,9 @@ const EmotionsPage = () => {
                 setAnalysisMode(id as any);
                 if (id !== 'camera') {
                   stopCamera();
+                }
+                if (id !== 'voice') {
+                  setIsRecording(false);
                 }
               }}
               className={`p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 ${
@@ -237,7 +319,6 @@ const EmotionsPage = () => {
         <div className="bg-gray-800/50 rounded-2xl p-6 backdrop-blur-sm mb-8">
           <h2 className="text-xl font-semibold mb-6 text-center">
             {analysisMode === 'camera' && 'Position your face in the frame and capture'}
-            {analysisMode === 'upload' && 'Select a photo to analyze'}
             {analysisMode === 'voice' && 'Speak naturally for 10 seconds'}
             {analysisMode === 'text' && 'Describe your feelings or thoughts'}
           </h2>
@@ -304,19 +385,16 @@ const EmotionsPage = () => {
             </div>
           )}
 
-          {analysisMode === 'upload' && (
-            <div className="aspect-square bg-gray-700 rounded-xl mb-6 flex items-center justify-center border-2 border-dashed border-gray-500">
-              <Upload size={64} className="text-gray-400" />
-            </div>
-          )}
-
           {analysisMode === 'voice' && (
             <div className="text-center py-12">
               <div className={`w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center ${
-                isAnalyzing ? 'bg-red-500 animate-pulse' : 'bg-gray-700'
+                isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-700'
               }`}>
                 <Mic size={40} className="text-white" />
               </div>
+              {isRecording && (
+                <p className="text-gray-300 mb-4">Recording... Speak naturally</p>
+              )}
             </div>
           )}
 
@@ -340,16 +418,21 @@ const EmotionsPage = () => {
                 <Brain className="animate-pulse mr-2" size={20} />
                 Analyzing with AI...
               </div>
+            ) : isRecording ? (
+              <div className="flex items-center justify-center">
+                <Mic className="mr-2" size={20} />
+                Stop Recording
+              </div>
             ) : (
               <div className="flex items-center justify-center">
                 <Zap className="mr-2" size={20} />
-                Analyze Emotion
+                {analysisMode === 'voice' ? 'Start Recording' : 'Analyze Emotion'}
               </div>
             )}
           </button>
         </div>
 
-        {/* Enhanced Results Section */}
+        {/* Results Section */}
         {analysisResult && (
           <div className="bg-gray-800/50 rounded-2xl p-6 backdrop-blur-sm">
             <h3 className="text-lg font-semibold mb-6 flex items-center">
