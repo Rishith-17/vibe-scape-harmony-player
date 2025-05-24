@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { Camera, Upload, Mic, FileText, Zap, Brain } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Camera, Upload, Mic, FileText, Zap, Brain, CameraOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -9,6 +9,11 @@ const EmotionsPage = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [textInput, setTextInput] = useState('');
   const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [isCameraOn, setIsCameraOn] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
 
   const analysisMethods = [
@@ -18,7 +23,119 @@ const EmotionsPage = () => {
     { id: 'voice', label: 'Voice Analysis', icon: Mic, color: 'from-red-500 to-pink-500' },
   ];
 
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user' } 
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setIsCameraOn(true);
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      toast({
+        title: "Camera Error",
+        description: "Could not access camera. Please check permissions.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraOn(false);
+    setCapturedImage(null);
+  };
+
+  const captureImage = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0);
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setCapturedImage(imageDataUrl);
+      }
+    }
+  };
+
+  const analyzeCameraEmotion = async () => {
+    if (!capturedImage) {
+      toast({
+        title: "Error",
+        description: "Please capture an image first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      // Convert data URL to blob
+      const response = await fetch(capturedImage);
+      const blob = await response.blob();
+      
+      // Convert blob to base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Image = reader.result as string;
+        
+        const { data, error } = await supabase.functions.invoke('camera-emotion-detection', {
+          body: { image: base64Image }
+        });
+
+        if (error) throw error;
+
+        setAnalysisResult({
+          mood: data.emotion,
+          intensity: data.confidence * 10,
+          music_suggestions: getMusicSuggestions(data.emotion)
+        });
+
+        toast({
+          title: "Analysis Complete!",
+          description: `Detected emotion: ${data.emotion} (${Math.round(data.confidence * 100)}% confidence)`,
+        });
+      };
+      reader.readAsDataURL(blob);
+    } catch (error: any) {
+      console.error('Camera analysis error:', error);
+      toast({
+        title: "Analysis Failed",
+        description: error.message || "Failed to analyze emotion from camera",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const getMusicSuggestions = (emotion: string) => {
+    const suggestions: { [key: string]: string[] } = {
+      happy: ['pop', 'upbeat', 'energetic'],
+      sad: ['ballad', 'acoustic', 'melancholic'],
+      neutral: ['indie', 'ambient', 'chill'],
+      angry: ['rock', 'metal', 'intense']
+    };
+    return suggestions[emotion] || ['pop', 'indie', 'acoustic'];
+  };
+
   const handleAnalysis = async () => {
+    if (analysisMode === 'camera') {
+      await analyzeCameraEmotion();
+      return;
+    }
+
     if (analysisMode === 'text') {
       if (!textInput.trim()) {
         toast({
@@ -31,7 +148,6 @@ const EmotionsPage = () => {
 
       setIsAnalyzing(true);
       try {
-        // Use Gemini for emotion analysis
         const { data, error } = await supabase.functions.invoke('ai-mood-analysis', {
           body: { text: textInput, provider: 'gemini' }
         });
@@ -99,7 +215,12 @@ const EmotionsPage = () => {
           {analysisMethods.map(({ id, label, icon: Icon, color }) => (
             <button
               key={id}
-              onClick={() => setAnalysisMode(id as any)}
+              onClick={() => {
+                setAnalysisMode(id as any);
+                if (id !== 'camera') {
+                  stopCamera();
+                }
+              }}
               className={`p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 ${
                 analysisMode === id
                   ? `bg-gradient-to-br ${color} shadow-lg`
@@ -115,15 +236,71 @@ const EmotionsPage = () => {
         {/* Analysis Interface */}
         <div className="bg-gray-800/50 rounded-2xl p-6 backdrop-blur-sm mb-8">
           <h2 className="text-xl font-semibold mb-6 text-center">
-            {analysisMode === 'camera' && 'Position your face in the frame'}
+            {analysisMode === 'camera' && 'Position your face in the frame and capture'}
             {analysisMode === 'upload' && 'Select a photo to analyze'}
             {analysisMode === 'voice' && 'Speak naturally for 10 seconds'}
             {analysisMode === 'text' && 'Describe your feelings or thoughts'}
           </h2>
 
           {analysisMode === 'camera' && (
-            <div className="aspect-square bg-gray-700 rounded-xl mb-6 flex items-center justify-center">
-              <Camera size={64} className="text-gray-400" />
+            <div className="space-y-4">
+              <div className="relative aspect-square bg-gray-700 rounded-xl overflow-hidden">
+                {isCameraOn ? (
+                  <>
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                    />
+                    {capturedImage && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <img
+                          src={capturedImage}
+                          alt="Captured"
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Camera size={64} className="text-gray-400" />
+                  </div>
+                )}
+              </div>
+              
+              <canvas ref={canvasRef} className="hidden" />
+              
+              <div className="flex gap-4 justify-center">
+                {!isCameraOn ? (
+                  <button
+                    onClick={startCamera}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl flex items-center gap-2"
+                  >
+                    <Camera size={20} />
+                    Start Camera
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={captureImage}
+                      className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl flex items-center gap-2"
+                    >
+                      <Camera size={20} />
+                      Capture
+                    </button>
+                    <button
+                      onClick={stopCamera}
+                      className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl flex items-center gap-2"
+                    >
+                      <CameraOff size={20} />
+                      Stop Camera
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           )}
 
@@ -155,7 +332,7 @@ const EmotionsPage = () => {
 
           <button
             onClick={handleAnalysis}
-            disabled={isAnalyzing}
+            disabled={isAnalyzing || (analysisMode === 'camera' && !capturedImage)}
             className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-semibold py-4 rounded-xl transition-all duration-300 hover:shadow-lg disabled:opacity-50"
           >
             {isAnalyzing ? (
