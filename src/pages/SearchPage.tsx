@@ -1,11 +1,17 @@
 
 import { useState, useRef, useEffect } from 'react';
-import { Search, Play, Pause, SkipForward, SkipBack, Volume2 } from 'lucide-react';
+import { Search, Play, Pause, SkipForward, SkipBack, Volume2, Plus, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import YouTubePlayer from '@/components/YouTubePlayer';
 import PlaybackControls from '@/components/PlaybackControls';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface YouTubeVideo {
   id: string;
@@ -25,6 +31,10 @@ const SearchPage = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playlist, setPlaylist] = useState<YouTubeVideo[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [playlists] = useState([
+    { id: '1', name: 'My Favorites' },
+    { id: '2', name: 'Workout Hits' },
+  ]);
   const { toast } = useToast();
 
   const searchYoutube = async (query = searchQuery) => {
@@ -100,6 +110,21 @@ const SearchPage = () => {
     }
   };
 
+  const addToPlaylist = (video: YouTubeVideo, playlistId: string) => {
+    const playlistName = playlists.find(p => p.id === playlistId)?.name;
+    toast({
+      title: "Added to Playlist",
+      description: `"${video.title}" added to ${playlistName}`,
+    });
+  };
+
+  const addToFavorites = (video: YouTubeVideo) => {
+    toast({
+      title: "Added to Favorites",
+      description: `"${video.title}" added to your favorites`,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white pb-32">
       <div className="pt-8 px-6">
@@ -161,32 +186,68 @@ const SearchPage = () => {
               {searchResults.map((video, index) => (
                 <div
                   key={video.id}
-                  className={`bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 flex items-center space-x-4 cursor-pointer ${
+                  className={`bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 flex items-center space-x-4 ${
                     currentTrack?.id === video.id ? 'ring-2 ring-yellow-400' : ''
                   }`}
-                  onClick={() => playTrack(video, index)}
                 >
                   <img
                     src={video.thumbnail}
                     alt={video.title}
-                    className="w-16 h-12 rounded-lg object-cover flex-shrink-0"
+                    className="w-16 h-12 rounded-lg object-cover flex-shrink-0 cursor-pointer"
+                    onClick={() => playTrack(video, index)}
                   />
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => playTrack(video, index)}>
                     <h3 className="text-white font-semibold text-sm line-clamp-1 mb-1">
                       {video.title}
                     </h3>
                     <p className="text-gray-400 text-xs">{video.channelTitle}</p>
                   </div>
-                  <Button
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0"
-                  >
-                    {currentTrack?.id === video.id && isPlaying ? (
-                      <Pause size={16} />
-                    ) : (
-                      <Play size={16} />
-                    )}
-                  </Button>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      size="sm"
+                      onClick={() => addToFavorites(video)}
+                      variant="ghost"
+                      className="text-gray-400 hover:text-red-400"
+                    >
+                      <Heart size={16} />
+                    </Button>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-gray-400 hover:text-white"
+                        >
+                          <Plus size={16} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-gray-800 border-gray-700">
+                        {playlists.map((playlist) => (
+                          <DropdownMenuItem
+                            key={playlist.id}
+                            onClick={() => addToPlaylist(video, playlist.id)}
+                            className="text-white hover:bg-gray-700"
+                          >
+                            Add to {playlist.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    
+                    <Button
+                      size="sm"
+                      onClick={() => playTrack(video, index)}
+                      className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0"
+                    >
+                      {currentTrack?.id === video.id && isPlaying ? (
+                        <Pause size={16} />
+                      ) : (
+                        <Play size={16} />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

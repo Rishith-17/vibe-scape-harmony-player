@@ -1,5 +1,6 @@
 
 import { useEffect, useRef } from 'react';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 
 declare global {
   interface Window {
@@ -8,17 +9,10 @@ declare global {
   }
 }
 
-interface YouTubePlayerProps {
-  videoId: string;
-  isPlaying: boolean;
-  onPlay: () => void;
-  onPause: () => void;
-  onEnd: () => void;
-}
-
-const YouTubePlayer = ({ videoId, isPlaying, onPlay, onPause, onEnd }: YouTubePlayerProps) => {
+const YouTubePlayer = () => {
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { currentTrack, isPlaying, setIsPlaying, skipNext } = useMusicPlayer();
 
   useEffect(() => {
     // Load YouTube IFrame API
@@ -34,11 +28,11 @@ const YouTubePlayer = ({ videoId, isPlaying, onPlay, onPause, onEnd }: YouTubePl
     }
 
     function initializePlayer() {
-      if (containerRef.current && !playerRef.current) {
+      if (containerRef.current && !playerRef.current && currentTrack) {
         playerRef.current = new window.YT.Player(containerRef.current, {
           height: '1',
           width: '1',
-          videoId: videoId,
+          videoId: currentTrack.id,
           playerVars: {
             autoplay: 1,
             controls: 0,
@@ -54,28 +48,17 @@ const YouTubePlayer = ({ videoId, isPlaying, onPlay, onPause, onEnd }: YouTubePl
           events: {
             onReady: (event: any) => {
               console.log('YouTube player ready');
-              // Configure for background playback
-              if ('mediaSession' in navigator) {
-                navigator.mediaSession.setActionHandler('play', () => {
-                  event.target.playVideo();
-                  onPlay();
-                });
-                navigator.mediaSession.setActionHandler('pause', () => {
-                  event.target.pauseVideo();
-                  onPause();
-                });
-                navigator.mediaSession.setActionHandler('nexttrack', onEnd);
-              }
+              updateMediaSession();
             },
             onStateChange: (event: any) => {
               const state = event.data;
               if (state === window.YT.PlayerState.PLAYING) {
-                onPlay();
+                setIsPlaying(true);
                 updateMediaSession();
               } else if (state === window.YT.PlayerState.PAUSED) {
-                onPause();
+                setIsPlaying(false);
               } else if (state === window.YT.PlayerState.ENDED) {
-                onEnd();
+                skipNext();
               }
             },
           },
@@ -93,19 +76,19 @@ const YouTubePlayer = ({ videoId, isPlaying, onPlay, onPause, onEnd }: YouTubePl
         }
       }
     };
-  }, []);
+  }, [currentTrack]);
 
-  // Update video when videoId changes
+  // Update video when currentTrack changes
   useEffect(() => {
-    if (playerRef.current && videoId) {
+    if (playerRef.current && currentTrack) {
       try {
-        playerRef.current.loadVideoById(videoId);
+        playerRef.current.loadVideoById(currentTrack.id);
         updateMediaSession();
       } catch (error) {
         console.error('Error loading video:', error);
       }
     }
-  }, [videoId]);
+  }, [currentTrack?.id]);
 
   // Control playback
   useEffect(() => {
@@ -123,25 +106,33 @@ const YouTubePlayer = ({ videoId, isPlaying, onPlay, onPause, onEnd }: YouTubePl
   }, [isPlaying]);
 
   const updateMediaSession = () => {
-    if ('mediaSession' in navigator && playerRef.current) {
+    if ('mediaSession' in navigator && currentTrack) {
       try {
-        const videoData = playerRef.current.getVideoData();
         navigator.mediaSession.metadata = new MediaMetadata({
-          title: videoData.title || 'Unknown Track',
-          artist: videoData.author || 'Unknown Artist',
+          title: currentTrack.title,
+          artist: currentTrack.channelTitle,
           artwork: [
             {
-              src: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+              src: currentTrack.thumbnail,
+              sizes: '480x360',
+              type: 'image/jpeg'
+            },
+            {
+              src: `https://img.youtube.com/vi/${currentTrack.id}/maxresdefault.jpg`,
               sizes: '1280x720',
               type: 'image/jpeg'
             }
           ]
         });
+        
+        navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
       } catch (error) {
         console.error('Error updating media session:', error);
       }
     }
   };
+
+  if (!currentTrack) return null;
 
   return (
     <div 
