@@ -9,6 +9,77 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      playlist_songs: {
+        Row: {
+          added_at: string
+          artist: string
+          id: string
+          playlist_id: string
+          position: number
+          song_id: string
+          thumbnail: string
+          title: string
+          url: string
+        }
+        Insert: {
+          added_at?: string
+          artist: string
+          id?: string
+          playlist_id: string
+          position?: number
+          song_id: string
+          thumbnail: string
+          title: string
+          url: string
+        }
+        Update: {
+          added_at?: string
+          artist?: string
+          id?: string
+          playlist_id?: string
+          position?: number
+          song_id?: string
+          thumbnail?: string
+          title?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlist_songs_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playlists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

@@ -1,8 +1,9 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Music, MoreHorizontal, Play, Trash2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,18 +19,17 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
-interface Playlist {
-  id: string;
-  name: string;
-  songs: any[];
-  createdAt: Date;
-}
-
 const LibraryPage = () => {
-  const [playlists, setPlaylists] = useState<Playlist[]>([
-    { id: '1', name: 'My Favorites', songs: [], createdAt: new Date() },
-    { id: '2', name: 'Workout Hits', songs: [], createdAt: new Date() },
-  ]);
+  const {
+    playlists,
+    createPlaylist,
+    deletePlaylist,
+    renamePlaylist,
+    getPlaylistSongs,
+    playTrack,
+    refreshPlaylists,
+  } = useMusicPlayer();
+  
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [editingPlaylist, setEditingPlaylist] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -37,7 +37,11 @@ const LibraryPage = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  const createPlaylist = () => {
+  useEffect(() => {
+    refreshPlaylists();
+  }, [refreshPlaylists]);
+
+  const handleCreatePlaylist = async () => {
     if (!newPlaylistName.trim()) {
       toast({
         title: "Error",
@@ -47,40 +51,47 @@ const LibraryPage = () => {
       return;
     }
 
-    const newPlaylist: Playlist = {
-      id: Date.now().toString(),
-      name: newPlaylistName.trim(),
-      songs: [],
-      createdAt: new Date(),
-    };
-
-    setPlaylists([...playlists, newPlaylist]);
-    setNewPlaylistName('');
-    setIsCreateDialogOpen(false);
-    
-    toast({
-      title: "Success",
-      description: `Playlist "${newPlaylist.name}" created`,
-    });
+    try {
+      await createPlaylist(newPlaylistName.trim());
+      setNewPlaylistName('');
+      setIsCreateDialogOpen(false);
+      
+      toast({
+        title: "Success",
+        description: `Playlist "${newPlaylistName.trim()}" created`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create playlist",
+        variant: "destructive",
+      });
+    }
   };
 
-  const deletePlaylist = (playlistId: string) => {
-    const playlist = playlists.find(p => p.id === playlistId);
-    setPlaylists(playlists.filter(p => p.id !== playlistId));
-    
-    toast({
-      title: "Deleted",
-      description: `Playlist "${playlist?.name}" deleted`,
-    });
+  const handleDeletePlaylist = async (playlistId: string, playlistName: string) => {
+    try {
+      await deletePlaylist(playlistId);
+      toast({
+        title: "Deleted",
+        description: `Playlist "${playlistName}" deleted`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete playlist",
+        variant: "destructive",
+      });
+    }
   };
 
-  const startEditPlaylist = (playlist: Playlist) => {
+  const startEditPlaylist = (playlist: any) => {
     setEditingPlaylist(playlist.id);
     setEditName(playlist.name);
     setIsEditDialogOpen(true);
   };
 
-  const saveEditPlaylist = () => {
+  const saveEditPlaylist = async () => {
     if (!editName.trim()) {
       toast({
         title: "Error",
@@ -90,20 +101,50 @@ const LibraryPage = () => {
       return;
     }
 
-    setPlaylists(playlists.map(p => 
-      p.id === editingPlaylist 
-        ? { ...p, name: editName.trim() }
-        : p
-    ));
-    
-    setIsEditDialogOpen(false);
-    setEditingPlaylist(null);
-    setEditName('');
-    
-    toast({
-      title: "Success",
-      description: "Playlist renamed",
-    });
+    if (!editingPlaylist) return;
+
+    try {
+      await renamePlaylist(editingPlaylist, editName.trim());
+      setIsEditDialogOpen(false);
+      setEditingPlaylist(null);
+      setEditName('');
+      
+      toast({
+        title: "Success",
+        description: "Playlist renamed",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to rename playlist",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePlayPlaylist = async (playlistId: string) => {
+    try {
+      const songs = await getPlaylistSongs(playlistId);
+      if (songs.length > 0) {
+        playTrack(songs[0], songs, 0);
+        toast({
+          title: "Now Playing",
+          description: `Playing playlist`,
+        });
+      } else {
+        toast({
+          title: "Empty Playlist",
+          description: "This playlist has no songs",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to play playlist",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -131,7 +172,7 @@ const LibraryPage = () => {
                   value={newPlaylistName}
                   onChange={(e) => setNewPlaylistName(e.target.value)}
                   className="bg-gray-700 border-gray-600 text-white"
-                  onKeyPress={(e) => e.key === 'Enter' && createPlaylist()}
+                  onKeyPress={(e) => e.key === 'Enter' && handleCreatePlaylist()}
                 />
                 <div className="flex justify-end space-x-2">
                   <Button 
@@ -142,7 +183,7 @@ const LibraryPage = () => {
                     Cancel
                   </Button>
                   <Button 
-                    onClick={createPlaylist}
+                    onClick={handleCreatePlaylist}
                     className="bg-green-600 hover:bg-green-700"
                   >
                     Create
@@ -166,15 +207,15 @@ const LibraryPage = () => {
                 </div>
                 <div>
                   <h3 className="text-white font-semibold">{playlist.name}</h3>
-                  <p className="text-gray-400 text-sm">{playlist.songs.length} songs</p>
+                  <p className="text-gray-400 text-sm">Playlist</p>
                 </div>
               </div>
               
               <div className="flex items-center space-x-2">
                 <Button
                   size="sm"
+                  onClick={() => handlePlayPlaylist(playlist.id)}
                   className="bg-green-600 hover:bg-green-700 text-white"
-                  disabled={playlist.songs.length === 0}
                 >
                   <Play size={16} />
                 </Button>
@@ -194,7 +235,7 @@ const LibraryPage = () => {
                       Rename
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => deletePlaylist(playlist.id)}
+                      onClick={() => handleDeletePlaylist(playlist.id, playlist.name)}
                       className="text-red-400 hover:bg-gray-700"
                     >
                       <Trash2 size={16} className="mr-2" />

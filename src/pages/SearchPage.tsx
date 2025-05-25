@@ -1,11 +1,10 @@
 
-import { useState, useRef, useEffect } from 'react';
-import { Search, Play, Pause, SkipForward, SkipBack, Volume2, Plus, Heart } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Play, Pause, Plus, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import YouTubePlayer from '@/components/YouTubePlayer';
-import PlaybackControls from '@/components/PlaybackControls';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,14 +26,14 @@ const SearchPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<YouTubeVideo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState<YouTubeVideo | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playlist, setPlaylist] = useState<YouTubeVideo[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [playlists] = useState([
-    { id: '1', name: 'My Favorites' },
-    { id: '2', name: 'Workout Hits' },
-  ]);
+  const { 
+    currentTrack, 
+    isPlaying, 
+    playTrack, 
+    togglePlayPause, 
+    playlists, 
+    addToPlaylist 
+  } = useMusicPlayer();
   const { toast } = useToast();
 
   const searchYoutube = async (query = searchQuery) => {
@@ -72,17 +71,22 @@ const SearchPage = () => {
     }
   };
 
-  const playTrack = (video: YouTubeVideo, index?: number) => {
-    setCurrentTrack(video);
-    setIsPlaying(true);
-    
-    if (index !== undefined) {
-      setCurrentIndex(index);
-      setPlaylist(searchResults);
-    } else if (playlist.length === 0) {
-      setPlaylist([video]);
-      setCurrentIndex(0);
-    }
+  const handlePlayTrack = (video: YouTubeVideo, index: number) => {
+    const track = {
+      id: video.id,
+      title: video.title,
+      channelTitle: video.channelTitle,
+      thumbnail: video.thumbnail,
+      url: video.url,
+    };
+
+    playTrack(track, searchResults.map(v => ({
+      id: v.id,
+      title: v.title,
+      channelTitle: v.channelTitle,
+      thumbnail: v.thumbnail,
+      url: v.url,
+    })), index);
 
     toast({
       title: "Now Playing",
@@ -90,46 +94,37 @@ const SearchPage = () => {
     });
   };
 
-  const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
-  };
+  const handleAddToPlaylist = async (video: YouTubeVideo, playlistId: string) => {
+    try {
+      const track = {
+        id: video.id,
+        title: video.title,
+        channelTitle: video.channelTitle,
+        thumbnail: video.thumbnail,
+        url: video.url,
+      };
 
-  const skipNext = () => {
-    if (playlist.length > 0 && currentIndex < playlist.length - 1) {
-      const nextIndex = currentIndex + 1;
-      setCurrentIndex(nextIndex);
-      playTrack(playlist[nextIndex]);
+      await addToPlaylist(playlistId, track);
+      
+      const playlistName = playlists.find(p => p.id === playlistId)?.name;
+      toast({
+        title: "Added to Playlist",
+        description: `"${video.title}" added to ${playlistName}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add song to playlist",
+        variant: "destructive",
+      });
     }
-  };
-
-  const skipPrevious = () => {
-    if (playlist.length > 0 && currentIndex > 0) {
-      const prevIndex = currentIndex - 1;
-      setCurrentIndex(prevIndex);
-      playTrack(playlist[prevIndex]);
-    }
-  };
-
-  const addToPlaylist = (video: YouTubeVideo, playlistId: string) => {
-    const playlistName = playlists.find(p => p.id === playlistId)?.name;
-    toast({
-      title: "Added to Playlist",
-      description: `"${video.title}" added to ${playlistName}`,
-    });
-  };
-
-  const addToFavorites = (video: YouTubeVideo) => {
-    toast({
-      title: "Added to Favorites",
-      description: `"${video.title}" added to your favorites`,
-    });
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white pb-32">
       <div className="pt-8 px-6">
         <h1 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-yellow-400 to-teal-400 bg-clip-text text-transparent">
-          Music Player
+          Search Music
         </h1>
 
         {/* Search Input */}
@@ -152,29 +147,6 @@ const SearchPage = () => {
           </button>
         </div>
 
-        {/* Current Track Info */}
-        {currentTrack && (
-          <div className="mb-6 bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm">
-            <div className="flex items-center space-x-4">
-              <img
-                src={currentTrack.thumbnail}
-                alt={currentTrack.title}
-                className="w-16 h-12 rounded-lg object-cover"
-              />
-              <div className="flex-1">
-                <h3 className="text-white font-semibold text-sm line-clamp-1">
-                  {currentTrack.title}
-                </h3>
-                <p className="text-gray-400 text-xs">{currentTrack.channelTitle}</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Volume2 size={16} className="text-yellow-400" />
-                <span className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></span>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Search Results */}
         {searchResults.length > 0 && (
           <div className="mb-8">
@@ -194,9 +166,9 @@ const SearchPage = () => {
                     src={video.thumbnail}
                     alt={video.title}
                     className="w-16 h-12 rounded-lg object-cover flex-shrink-0 cursor-pointer"
-                    onClick={() => playTrack(video, index)}
+                    onClick={() => handlePlayTrack(video, index)}
                   />
-                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => playTrack(video, index)}>
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handlePlayTrack(video, index)}>
                     <h3 className="text-white font-semibold text-sm line-clamp-1 mb-1">
                       {video.title}
                     </h3>
@@ -206,7 +178,6 @@ const SearchPage = () => {
                   <div className="flex items-center space-x-2">
                     <Button
                       size="sm"
-                      onClick={() => addToFavorites(video)}
                       variant="ghost"
                       className="text-gray-400 hover:text-red-400"
                     >
@@ -227,18 +198,29 @@ const SearchPage = () => {
                         {playlists.map((playlist) => (
                           <DropdownMenuItem
                             key={playlist.id}
-                            onClick={() => addToPlaylist(video, playlist.id)}
+                            onClick={() => handleAddToPlaylist(video, playlist.id)}
                             className="text-white hover:bg-gray-700"
                           >
                             Add to {playlist.name}
                           </DropdownMenuItem>
                         ))}
+                        {playlists.length === 0 && (
+                          <DropdownMenuItem disabled className="text-gray-400">
+                            No playlists available
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                     
                     <Button
                       size="sm"
-                      onClick={() => playTrack(video, index)}
+                      onClick={() => {
+                        if (currentTrack?.id === video.id) {
+                          togglePlayPause();
+                        } else {
+                          handlePlayTrack(video, index);
+                        }
+                      }}
                       className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0"
                     >
                       {currentTrack?.id === video.id && isPlaying ? (
@@ -261,30 +243,6 @@ const SearchPage = () => {
           </div>
         )}
       </div>
-
-      {/* YouTube Player (Hidden) */}
-      {currentTrack && (
-        <YouTubePlayer
-          videoId={currentTrack.id}
-          isPlaying={isPlaying}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-          onEnd={skipNext}
-        />
-      )}
-
-      {/* Fixed Bottom Playback Controls */}
-      {currentTrack && (
-        <PlaybackControls
-          isPlaying={isPlaying}
-          onTogglePlay={togglePlayPause}
-          onSkipNext={skipNext}
-          onSkipPrevious={skipPrevious}
-          canSkipNext={currentIndex < playlist.length - 1}
-          canSkipPrevious={currentIndex > 0}
-          currentTrack={currentTrack}
-        />
-      )}
     </div>
   );
 };

@@ -15,7 +15,6 @@ const YouTubePlayer = () => {
   const { currentTrack, isPlaying, setIsPlaying, skipNext } = useMusicPlayer();
 
   useEffect(() => {
-    // Load YouTube IFrame API
     if (!window.YT) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
@@ -78,7 +77,6 @@ const YouTubePlayer = () => {
     };
   }, [currentTrack]);
 
-  // Update video when currentTrack changes
   useEffect(() => {
     if (playerRef.current && currentTrack) {
       try {
@@ -90,7 +88,6 @@ const YouTubePlayer = () => {
     }
   }, [currentTrack?.id]);
 
-  // Control playback
   useEffect(() => {
     if (playerRef.current) {
       try {
