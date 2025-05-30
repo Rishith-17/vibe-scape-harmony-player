@@ -1,5 +1,5 @@
 
-import { Home, Search, Library, Camera, User } from 'lucide-react';
+import { Home, Search, Library, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const BottomNavigation = () => {
@@ -10,7 +10,6 @@ const BottomNavigation = () => {
     { icon: Home, label: 'Home', path: '/' },
     { icon: Search, label: 'Search', path: '/search' },
     { icon: Library, label: 'Library', path: '/library' },
-    { icon: Camera, label: 'Emotions', path: '/emotions' },
     { icon: User, label: 'Profile', path: '/profile' },
   ];
 

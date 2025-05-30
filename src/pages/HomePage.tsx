@@ -4,7 +4,6 @@ import { Send, Mic, Camera, Zap, Music } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import MoodCard from '../components/MoodCard';
-import PlaylistCard from '../components/PlaylistCard';
 
 const HomePage = () => {
   const [inputText, setInputText] = useState('');
@@ -20,20 +19,6 @@ const HomePage = () => {
     { emoji: '😢', label: 'Sad' },
     { emoji: '⚡', label: 'Energetic', icon: <div className="text-yellow-400">⚡</div> },
     { emoji: '😌', label: 'Calm' },
-  ];
-
-  const playlists = [
-    {
-      title: 'Happy Vibes',
-      description: 'Uplifting tunes to boost your mood',
-      gradient: 'bg-gradient-to-br from-yellow-400 to-orange-500',
-    },
-    {
-      title: 'Calming Collection',
-      description: 'Relax and unwind with soothing melodies',
-      gradient: 'bg-gradient-to-br from-teal-400 to-blue-500',
-      textColor: 'text-white',
-    },
   ];
 
   const analyzeMood = async () => {
@@ -223,22 +208,6 @@ const HomePage = () => {
               icon={mood.icon}
               isSelected={selectedMood === mood.label.toLowerCase()}
               onClick={() => setSelectedMood(mood.label.toLowerCase())}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Featured Playlists */}
-      <div className="px-6">
-        <h2 className="text-2xl font-bold mb-6">Featured Playlists</h2>
-        <div className="grid grid-cols-1 gap-6">
-          {playlists.map((playlist) => (
-            <PlaylistCard
-              key={playlist.title}
-              title={playlist.title}
-              description={playlist.description}
-              gradient={playlist.gradient}
-              textColor={playlist.textColor}
             />
           ))}
         </div>
