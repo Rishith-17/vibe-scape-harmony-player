@@ -1,9 +1,31 @@
 
-import { useState } from 'react';
-import { Send, Mic, Camera, Zap, Music } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Send, Mic, Camera, Zap, Music, Globe, MapPin, Languages } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import MoodCard from '../components/MoodCard';
+import MusicFeedSection from '../components/MusicFeedSection';
+import MusicFeedGrid from '../components/MusicFeedGrid';
+
+interface Song {
+  title: string;
+  artist: string;
+  genre: string;
+  match_reason?: string;
+}
+
+interface MusicFeed {
+  personalizedRecommendations: Song[];
+  globalTrending: Song[];
+  countryTrending: {
+    country: string;
+    songs: Song[];
+  };
+  regionalTrending: {
+    language: string;
+    songs: Song[];
+  };
+}
 
 const HomePage = () => {
   const [inputText, setInputText] = useState('');
@@ -12,6 +34,8 @@ const HomePage = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [moodAnalysis, setMoodAnalysis] = useState<any>(null);
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [musicFeed, setMusicFeed] = useState<MusicFeed | null>(null);
+  const [isLoadingFeed, setIsLoadingFeed] = useState(false);
   const { toast } = useToast();
 
   const moods = [
@@ -20,6 +44,54 @@ const HomePage = () => {
     { emoji: '⚡', label: 'Energetic', icon: <div className="text-yellow-400">⚡</div> },
     { emoji: '😌', label: 'Calm' },
   ];
+
+  // Load music feed on component mount
+  useEffect(() => {
+    loadMusicFeed();
+  }, []);
+
+  const loadMusicFeed = async () => {
+    setIsLoadingFeed(true);
+    try {
+      // Get user's mood from analysis or default
+      const currentMood = moodAnalysis?.mood || selectedMood || 'happy';
+      
+      // Get user's country (you could use geolocation API here)
+      const userCountry = 'USA'; // Default, could be detected
+      const userLanguage = 'English'; // Default, could be from user preferences
+      
+      // You could also get user's listening history from your database
+      const userHistory = recommendations.slice(0, 5);
+
+      const { data, error } = await supabase.functions.invoke('gemini-music-feed', {
+        body: { 
+          mood: currentMood,
+          country: userCountry,
+          language: userLanguage,
+          userHistory
+        }
+      });
+
+      if (error) throw error;
+      setMusicFeed(data);
+    } catch (error: any) {
+      console.error('Error loading music feed:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load music recommendations",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingFeed(false);
+    }
+  };
+
+  // Reload feed when mood changes
+  useEffect(() => {
+    if (moodAnalysis || selectedMood) {
+      loadMusicFeed();
+    }
+  }, [moodAnalysis, selectedMood]);
 
   const analyzeMood = async () => {
     if (!inputText.trim()) {
@@ -67,6 +139,24 @@ const HomePage = () => {
       });
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handlePlaySong = async (song: Song, index: number) => {
+    try {
+      // Search for the song on YouTube
+      const { data, error } = await supabase.functions.invoke('youtube-search', {
+        body: { query: `${song.title} ${song.artist} official audio`, maxResults: 1 }
+      });
+
+      if (error) throw error;
+
+      if (data.videos && data.videos.length > 0) {
+        // This would be handled by the MusicFeedSection component
+        console.log('Playing song:', song);
+      }
+    } catch (error) {
+      console.error('Error playing song:', error);
     }
   };
 
@@ -193,6 +283,60 @@ const HomePage = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Music Feed */}
+      {isLoadingFeed ? (
+        <div className="px-6 mb-8">
+          <div className="text-center py-8">
+            <div className="w-8 h-8 border-4 border-green-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-300">Loading personalized music feed...</p>
+          </div>
+        </div>
+      ) : musicFeed && (
+        <div className="px-6 mb-8">
+          {/* Personalized Recommendations */}
+          {musicFeed.personalizedRecommendations.length > 0 && (
+            <MusicFeedSection
+              title="Made for You"
+              subtitle="Personalized recommendations based on your mood and taste"
+              songs={musicFeed.personalizedRecommendations}
+              showMatchReason={true}
+            />
+          )}
+
+          {/* Quick Picks Grid */}
+          <MusicFeedGrid
+            title="Quick Picks"
+            songs={musicFeed.globalTrending.slice(0, 6)}
+            onPlaySong={handlePlaySong}
+          />
+
+          {/* Global Trending */}
+          <MusicFeedSection
+            title="Global Top 10"
+            subtitle="Most streamed songs worldwide"
+            songs={musicFeed.globalTrending}
+          />
+
+          {/* Country Trending */}
+          {musicFeed.countryTrending.songs.length > 0 && (
+            <MusicFeedSection
+              title={`Trending in ${musicFeed.countryTrending.country}`}
+              subtitle="Popular in your country"
+              songs={musicFeed.countryTrending.songs}
+            />
+          )}
+
+          {/* Regional/Language */}
+          {musicFeed.regionalTrending.songs.length > 0 && (
+            <MusicFeedSection
+              title={`${musicFeed.regionalTrending.language} Hits`}
+              subtitle="Popular songs in your language"
+              songs={musicFeed.regionalTrending.songs}
+            />
+          )}
         </div>
       )}
 
