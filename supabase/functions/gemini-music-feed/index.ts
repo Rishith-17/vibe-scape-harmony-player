@@ -133,9 +133,15 @@ serve(async (req) => {
     let personalizedRecommendations = []
 
     try {
-      const recommendationText = geminiData.candidates[0].content.parts[0].text
-      const cleanedText = recommendationText.replace(/```json\n?|\n?```/g, '').trim()
-      personalizedRecommendations = JSON.parse(cleanedText)
+      // Check if response structure exists and has the expected format
+      if (geminiData.candidates && geminiData.candidates[0] && geminiData.candidates[0].content && geminiData.candidates[0].content.parts && geminiData.candidates[0].content.parts[0]) {
+        const recommendationText = geminiData.candidates[0].content.parts[0].text
+        const cleanedText = recommendationText.replace(/```json\n?|\n?```/g, '').trim()
+        personalizedRecommendations = JSON.parse(cleanedText)
+      } else {
+        console.error('Unexpected Gemini response structure:', geminiData)
+        throw new Error('Invalid response structure from Gemini')
+      }
     } catch (parseError) {
       console.error('Error parsing Gemini response:', parseError)
       // Fallback recommendations based on mood
