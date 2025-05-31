@@ -4,6 +4,7 @@ import { Plus, Music, MoreHorizontal, Play, Trash2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
+import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,7 @@ const LibraryPage = () => {
     refreshPlaylists,
   } = useMusicPlayer();
   
+  const navigate = useNavigate();
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [editingPlaylist, setEditingPlaylist] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -147,6 +149,10 @@ const LibraryPage = () => {
     }
   };
 
+  const handleViewPlaylist = (playlistId: string) => {
+    navigate(`/playlist/${playlistId}`);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white pb-32">
       <div className="pt-8 px-6">
@@ -199,7 +205,8 @@ const LibraryPage = () => {
           {playlists.map((playlist) => (
             <div
               key={playlist.id}
-              className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 flex items-center justify-between"
+              className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 flex items-center justify-between cursor-pointer"
+              onClick={() => handleViewPlaylist(playlist.id)}
             >
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
@@ -214,7 +221,10 @@ const LibraryPage = () => {
               <div className="flex items-center space-x-2">
                 <Button
                   size="sm"
-                  onClick={() => handlePlayPlaylist(playlist.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePlayPlaylist(playlist.id);
+                  }}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   <Play size={16} />
@@ -222,20 +232,31 @@ const LibraryPage = () => {
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-gray-400 hover:text-white"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <MoreHorizontal size={16} />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="bg-gray-800 border-gray-700">
                     <DropdownMenuItem 
-                      onClick={() => startEditPlaylist(playlist)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEditPlaylist(playlist);
+                      }}
                       className="text-white hover:bg-gray-700"
                     >
                       <Edit size={16} className="mr-2" />
                       Rename
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => handleDeletePlaylist(playlist.id, playlist.name)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePlaylist(playlist.id, playlist.name);
+                      }}
                       className="text-red-400 hover:bg-gray-700"
                     >
                       <Trash2 size={16} className="mr-2" />
