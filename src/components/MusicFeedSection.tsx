@@ -10,6 +10,7 @@ interface Song {
   artist: string;
   genre: string;
   match_reason?: string;
+  albumArt?: string;
 }
 
 interface MusicFeedSectionProps {
@@ -92,6 +93,19 @@ const MusicFeedSection = ({ title, subtitle, songs, showMatchReason = false }: M
             }`}
           >
             <div className="flex items-center space-x-3 flex-1 min-w-0">
+              {/* Album Art */}
+              <div className="w-15 h-15 flex-shrink-0">
+                <img
+                  src={song.albumArt || "https://via.placeholder.com/60x60/1a1a1a/ffffff?text=♪"}
+                  alt={`${song.title} album cover`}
+                  className="w-15 h-15 rounded-lg object-cover bg-gray-600"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "https://via.placeholder.com/60x60/1a1a1a/ffffff?text=♪";
+                  }}
+                />
+              </div>
+              
               <div className="w-8 h-8 bg-gray-600 rounded flex items-center justify-center text-xs text-gray-300 flex-shrink-0">
                 {index + 1}
               </div>

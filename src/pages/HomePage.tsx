@@ -11,6 +11,7 @@ interface Song {
   artist: string;
   genre: string;
   match_reason?: string;
+  albumArt?: string;
 }
 
 interface MusicFeed {
