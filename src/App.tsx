@@ -15,7 +15,6 @@ import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/HomePage";
 import SearchPage from "./pages/SearchPage";
 import LibraryPage from "./pages/LibraryPage";
-import PlaylistDetailPage from "./pages/PlaylistDetailPage";
 import EmotionsPage from "./pages/EmotionsPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
@@ -56,14 +55,6 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <LibraryPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/playlist/:id"
-                    element={
-                      <ProtectedRoute>
-                        <PlaylistDetailPage />
                       </ProtectedRoute>
                     }
                   />
