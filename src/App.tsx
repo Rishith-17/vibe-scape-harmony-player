@@ -11,7 +11,7 @@ import BottomNavigation from "@/components/BottomNavigation";
 import MiniPlayer from "@/components/MiniPlayer";
 import YouTubePlayer from "@/components/YouTubePlayer";
 import AuthPage from "./pages/AuthPage";
-import HomePage from "./pages/HomePage";
+import EnhancedHomePage from "./pages/EnhancedHomePage";
 import SearchPage from "./pages/SearchPage";
 import LibraryPage from "./pages/LibraryPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -36,7 +36,7 @@ function App() {
                     path="/home"
                     element={
                       <ProtectedRoute>
-                        <HomePage />
+                        <EnhancedHomePage />
                       </ProtectedRoute>
                     }
                   />
