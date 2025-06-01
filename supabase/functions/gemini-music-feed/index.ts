@@ -71,42 +71,54 @@ serve(async (req) => {
     const countryTrending = TRENDING_DATA.countries[country] || TRENDING_DATA.countries.USA
     const regionalTrending = TRENDING_DATA.regional[language] || TRENDING_DATA.regional.English || []
 
-    // Use structured prompts for Gemini
+    // Use simplified prompts for Gemini
     const globalPrompt = `Give me a list of the top 10 most popular songs globally right now. For each song, include:
-    - title
-    - artist
-    - language
-    - release_year
-    - YouTube video title (only the title, not the link)
-    
-    Respond in clean JSON format like this:
-    [{"title": "Song Name", "artist": "Artist Name", "language": "English", "release_year": 2024, "youtube_video_title": "Artist - Song Name (Official Video)"}]`
+- title
+- artist
+- A combined search query string (title + artist) for YouTube
+
+Respond in clean JSON format like this:
+[
+  {
+    "title": "Flowers",
+    "artist": "Miley Cyrus",
+    "youtube_search_query": "Flowers Miley Cyrus"
+  }
+]`
 
     const regionalPrompt = `List the top 10 trending songs in the following languages: Hindi, English, Tamil, Telugu, Punjabi.
-    
-    For each song, include:
-    - title
-    - artist
-    - language
-    - country or region
-    - YouTube video title (only the title, not the link)
-    
-    Respond in clean JSON format like this:
-    [{"title": "Song Name", "artist": "Artist Name", "language": "Hindi", "country": "India", "youtube_video_title": "Artist - Song Name Official Video"}]`
+
+For each song, include:
+- title
+- artist
+- A combined search query string (title + artist) for YouTube
+
+Respond in clean JSON format like this:
+[
+  {
+    "title": "Kesariya",
+    "artist": "Arijit Singh", 
+    "youtube_search_query": "Kesariya Arijit Singh"
+  }
+]`
 
     const newReleasesPrompt = `List 10 newly released songs from the past 7 days in these languages: Hindi, English, Tamil, Telugu, Punjabi.
-    
-    For each song, include:
-    - title
-    - artist
-    - language
-    - release_date
-    - YouTube video title (just the title, no link)
-    
-    Respond in JSON format like this:
-    [{"title": "Song Name", "artist": "Artist Name", "language": "English", "release_date": "2024-01-15", "youtube_video_title": "Artist - Song Name (Official Audio)"}]`
 
-    // Generate personalized recommendations using structured prompts
+For each song, include:
+- title
+- artist
+- A combined search query string (title + artist) for YouTube
+
+Respond in JSON format like this:
+[
+  {
+    "title": "Song Name",
+    "artist": "Artist Name",
+    "youtube_search_query": "Song Name Artist Name"
+  }
+]`
+
+    // Generate personalized recommendations using simplified prompts
     const selectedPrompt = mood === 'global' ? globalPrompt : 
                           mood === 'regional' ? regionalPrompt : 
                           mood === 'new' ? newReleasesPrompt : globalPrompt
@@ -134,11 +146,15 @@ serve(async (req) => {
         const cleanedText = recommendationText.replace(/```json\n?|\n?```/g, '').trim()
         personalizedRecommendations = JSON.parse(cleanedText)
         
-        // Ensure albumArt field exists for all recommendations and add missing fields
+        // Convert the simplified format to our existing format for compatibility
         personalizedRecommendations = personalizedRecommendations.map(song => ({
-          ...song,
-          albumArt: song.albumArt || "https://via.placeholder.com/300x300/1a1a1a/ffffff?text=Album+Art",
-          genre: song.genre || "Pop",
+          title: song.title,
+          artist: song.artist,
+          youtube_search_query: song.youtube_search_query,
+          albumArt: "https://via.placeholder.com/300x300/1a1a1a/ffffff?text=Album+Art",
+          genre: "Pop",
+          language: "English",
+          release_year: 2024,
           match_reason: `Matches your ${mood} mood and preferences`
         }))
       } else {
@@ -147,25 +163,45 @@ serve(async (req) => {
       }
     } catch (parseError) {
       console.error('Error parsing Gemini response:', parseError)
-      // Fallback recommendations based on mood using structured data
+      // Fallback recommendations using structured data
       personalizedRecommendations = globalTrending.slice(0, 8).map(song => ({
-        ...song,
-        match_reason: `Matches your ${mood} mood`,
+        title: song.title,
+        artist: song.artist,
+        youtube_search_query: `${song.title} ${song.artist}`,
         albumArt: song.albumArt || "https://via.placeholder.com/300x300/1a1a1a/ffffff?text=Album+Art",
-        youtube_video_title: `${song.artist} - ${song.title} (Official Audio)`
+        genre: song.genre,
+        language: song.language,
+        release_year: song.release_year,
+        match_reason: `Matches your ${mood} mood`
       }))
     }
 
+    // Convert existing trending data to include youtube_search_query
+    const enhancedGlobalTrending = globalTrending.map(song => ({
+      ...song,
+      youtube_search_query: `${song.title} ${song.artist}`
+    }))
+
+    const enhancedCountryTrending = countryTrending.map(song => ({
+      ...song,
+      youtube_search_query: `${song.title} ${song.artist}`
+    }))
+
+    const enhancedRegionalTrending = regionalTrending.map(song => ({
+      ...song,
+      youtube_search_query: `${song.title} ${song.artist}`
+    }))
+
     const musicFeed = {
       personalizedRecommendations,
-      globalTrending,
+      globalTrending: enhancedGlobalTrending,
       countryTrending: {
         country,
-        songs: countryTrending
+        songs: enhancedCountryTrending
       },
       regionalTrending: {
         language,
-        songs: regionalTrending
+        songs: enhancedRegionalTrending
       }
     }
 

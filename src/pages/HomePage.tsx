@@ -15,7 +15,7 @@ interface Song {
   language?: string;
   release_year?: number;
   category?: string;
-  youtube_video_title?: string;
+  youtube_search_query?: string;
 }
 
 interface RecommendationData {
@@ -59,7 +59,7 @@ const HomePage = () => {
           language: song.language || 'English',
           release_year: song.release_year || 2024,
           category: 'Global',
-          youtube_video_title: `${song.title} - ${song.artist} (Official Audio)`
+          youtube_search_query: song.youtube_search_query || `${song.title} ${song.artist}`
         })) || [],
         newlyReleased: data.personalizedRecommendations?.slice(0, 6).map((song: any) => ({
           id: generateVideoId(song.title, song.artist),
@@ -68,7 +68,7 @@ const HomePage = () => {
           thumbnail: `https://img.youtube.com/vi/${generateVideoId(song.title, song.artist)}/hqdefault.jpg`,
           language: song.language || 'English',
           category: 'New',
-          youtube_video_title: `${song.title} - ${song.artist} (Official Audio)`
+          youtube_search_query: song.youtube_search_query || `${song.title} ${song.artist}`
         })) || [],
         topRegional: data.regionalTrending?.songs?.map((song: any) => ({
           id: generateVideoId(song.title, song.artist),
@@ -77,7 +77,7 @@ const HomePage = () => {
           thumbnail: `https://img.youtube.com/vi/${generateVideoId(song.title, song.artist)}/hqdefault.jpg`,
           language: song.language || data.regionalTrending?.language || 'English',
           category: 'Regional',
-          youtube_video_title: `${song.title} - ${song.artist} (Official Audio)`
+          youtube_search_query: song.youtube_search_query || `${song.title} ${song.artist}`
         })) || []
       };
       
@@ -96,7 +96,7 @@ const HomePage = () => {
             language: "English",
             release_year: 1987,
             category: "Global",
-            youtube_video_title: "Rick Astley - Never Gonna Give You Up (Official Video)"
+            youtube_search_query: "Never Gonna Give You Up Rick Astley"
           },
           { 
             id: "L_jWHffIx5E", 
@@ -106,7 +106,7 @@ const HomePage = () => {
             language: "English",
             release_year: 1991,
             category: "Global",
-            youtube_video_title: "Nirvana - Smells Like Teen Spirit (Official Music Video)"
+            youtube_search_query: "Smells Like Teen Spirit Nirvana"
           },
           { 
             id: "fJ9rUzIMcZQ", 
@@ -116,7 +116,7 @@ const HomePage = () => {
             language: "English",
             release_year: 1975,
             category: "Global",
-            youtube_video_title: "Queen - Bohemian Rhapsody (Official Video)"
+            youtube_search_query: "Bohemian Rhapsody Queen"
           },
           { 
             id: "kJQP7kiw5Fk", 
@@ -126,7 +126,7 @@ const HomePage = () => {
             language: "Spanish",
             release_year: 2017,
             category: "Global",
-            youtube_video_title: "Luis Fonsi - Despacito ft. Daddy Yankee"
+            youtube_search_query: "Despacito Luis Fonsi"
           },
           { 
             id: "CevxZvSJLk8", 
@@ -136,7 +136,7 @@ const HomePage = () => {
             language: "Korean",
             release_year: 2012,
             category: "Global",
-            youtube_video_title: "PSY - GANGNAM STYLE(강남스타일) M/V"
+            youtube_search_query: "Gangnam Style PSY"
           },
           { 
             id: "60ItHLz5WEA", 
@@ -146,7 +146,7 @@ const HomePage = () => {
             language: "English",
             release_year: 2015,
             category: "Global",
-            youtube_video_title: "Alan Walker - Faded"
+            youtube_search_query: "Faded Alan Walker"
           }
         ],
         newlyReleased: [
@@ -157,7 +157,7 @@ const HomePage = () => {
             thumbnail: "https://img.youtube.com/vi/nfWlot6h_JM/hqdefault.jpg",
             language: "English",
             category: "New",
-            youtube_video_title: "Ed Sheeran - Shape of You (Official Music Video)"
+            youtube_search_query: "Shape of You Ed Sheeran"
           },
           { 
             id: "RgKAFK5djSk", 
@@ -166,7 +166,7 @@ const HomePage = () => {
             thumbnail: "https://img.youtube.com/vi/RgKAFK5djSk/hqdefault.jpg",
             language: "English",
             category: "New",
-            youtube_video_title: "Miley Cyrus - Wrecking Ball (Official Music Video)"
+            youtube_search_query: "Wrecking Ball Miley Cyrus"
           },
           { 
             id: "hT_nvWreIhg", 
@@ -175,7 +175,7 @@ const HomePage = () => {
             thumbnail: "https://img.youtube.com/vi/hT_nvWreIhg/hqdefault.jpg",
             language: "English",
             category: "New",
-            youtube_video_title: "OneRepublic - Counting Stars (Official Music Video)"
+            youtube_search_query: "Counting Stars OneRepublic"
           },
           { 
             id: "YQHsXMglC9A", 
@@ -184,7 +184,7 @@ const HomePage = () => {
             thumbnail: "https://img.youtube.com/vi/YQHsXMglC9A/hqdefault.jpg",
             language: "English",
             category: "New",
-            youtube_video_title: "Adele - Hello (Official Music Video)"
+            youtube_search_query: "Hello Adele"
           },
           { 
             id: "pt8VYOfr8To", 
@@ -193,7 +193,7 @@ const HomePage = () => {
             thumbnail: "https://img.youtube.com/vi/pt8VYOfr8To/hqdefault.jpg",
             language: "English",
             category: "New",
-            youtube_video_title: "Justin Bieber - Sorry (PURPOSE : The Movement)"
+            youtube_search_query: "Sorry Justin Bieber"
           },
           { 
             id: "JGwWNGJdvx8", 
@@ -202,7 +202,7 @@ const HomePage = () => {
             thumbnail: "https://img.youtube.com/vi/JGwWNGJdvx8/hqdefault.jpg",
             language: "English",
             category: "New",
-            youtube_video_title: "Wiz Khalifa - See You Again ft. Charlie Puth [Official Video]"
+            youtube_search_query: "See You Again Wiz Khalifa"
           }
         ],
         topRegional: [
@@ -213,7 +213,7 @@ const HomePage = () => {
             thumbnail: "https://img.youtube.com/vi/SlPhMPnQ58k/hqdefault.jpg",
             language: "English",
             category: "Regional",
-            youtube_video_title: "Sia - Cheap Thrills (Official Music Video)"
+            youtube_search_query: "Cheap Thrills Sia"
           },
           { 
             id: "lp-EO5I60KA", 
@@ -222,7 +222,7 @@ const HomePage = () => {
             thumbnail: "https://img.youtube.com/vi/lp-EO5I60KA/hqdefault.jpg",
             language: "English",
             category: "Regional",
-            youtube_video_title: "Ed Sheeran - Thinking Out Loud (Official Music Video)"
+            youtube_search_query: "Thinking Out Loud Ed Sheeran"
           },
           { 
             id: "iLBBRuVDOo4", 
@@ -231,7 +231,7 @@ const HomePage = () => {
             thumbnail: "https://img.youtube.com/vi/iLBBRuVDOo4/hqdefault.jpg",
             language: "English",
             category: "Regional",
-            youtube_video_title: "The Weeknd - Can't Feel My Face (Official Music Video)"
+            youtube_search_query: "Can't Feel My Face The Weeknd"
           },
           { 
             id: "UceaB4D0jpo", 
@@ -240,7 +240,7 @@ const HomePage = () => {
             thumbnail: "https://img.youtube.com/vi/UceaB4D0jpo/hqdefault.jpg",
             language: "English",
             category: "Regional",
-            youtube_video_title: "Justin Bieber - What Do You Mean? (Official Music Video)"
+            youtube_search_query: "What Do You Mean Justin Bieber"
           },
           { 
             id: "CdqoNKCCt7A", 
@@ -249,7 +249,7 @@ const HomePage = () => {
             thumbnail: "https://img.youtube.com/vi/CdqoNKCCt7A/hqdefault.jpg",
             language: "English",
             category: "Regional",
-            youtube_video_title: "Justin Bieber - Love Yourself (PURPOSE : The Movement)"
+            youtube_search_query: "Love Yourself Justin Bieber"
           },
           { 
             id: "uelHwf8o7_U", 
@@ -258,7 +258,7 @@ const HomePage = () => {
             thumbnail: "https://img.youtube.com/vi/uelHwf8o7_U/hqdefault.jpg",
             language: "English",
             category: "Regional",
-            youtube_video_title: "Katy Perry - Roar (Official)"
+            youtube_search_query: "Roar Katy Perry"
           }
         ]
       };
@@ -396,7 +396,7 @@ const HomePage = () => {
 
       {/* 3D Floating Elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 left-4 sm:left-10 w-3 sm:w-4 h-3 sm:h-4 bg-green-400 rounded-full animate-ping opacity-20"></div>
+        <div className="absolute top-1/4 left-4 sm:left-10 w-3 sm:w-4 h-3 sm:h-3 bg-green-400 rounded-full animate-ping opacity-20"></div>
         <div className="absolute top-1/3 right-4 sm:right-20 w-4 sm:w-6 h-4 sm:h-6 bg-purple-400 rounded-full animate-ping opacity-20 delay-1000"></div>
         <div className="absolute bottom-1/4 left-1/4 w-3 sm:w-5 h-3 sm:h-5 bg-blue-400 rounded-full animate-ping opacity-20 delay-2000"></div>
         <div className="absolute bottom-1/3 right-1/3 w-2 sm:w-3 h-2 sm:h-3 bg-yellow-400 rounded-full animate-ping opacity-20 delay-3000"></div>
