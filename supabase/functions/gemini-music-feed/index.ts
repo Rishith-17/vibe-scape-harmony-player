@@ -6,53 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const TRENDING_DATA = {
-  global: [
-    { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", language: "English", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
-    { title: "As It Was", artist: "Harry Styles", genre: "Pop Rock", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273b46f74097655d7f353caab14" },
-    { title: "Anti-Hero", artist: "Taylor Swift", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273bb54dde68cd23e2a268ae0f5" },
-    { title: "Calm Down", artist: "Rema & Selena Gomez", genre: "Afrobeats", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273b7e976d2b35c767f9012cb06" },
-    { title: "Unholy", artist: "Sam Smith ft. Kim Petras", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273f65500c8470b8f8a7bdfbc3a" },
-    { title: "I'm Good (Blue)", artist: "David Guetta & Bebe Rexha", genre: "Dance Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273c4f5e3abddec0e1d15150e1f" },
-    { title: "Creepin'", artist: "Metro Boomin, The Weeknd, 21 Savage", genre: "Hip Hop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273c02da72d9803e54d3ca2a4fc" },
-    { title: "Heat Waves", artist: "Glass Animals", genre: "Indie Pop", language: "English", release_year: 2020, albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-    { title: "Bad Habit", artist: "Steve Lacy", genre: "Alternative R&B", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273b85259a971157ac2cc9d2496" },
-    { title: "Golden Hour", artist: "JVKE", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273c4f5e3abddec0e1d15150e1f" }
-  ],
-  countries: {
-    USA: [
-      { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", language: "English", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
-      { title: "Anti-Hero", artist: "Taylor Swift", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273bb54dde68cd23e2a268ae0f5" },
-      { title: "Creepin'", artist: "Metro Boomin, The Weeknd, 21 Savage", genre: "Hip Hop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273c02da72d9803e54d3ca2a4fc" },
-      { title: "Bad Habit", artist: "Steve Lacy", genre: "Alternative R&B", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273b85259a971157ac2cc9d2496" },
-      { title: "Golden Hour", artist: "JVKE", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273c4f5e3abddec0e1d15150e1f" }
-    ],
-    India: [
-      { title: "Kesariya", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Pal Pal Dil Ke Paas", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2019, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Apna Bana Le", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Chaleya", artist: "Arijit Singh & Shilpa Rao", genre: "Bollywood", language: "Hindi", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Calm Down", artist: "Rema & Selena Gomez", genre: "Afrobeats", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273b7e976d2b35c767f9012cb06" }
-    ]
-  },
-  regional: {
-    Hindi: [
-      { title: "Kesariya", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Pal Pal Dil Ke Paas", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2019, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Apna Bana Le", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Chaleya", artist: "Arijit Singh & Shilpa Rao", genre: "Bollywood", language: "Hindi", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Tum Hi Ho", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2013, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" }
-    ],
-    English: [
-      { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", language: "English", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
-      { title: "As It Was", artist: "Harry Styles", genre: "Pop Rock", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273b46f74097655d7f353caab14" },
-      { title: "Anti-Hero", artist: "Taylor Swift", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273bb54dde68cd23e2a268ae0f5" },
-      { title: "Unholy", artist: "Sam Smith ft. Kim Petras", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273f65500c8470b8f8a7bdfbc3a" },
-      { title: "Heat Waves", artist: "Glass Animals", genre: "Indie Pop", language: "English", release_year: 2020, albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" }
-    ]
-  }
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -61,147 +14,162 @@ serve(async (req) => {
   try {
     const { mood, country = 'USA', language = 'English', userHistory = [] } = await req.json()
     
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
-    if (!geminiApiKey) {
-      throw new Error('Gemini API key not configured')
+    const youtubeApiKey = Deno.env.get('YOUTUBE_API_KEY')
+    if (!youtubeApiKey) {
+      throw new Error('YouTube API key not configured')
     }
 
-    // Get trending data based on country and language
-    const globalTrending = TRENDING_DATA.global.slice(0, 10)
-    const countryTrending = TRENDING_DATA.countries[country] || TRENDING_DATA.countries.USA
-    const regionalTrending = TRENDING_DATA.regional[language] || TRENDING_DATA.regional.English || []
+    console.log(`Fetching recommendations for mood: ${mood}, country: ${country}, language: ${language}`)
 
-    // Use simplified prompts for Gemini
-    const globalPrompt = `Give me a list of the top 10 most popular songs globally right now. For each song, include:
-- title
-- artist
-- A combined search query string (title + artist) for YouTube
+    let searchQueries: string[] = []
 
-Respond in clean JSON format like this:
-[
-  {
-    "title": "Flowers",
-    "artist": "Miley Cyrus",
-    "youtube_search_query": "Flowers Miley Cyrus"
-  }
-]`
+    // Define search queries based on mood and preferences
+    switch (mood) {
+      case 'global':
+        searchQueries = [
+          'top songs 2024 trending',
+          'popular music worldwide',
+          'viral songs trending now',
+          'chart toppers global',
+          'trending music videos',
+          'popular hits 2024',
+          'top 40 songs',
+          'music trending worldwide',
+          'viral music videos',
+          'global hit songs'
+        ]
+        break
+      case 'new':
+        searchQueries = [
+          `new ${language} songs 2024`,
+          `latest ${language} music releases`,
+          `new ${language} hits this week`,
+          `fresh ${language} songs`,
+          `${language} new music 2024`,
+          `latest ${language} tracks`,
+          `new ${language} albums 2024`,
+          `recent ${language} music`,
+          `${language} songs released today`,
+          `brand new ${language} music`
+        ]
+        break
+      case 'regional':
+        if (language === 'Hindi') {
+          searchQueries = [
+            'bollywood songs trending',
+            'hindi songs 2024',
+            'bollywood hits',
+            'indian music trending',
+            'hindi pop songs',
+            'bollywood new songs',
+            'hindi romantic songs',
+            'punjabi songs trending',
+            'hindi dance songs',
+            'bollywood latest'
+          ]
+        } else if (language === 'English') {
+          searchQueries = [
+            `${country} top songs`,
+            `${country} music trending`,
+            `popular songs ${country}`,
+            `${country} chart hits`,
+            `trending music ${country}`,
+            `${country} radio hits`,
+            `${country} pop songs`,
+            `${country} music 2024`,
+            `top hits ${country}`,
+            `${country} billboard songs`
+          ]
+        } else {
+          searchQueries = [
+            `${language} songs trending`,
+            `${language} music 2024`,
+            `${language} popular songs`,
+            `${language} hits`,
+            `${language} music videos`,
+            `${language} latest songs`,
+            `${language} top tracks`,
+            `${language} music trending`,
+            `${language} songs 2024`,
+            `${language} hit songs`
+          ]
+        }
+        break
+      default:
+        searchQueries = [
+          'trending music 2024',
+          'popular songs worldwide',
+          'viral music videos',
+          'top songs global',
+          'music hits 2024'
+        ]
+    }
 
-    const regionalPrompt = `List the top 10 trending songs in the following languages: Hindi, English, Tamil, Telugu, Punjabi.
-
-For each song, include:
-- title
-- artist
-- A combined search query string (title + artist) for YouTube
-
-Respond in clean JSON format like this:
-[
-  {
-    "title": "Kesariya",
-    "artist": "Arijit Singh", 
-    "youtube_search_query": "Kesariya Arijit Singh"
-  }
-]`
-
-    const newReleasesPrompt = `List 10 newly released songs from the past 7 days in these languages: Hindi, English, Tamil, Telugu, Punjabi.
-
-For each song, include:
-- title
-- artist
-- A combined search query string (title + artist) for YouTube
-
-Respond in JSON format like this:
-[
-  {
-    "title": "Song Name",
-    "artist": "Artist Name",
-    "youtube_search_query": "Song Name Artist Name"
-  }
-]`
-
-    // Generate personalized recommendations using simplified prompts
-    const selectedPrompt = mood === 'global' ? globalPrompt : 
-                          mood === 'regional' ? regionalPrompt : 
-                          mood === 'new' ? newReleasesPrompt : globalPrompt
-
-    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: selectedPrompt
-          }]
-        }]
-      })
-    })
-
-    const geminiData = await geminiResponse.json()
-    let personalizedRecommendations = []
-
-    try {
-      if (geminiData.candidates && geminiData.candidates[0] && geminiData.candidates[0].content && geminiData.candidates[0].content.parts && geminiData.candidates[0].content.parts[0]) {
-        const recommendationText = geminiData.candidates[0].content.parts[0].text
-        const cleanedText = recommendationText.replace(/```json\n?|\n?```/g, '').trim()
-        personalizedRecommendations = JSON.parse(cleanedText)
+    // Fetch recommendations from YouTube API
+    const recommendations = []
+    
+    for (const query of searchQueries.slice(0, 5)) { // Limit to 5 queries to avoid rate limits
+      try {
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&q=${encodeURIComponent(query)}&maxResults=10&order=relevance&key=${youtubeApiKey}`
         
-        // Convert the simplified format to our existing format for compatibility
-        personalizedRecommendations = personalizedRecommendations.map(song => ({
-          title: song.title,
-          artist: song.artist,
-          youtube_search_query: song.youtube_search_query,
-          albumArt: "https://via.placeholder.com/300x300/1a1a1a/ffffff?text=Album+Art",
-          genre: "Pop",
-          language: "English",
-          release_year: 2024,
-          match_reason: `Matches your ${mood} mood and preferences`
-        }))
-      } else {
-        console.error('Unexpected Gemini response structure:', geminiData)
-        throw new Error('Invalid response structure from Gemini')
+        const response = await fetch(searchUrl)
+        const data = await response.json()
+
+        if (!response.ok) {
+          console.error('YouTube API error:', data.error?.message)
+          continue
+        }
+
+        if (data.items) {
+          for (const item of data.items) {
+            // Extract video details
+            const videoId = item.id.videoId
+            const title = item.snippet.title
+            const channelTitle = item.snippet.channelTitle
+            const thumbnailUrl = item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url
+            
+            // Create YouTube search query
+            const youtube_search_query = `${title} ${channelTitle}`.replace(/[^\w\s]/gi, '').trim()
+
+            recommendations.push({
+              title: title,
+              artist: channelTitle,
+              youtube_search_query: youtube_search_query,
+              albumArt: thumbnailUrl,
+              genre: "Music",
+              language: language,
+              release_year: 2024,
+              match_reason: `Trending ${mood} music`,
+              videoId: videoId,
+              thumbnail: thumbnailUrl
+            })
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching data for query "${query}":`, error)
+        continue
       }
-    } catch (parseError) {
-      console.error('Error parsing Gemini response:', parseError)
-      // Fallback recommendations using structured data
-      personalizedRecommendations = globalTrending.slice(0, 8).map(song => ({
-        title: song.title,
-        artist: song.artist,
-        youtube_search_query: `${song.title} ${song.artist}`,
-        albumArt: song.albumArt || "https://via.placeholder.com/300x300/1a1a1a/ffffff?text=Album+Art",
-        genre: song.genre,
-        language: song.language,
-        release_year: song.release_year,
-        match_reason: `Matches your ${mood} mood`
-      }))
     }
 
-    // Convert existing trending data to include youtube_search_query
-    const enhancedGlobalTrending = globalTrending.map(song => ({
-      ...song,
-      youtube_search_query: `${song.title} ${song.artist}`
-    }))
+    // Remove duplicates and limit results
+    const uniqueRecommendations = recommendations
+      .filter((song, index, self) => 
+        index === self.findIndex(s => s.title === song.title && s.artist === song.artist)
+      )
+      .slice(0, 10)
 
-    const enhancedCountryTrending = countryTrending.map(song => ({
-      ...song,
-      youtube_search_query: `${song.title} ${song.artist}`
-    }))
-
-    const enhancedRegionalTrending = regionalTrending.map(song => ({
-      ...song,
-      youtube_search_query: `${song.title} ${song.artist}`
-    }))
+    console.log(`Found ${uniqueRecommendations.length} unique recommendations`)
 
     const musicFeed = {
-      personalizedRecommendations,
-      globalTrending: enhancedGlobalTrending,
+      personalizedRecommendations: uniqueRecommendations,
+      globalTrending: uniqueRecommendations,
       countryTrending: {
         country,
-        songs: enhancedCountryTrending
+        songs: uniqueRecommendations
       },
       regionalTrending: {
         language,
-        songs: enhancedRegionalTrending
+        songs: uniqueRecommendations
       }
     }
 

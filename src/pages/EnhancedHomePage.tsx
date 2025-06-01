@@ -75,12 +75,12 @@ const EnhancedHomePage = () => {
         body: { 
           mood: 'regional',
           country: selectedCountry,
-          language: 'Multi-language',
+          language: 'English',
           userHistory: []
         }
       });
 
-      // Language/State-specific
+      // Language-specific
       const languageResponse = await supabase.functions.invoke('gemini-music-feed', {
         body: { 
           mood: 'regional',
@@ -92,38 +92,38 @@ const EnhancedHomePage = () => {
 
       const processedData: RecommendationData = {
         globalTrending: globalResponse.data?.personalizedRecommendations?.slice(0, 10).map((song: any) => ({
-          id: generateVideoId(song.title, song.artist),
+          id: song.videoId || generateVideoId(song.title, song.artist),
           title: song.title,
           artist: song.artist,
-          thumbnail: `https://img.youtube.com/vi/${generateVideoId(song.title, song.artist)}/hqdefault.jpg`,
+          thumbnail: song.thumbnail || song.albumArt || `https://img.youtube.com/vi/${song.videoId || generateVideoId(song.title, song.artist)}/hqdefault.jpg`,
           language: song.language || 'English',
           category: 'Global',
           youtube_search_query: song.youtube_search_query || `${song.title} ${song.artist}`
         })) || [],
         newReleases: newResponse.data?.personalizedRecommendations?.slice(0, 10).map((song: any) => ({
-          id: generateVideoId(song.title, song.artist),
+          id: song.videoId || generateVideoId(song.title, song.artist),
           title: song.title,
           artist: song.artist,
-          thumbnail: `https://img.youtube.com/vi/${generateVideoId(song.title, song.artist)}/hqdefault.jpg`,
+          thumbnail: song.thumbnail || song.albumArt || `https://img.youtube.com/vi/${song.videoId || generateVideoId(song.title, song.artist)}/hqdefault.jpg`,
           language: song.language || selectedLanguage,
           category: 'New Release',
           youtube_search_query: song.youtube_search_query || `${song.title} ${song.artist}`
         })) || [],
         topByCountry: countryResponse.data?.personalizedRecommendations?.slice(0, 10).map((song: any) => ({
-          id: generateVideoId(song.title, song.artist),
+          id: song.videoId || generateVideoId(song.title, song.artist),
           title: song.title,
           artist: song.artist,
-          thumbnail: `https://img.youtube.com/vi/${generateVideoId(song.title, song.artist)}/hqdefault.jpg`,
+          thumbnail: song.thumbnail || song.albumArt || `https://img.youtube.com/vi/${song.videoId || generateVideoId(song.title, song.artist)}/hqdefault.jpg`,
           language: song.language || 'English',
           country: selectedCountry,
           category: 'Country Top',
           youtube_search_query: song.youtube_search_query || `${song.title} ${song.artist}`
         })) || [],
         topByState: languageResponse.data?.personalizedRecommendations?.slice(0, 10).map((song: any) => ({
-          id: generateVideoId(song.title, song.artist),
+          id: song.videoId || generateVideoId(song.title, song.artist),
           title: song.title,
           artist: song.artist,
-          thumbnail: `https://img.youtube.com/vi/${generateVideoId(song.title, song.artist)}/hqdefault.jpg`,
+          thumbnail: song.thumbnail || song.albumArt || `https://img.youtube.com/vi/${song.videoId || generateVideoId(song.title, song.artist)}/hqdefault.jpg`,
           language: selectedLanguage,
           category: 'Language Top',
           youtube_search_query: song.youtube_search_query || `${song.title} ${song.artist}`

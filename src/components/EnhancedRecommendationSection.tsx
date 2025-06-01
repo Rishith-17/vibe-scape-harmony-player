@@ -73,8 +73,16 @@ const EnhancedRecommendationSection = ({
                 className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = "https://via.placeholder.com/480x360/1a1a1a/ffffff?text=♪";
+                  // Try alternative thumbnail sources
+                  if (target.src.includes('hqdefault')) {
+                    target.src = target.src.replace('hqdefault', 'maxresdefault');
+                  } else if (target.src.includes('maxresdefault')) {
+                    target.src = target.src.replace('maxresdefault', 'sddefault');
+                  } else {
+                    target.src = "https://via.placeholder.com/480x360/1a1a1a/ffffff?text=♪";
+                  }
                 }}
+                onLoad={() => console.log(`Thumbnail loaded for: ${song.title}`)}
               />
               
               {/* Audio-Only Indicator */}
