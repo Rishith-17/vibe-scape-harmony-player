@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Play, Shuffle, ChevronRight } from 'lucide-react';
+import { Shuffle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -110,8 +110,8 @@ const HomePage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-x-hidden">
+        <div className="text-center px-4">
           <div className="w-16 h-16 border-4 border-green-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-white text-lg">Loading your music...</p>
         </div>
@@ -120,37 +120,37 @@ const HomePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white pb-24 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white pb-24 overflow-x-hidden w-full">
       {/* Animated Background Elements */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-green-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-60 right-20 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute bottom-40 left-1/3 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-20 left-4 sm:left-20 w-32 sm:w-72 h-32 sm:h-72 bg-green-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-40 sm:top-60 right-4 sm:right-20 w-48 sm:w-96 h-48 sm:h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute bottom-40 left-1/4 w-40 sm:w-80 h-40 sm:h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
       </div>
 
       {/* Header */}
-      <div className="relative z-10 pt-8 px-6">
-        <div className="text-center mb-8 animate-fade-in">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-scale-in">
+      <div className="relative z-10 pt-6 sm:pt-8 px-4 sm:px-6 w-full">
+        <div className="text-center mb-6 sm:mb-8 animate-fade-in max-w-full">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-scale-in px-2">
             MoodTunes
           </h1>
-          <p className="text-gray-300 text-lg">Discover amazing music powered by YouTube</p>
+          <p className="text-gray-300 text-base sm:text-lg px-4">Discover amazing music powered by YouTube</p>
         </div>
 
         {/* Large Shuffle Play Button */}
-        <div className="flex justify-center mb-12 animate-slide-in-right">
+        <div className="flex justify-center mb-8 sm:mb-12 animate-slide-in-right px-4">
           <Button
             onClick={handleShufflePlay}
-            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-12 py-6 rounded-full text-xl font-bold shadow-2xl transform hover:scale-105 transition-all duration-300 hover:shadow-green-500/25"
+            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 sm:px-12 py-4 sm:py-6 rounded-full text-lg sm:text-xl font-bold shadow-2xl transform hover:scale-105 transition-all duration-300 hover:shadow-green-500/25 w-full max-w-xs sm:max-w-none sm:w-auto"
           >
-            <Shuffle className="mr-3 h-6 w-6" />
-            Shuffle Play
+            <Shuffle className="mr-2 sm:mr-3 h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
+            <span className="truncate">Shuffle Play</span>
           </Button>
         </div>
       </div>
 
       {/* Recommendations Content */}
-      <div className="relative z-10 px-6 space-y-12">
+      <div className="relative z-10 px-4 sm:px-6 space-y-8 sm:space-y-12 w-full overflow-x-hidden">
         {recommendations && (
           <>
             <RecommendationSection
@@ -185,10 +185,10 @@ const HomePage = () => {
 
       {/* 3D Floating Elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 left-10 w-4 h-4 bg-green-400 rounded-full animate-ping opacity-20"></div>
-        <div className="absolute top-1/3 right-20 w-6 h-6 bg-purple-400 rounded-full animate-ping opacity-20 delay-1000"></div>
-        <div className="absolute bottom-1/4 left-1/4 w-5 h-5 bg-blue-400 rounded-full animate-ping opacity-20 delay-2000"></div>
-        <div className="absolute bottom-1/3 right-1/3 w-3 h-3 bg-yellow-400 rounded-full animate-ping opacity-20 delay-3000"></div>
+        <div className="absolute top-1/4 left-4 sm:left-10 w-3 sm:w-4 h-3 sm:h-4 bg-green-400 rounded-full animate-ping opacity-20"></div>
+        <div className="absolute top-1/3 right-4 sm:right-20 w-4 sm:w-6 h-4 sm:h-6 bg-purple-400 rounded-full animate-ping opacity-20 delay-1000"></div>
+        <div className="absolute bottom-1/4 left-1/4 w-3 sm:w-5 h-3 sm:h-5 bg-blue-400 rounded-full animate-ping opacity-20 delay-2000"></div>
+        <div className="absolute bottom-1/3 right-1/3 w-2 sm:w-3 h-2 sm:h-3 bg-yellow-400 rounded-full animate-ping opacity-20 delay-3000"></div>
       </div>
     </div>
   );

@@ -3,19 +3,17 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import BottomNavigation from "@/components/BottomNavigation";
 import MiniPlayer from "@/components/MiniPlayer";
 import YouTubePlayer from "@/components/YouTubePlayer";
-import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/HomePage";
 import SearchPage from "./pages/SearchPage";
 import LibraryPage from "./pages/LibraryPage";
-import EmotionsPage from "./pages/EmotionsPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
@@ -30,9 +28,9 @@ function App() {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <div className="min-h-screen bg-background">
+              <div className="min-h-screen bg-background overflow-x-hidden">
                 <Routes>
-                  <Route path="/" element={<Index />} />
+                  <Route path="/" element={<Navigate to="/home" replace />} />
                   <Route path="/auth" element={<AuthPage />} />
                   <Route
                     path="/home"
@@ -55,14 +53,6 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <LibraryPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/emotions"
-                    element={
-                      <ProtectedRoute>
-                        <EmotionsPage />
                       </ProtectedRoute>
                     }
                   />
