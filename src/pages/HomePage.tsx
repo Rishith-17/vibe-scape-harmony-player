@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Shuffle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,10 @@ interface Song {
   artist: string;
   thumbnail: string;
   duration?: string;
+  language?: string;
+  release_year?: number;
+  category?: string;
+  youtube_video_title?: string;
 }
 
 interface RecommendationData {
@@ -34,45 +37,253 @@ const HomePage = () => {
   const loadRecommendations = async () => {
     setIsLoading(true);
     try {
-      // Simulate loading recommendations from YouTube API
-      const mockData: RecommendationData = {
+      // Use the Gemini music feed function with structured prompts
+      const { data, error } = await supabase.functions.invoke('gemini-music-feed', {
+        body: { 
+          mood: 'energetic',
+          country: 'Global',
+          language: 'Multi-language',
+          userHistory: []
+        }
+      });
+
+      if (error) throw error;
+
+      // Process the response and convert to our Song format
+      const processedData: RecommendationData = {
+        topGlobal: data.globalTrending?.map((song: any) => ({
+          id: generateVideoId(song.title, song.artist),
+          title: song.title,
+          artist: song.artist,
+          thumbnail: `https://img.youtube.com/vi/${generateVideoId(song.title, song.artist)}/hqdefault.jpg`,
+          language: song.language || 'English',
+          release_year: song.release_year || 2024,
+          category: 'Global',
+          youtube_video_title: `${song.title} - ${song.artist} (Official Audio)`
+        })) || [],
+        newlyReleased: data.personalizedRecommendations?.slice(0, 6).map((song: any) => ({
+          id: generateVideoId(song.title, song.artist),
+          title: song.title,
+          artist: song.artist,
+          thumbnail: `https://img.youtube.com/vi/${generateVideoId(song.title, song.artist)}/hqdefault.jpg`,
+          language: song.language || 'English',
+          category: 'New',
+          youtube_video_title: `${song.title} - ${song.artist} (Official Audio)`
+        })) || [],
+        topRegional: data.regionalTrending?.songs?.map((song: any) => ({
+          id: generateVideoId(song.title, song.artist),
+          title: song.title,
+          artist: song.artist,
+          thumbnail: `https://img.youtube.com/vi/${generateVideoId(song.title, song.artist)}/hqdefault.jpg`,
+          language: song.language || data.regionalTrending?.language || 'English',
+          category: 'Regional',
+          youtube_video_title: `${song.title} - ${song.artist} (Official Audio)`
+        })) || []
+      };
+      
+      setRecommendations(processedData);
+    } catch (error: any) {
+      console.error('Error loading recommendations:', error);
+      
+      // Fallback data with proper structure
+      const fallbackData: RecommendationData = {
         topGlobal: [
-          { id: "dQw4w9WgXcQ", title: "Never Gonna Give You Up", artist: "Rick Astley", thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg" },
-          { id: "L_jWHffIx5E", title: "Smells Like Teen Spirit", artist: "Nirvana", thumbnail: "https://img.youtube.com/vi/L_jWHffIx5E/hqdefault.jpg" },
-          { id: "fJ9rUzIMcZQ", title: "Bohemian Rhapsody", artist: "Queen", thumbnail: "https://img.youtube.com/vi/fJ9rUzIMcZQ/hqdefault.jpg" },
-          { id: "kJQP7kiw5Fk", title: "Despacito", artist: "Luis Fonsi", thumbnail: "https://img.youtube.com/vi/kJQP7kiw5Fk/hqdefault.jpg" },
-          { id: "CevxZvSJLk8", title: "Gangnam Style", artist: "PSY", thumbnail: "https://img.youtube.com/vi/CevxZvSJLk8/hqdefault.jpg" },
-          { id: "60ItHLz5WEA", title: "Faded", artist: "Alan Walker", thumbnail: "https://img.youtube.com/vi/60ItHLz5WEA/hqdefault.jpg" }
+          { 
+            id: "dQw4w9WgXcQ", 
+            title: "Never Gonna Give You Up", 
+            artist: "Rick Astley", 
+            thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+            language: "English",
+            release_year: 1987,
+            category: "Global",
+            youtube_video_title: "Rick Astley - Never Gonna Give You Up (Official Video)"
+          },
+          { 
+            id: "L_jWHffIx5E", 
+            title: "Smells Like Teen Spirit", 
+            artist: "Nirvana", 
+            thumbnail: "https://img.youtube.com/vi/L_jWHffIx5E/hqdefault.jpg",
+            language: "English",
+            release_year: 1991,
+            category: "Global",
+            youtube_video_title: "Nirvana - Smells Like Teen Spirit (Official Music Video)"
+          },
+          { 
+            id: "fJ9rUzIMcZQ", 
+            title: "Bohemian Rhapsody", 
+            artist: "Queen", 
+            thumbnail: "https://img.youtube.com/vi/fJ9rUzIMcZQ/hqdefault.jpg",
+            language: "English",
+            release_year: 1975,
+            category: "Global",
+            youtube_video_title: "Queen - Bohemian Rhapsody (Official Video)"
+          },
+          { 
+            id: "kJQP7kiw5Fk", 
+            title: "Despacito", 
+            artist: "Luis Fonsi", 
+            thumbnail: "https://img.youtube.com/vi/kJQP7kiw5Fk/hqdefault.jpg",
+            language: "Spanish",
+            release_year: 2017,
+            category: "Global",
+            youtube_video_title: "Luis Fonsi - Despacito ft. Daddy Yankee"
+          },
+          { 
+            id: "CevxZvSJLk8", 
+            title: "Gangnam Style", 
+            artist: "PSY", 
+            thumbnail: "https://img.youtube.com/vi/CevxZvSJLk8/hqdefault.jpg",
+            language: "Korean",
+            release_year: 2012,
+            category: "Global",
+            youtube_video_title: "PSY - GANGNAM STYLE(강남스타일) M/V"
+          },
+          { 
+            id: "60ItHLz5WEA", 
+            title: "Faded", 
+            artist: "Alan Walker", 
+            thumbnail: "https://img.youtube.com/vi/60ItHLz5WEA/hqdefault.jpg",
+            language: "English",
+            release_year: 2015,
+            category: "Global",
+            youtube_video_title: "Alan Walker - Faded"
+          }
         ],
         newlyReleased: [
-          { id: "nfWlot6h_JM", title: "Shape of You", artist: "Ed Sheeran", thumbnail: "https://img.youtube.com/vi/nfWlot6h_JM/hqdefault.jpg" },
-          { id: "RgKAFK5djSk", title: "Wrecking Ball", artist: "Miley Cyrus", thumbnail: "https://img.youtube.com/vi/RgKAFK5djSk/hqdefault.jpg" },
-          { id: "hT_nvWreIhg", title: "Counting Stars", artist: "OneRepublic", thumbnail: "https://img.youtube.com/vi/hT_nvWreIhg/hqdefault.jpg" },
-          { id: "YQHsXMglC9A", title: "Hello", artist: "Adele", thumbnail: "https://img.youtube.com/vi/YQHsXMglC9A/hqdefault.jpg" },
-          { id: "pt8VYOfr8To", title: "Sorry", artist: "Justin Bieber", thumbnail: "https://img.youtube.com/vi/pt8VYOfr8To/hqdefault.jpg" },
-          { id: "JGwWNGJdvx8", title: "See You Again", artist: "Wiz Khalifa", thumbnail: "https://img.youtube.com/vi/JGwWNGJdvx8/hqdefault.jpg" }
+          { 
+            id: "nfWlot6h_JM", 
+            title: "Shape of You", 
+            artist: "Ed Sheeran", 
+            thumbnail: "https://img.youtube.com/vi/nfWlot6h_JM/hqdefault.jpg",
+            language: "English",
+            category: "New",
+            youtube_video_title: "Ed Sheeran - Shape of You (Official Music Video)"
+          },
+          { 
+            id: "RgKAFK5djSk", 
+            title: "Wrecking Ball", 
+            artist: "Miley Cyrus", 
+            thumbnail: "https://img.youtube.com/vi/RgKAFK5djSk/hqdefault.jpg",
+            language: "English",
+            category: "New",
+            youtube_video_title: "Miley Cyrus - Wrecking Ball (Official Music Video)"
+          },
+          { 
+            id: "hT_nvWreIhg", 
+            title: "Counting Stars", 
+            artist: "OneRepublic", 
+            thumbnail: "https://img.youtube.com/vi/hT_nvWreIhg/hqdefault.jpg",
+            language: "English",
+            category: "New",
+            youtube_video_title: "OneRepublic - Counting Stars (Official Music Video)"
+          },
+          { 
+            id: "YQHsXMglC9A", 
+            title: "Hello", 
+            artist: "Adele", 
+            thumbnail: "https://img.youtube.com/vi/YQHsXMglC9A/hqdefault.jpg",
+            language: "English",
+            category: "New",
+            youtube_video_title: "Adele - Hello (Official Music Video)"
+          },
+          { 
+            id: "pt8VYOfr8To", 
+            title: "Sorry", 
+            artist: "Justin Bieber", 
+            thumbnail: "https://img.youtube.com/vi/pt8VYOfr8To/hqdefault.jpg",
+            language: "English",
+            category: "New",
+            youtube_video_title: "Justin Bieber - Sorry (PURPOSE : The Movement)"
+          },
+          { 
+            id: "JGwWNGJdvx8", 
+            title: "See You Again", 
+            artist: "Wiz Khalifa", 
+            thumbnail: "https://img.youtube.com/vi/JGwWNGJdvx8/hqdefault.jpg",
+            language: "English",
+            category: "New",
+            youtube_video_title: "Wiz Khalifa - See You Again ft. Charlie Puth [Official Video]"
+          }
         ],
         topRegional: [
-          { id: "SlPhMPnQ58k", title: "Cheap Thrills", artist: "Sia", thumbnail: "https://img.youtube.com/vi/SlPhMPnQ58k/hqdefault.jpg" },
-          { id: "lp-EO5I60KA", title: "Thinking Out Loud", artist: "Ed Sheeran", thumbnail: "https://img.youtube.com/vi/lp-EO5I60KA/hqdefault.jpg" },
-          { id: "iLBBRuVDOo4", title: "Can't Feel My Face", artist: "The Weeknd", thumbnail: "https://img.youtube.com/vi/iLBBRuVDOo4/hqdefault.jpg" },
-          { id: "UceaB4D0jpo", title: "What Do You Mean?", artist: "Justin Bieber", thumbnail: "https://img.youtube.com/vi/UceaB4D0jpo/hqdefault.jpg" },
-          { id: "CdqoNKCCt7A", title: "Love Yourself", artist: "Justin Bieber", thumbnail: "https://img.youtube.com/vi/CdqoNKCCt7A/hqdefault.jpg" },
-          { id: "uelHwf8o7_U", title: "Roar", artist: "Katy Perry", thumbnail: "https://img.youtube.com/vi/uelHwf8o7_U/hqdefault.jpg" }
+          { 
+            id: "SlPhMPnQ58k", 
+            title: "Cheap Thrills", 
+            artist: "Sia", 
+            thumbnail: "https://img.youtube.com/vi/SlPhMPnQ58k/hqdefault.jpg",
+            language: "English",
+            category: "Regional",
+            youtube_video_title: "Sia - Cheap Thrills (Official Music Video)"
+          },
+          { 
+            id: "lp-EO5I60KA", 
+            title: "Thinking Out Loud", 
+            artist: "Ed Sheeran", 
+            thumbnail: "https://img.youtube.com/vi/lp-EO5I60KA/hqdefault.jpg",
+            language: "English",
+            category: "Regional",
+            youtube_video_title: "Ed Sheeran - Thinking Out Loud (Official Music Video)"
+          },
+          { 
+            id: "iLBBRuVDOo4", 
+            title: "Can't Feel My Face", 
+            artist: "The Weeknd", 
+            thumbnail: "https://img.youtube.com/vi/iLBBRuVDOo4/hqdefault.jpg",
+            language: "English",
+            category: "Regional",
+            youtube_video_title: "The Weeknd - Can't Feel My Face (Official Music Video)"
+          },
+          { 
+            id: "UceaB4D0jpo", 
+            title: "What Do You Mean?", 
+            artist: "Justin Bieber", 
+            thumbnail: "https://img.youtube.com/vi/UceaB4D0jpo/hqdefault.jpg",
+            language: "English",
+            category: "Regional",
+            youtube_video_title: "Justin Bieber - What Do You Mean? (Official Music Video)"
+          },
+          { 
+            id: "CdqoNKCCt7A", 
+            title: "Love Yourself", 
+            artist: "Justin Bieber", 
+            thumbnail: "https://img.youtube.com/vi/CdqoNKCCt7A/hqdefault.jpg",
+            language: "English",
+            category: "Regional",
+            youtube_video_title: "Justin Bieber - Love Yourself (PURPOSE : The Movement)"
+          },
+          { 
+            id: "uelHwf8o7_U", 
+            title: "Roar", 
+            artist: "Katy Perry", 
+            thumbnail: "https://img.youtube.com/vi/uelHwf8o7_U/hqdefault.jpg",
+            language: "English",
+            category: "Regional",
+            youtube_video_title: "Katy Perry - Roar (Official)"
+          }
         ]
       };
       
-      setRecommendations(mockData);
-    } catch (error: any) {
-      console.error('Error loading recommendations:', error);
+      setRecommendations(fallbackData);
       toast({
-        title: "Error",
-        description: "Failed to load music recommendations",
-        variant: "destructive",
+        title: "Using Offline Content",
+        description: "Showing popular music recommendations",
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Helper function to generate consistent video IDs
+  const generateVideoId = (title: string, artist: string): string => {
+    const combined = `${title} ${artist}`.toLowerCase();
+    // This is a simple hash function for demo - in production you'd use YouTube Search API
+    let hash = 0;
+    for (let i = 0; i < combined.length; i++) {
+      const char = combined.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString().substring(0, 11);
   };
 
   const handlePlaySong = async (song: Song) => {

@@ -8,82 +8,47 @@ const corsHeaders = {
 
 const TRENDING_DATA = {
   global: [
-    { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
-    { title: "As It Was", artist: "Harry Styles", genre: "Pop Rock", albumArt: "https://i.scdn.co/image/ab67616d0000b273b46f74097655d7f353caab14" },
-    { title: "Anti-Hero", artist: "Taylor Swift", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273bb54dde68cd23e2a268ae0f5" },
-    { title: "Calm Down", artist: "Rema & Selena Gomez", genre: "Afrobeats", albumArt: "https://i.scdn.co/image/ab67616d0000b273b7e976d2b35c767f9012cb06" },
-    { title: "Unholy", artist: "Sam Smith ft. Kim Petras", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273f65500c8470b8f8a7bdfbc3a" },
-    { title: "I'm Good (Blue)", artist: "David Guetta & Bebe Rexha", genre: "Dance Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c4f5e3abddec0e1d15150e1f" },
-    { title: "Creepin'", artist: "Metro Boomin, The Weeknd, 21 Savage", genre: "Hip Hop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c02da72d9803e54d3ca2a4fc" },
-    { title: "Heat Waves", artist: "Glass Animals", genre: "Indie Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-    { title: "Bad Habit", artist: "Steve Lacy", genre: "Alternative R&B", albumArt: "https://i.scdn.co/image/ab67616d0000b273b85259a971157ac2cc9d2496" },
-    { title: "Golden Hour", artist: "JVKE", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c4f5e3abddec0e1d15150e1f" }
+    { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", language: "English", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
+    { title: "As It Was", artist: "Harry Styles", genre: "Pop Rock", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273b46f74097655d7f353caab14" },
+    { title: "Anti-Hero", artist: "Taylor Swift", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273bb54dde68cd23e2a268ae0f5" },
+    { title: "Calm Down", artist: "Rema & Selena Gomez", genre: "Afrobeats", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273b7e976d2b35c767f9012cb06" },
+    { title: "Unholy", artist: "Sam Smith ft. Kim Petras", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273f65500c8470b8f8a7bdfbc3a" },
+    { title: "I'm Good (Blue)", artist: "David Guetta & Bebe Rexha", genre: "Dance Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273c4f5e3abddec0e1d15150e1f" },
+    { title: "Creepin'", artist: "Metro Boomin, The Weeknd, 21 Savage", genre: "Hip Hop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273c02da72d9803e54d3ca2a4fc" },
+    { title: "Heat Waves", artist: "Glass Animals", genre: "Indie Pop", language: "English", release_year: 2020, albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
+    { title: "Bad Habit", artist: "Steve Lacy", genre: "Alternative R&B", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273b85259a971157ac2cc9d2496" },
+    { title: "Golden Hour", artist: "JVKE", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273c4f5e3abddec0e1d15150e1f" }
   ],
   countries: {
     USA: [
-      { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
-      { title: "Anti-Hero", artist: "Taylor Swift", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273bb54dde68cd23e2a268ae0f5" },
-      { title: "Creepin'", artist: "Metro Boomin, The Weeknd, 21 Savage", genre: "Hip Hop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c02da72d9803e54d3ca2a4fc" },
-      { title: "Bad Habit", artist: "Steve Lacy", genre: "Alternative R&B", albumArt: "https://i.scdn.co/image/ab67616d0000b273b85259a971157ac2cc9d2496" },
-      { title: "Golden Hour", artist: "JVKE", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c4f5e3abddec0e1d15150e1f" }
-    ],
-    UK: [
-      { title: "As It Was", artist: "Harry Styles", genre: "Pop Rock", albumArt: "https://i.scdn.co/image/ab67616d0000b273b46f74097655d7f353caab14" },
-      { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
-      { title: "I'm Good (Blue)", artist: "David Guetta & Bebe Rexha", genre: "Dance Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c4f5e3abddec0e1d15150e1f" },
-      { title: "Unholy", artist: "Sam Smith ft. Kim Petras", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273f65500c8470b8f8a7bdfbc3a" },
-      { title: "Heat Waves", artist: "Glass Animals", genre: "Indie Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" }
+      { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", language: "English", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
+      { title: "Anti-Hero", artist: "Taylor Swift", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273bb54dde68cd23e2a268ae0f5" },
+      { title: "Creepin'", artist: "Metro Boomin, The Weeknd, 21 Savage", genre: "Hip Hop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273c02da72d9803e54d3ca2a4fc" },
+      { title: "Bad Habit", artist: "Steve Lacy", genre: "Alternative R&B", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273b85259a971157ac2cc9d2496" },
+      { title: "Golden Hour", artist: "JVKE", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273c4f5e3abddec0e1d15150e1f" }
     ],
     India: [
-      { title: "Kesariya", artist: "Arijit Singh", genre: "Bollywood", albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Calm Down", artist: "Rema & Selena Gomez", genre: "Afrobeats", albumArt: "https://i.scdn.co/image/ab67616d0000b273b7e976d2b35c767f9012cb06" },
-      { title: "Pal Pal Dil Ke Paas", artist: "Arijit Singh", genre: "Bollywood", albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Apna Bana Le", artist: "Arijit Singh", genre: "Bollywood", albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Chaleya", artist: "Arijit Singh & Shilpa Rao", genre: "Bollywood", albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" }
-    ],
-    Brazil: [
-      { title: "Ela Partiu", artist: "Tim Maia", genre: "Brazilian Soul", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
-      { title: "Calm Down", artist: "Rema & Selena Gomez", genre: "Afrobeats", albumArt: "https://i.scdn.co/image/ab67616d0000b273b7e976d2b35c767f9012cb06" },
-      { title: "Samba do Approach", artist: "Zeca Pagodinho", genre: "Samba", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "Envolver", artist: "Anitta", genre: "Brazilian Funk", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" }
-    ],
-    Japan: [
-      { title: "Idol", artist: "YOASOBI", genre: "J-Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
-      { title: "Kaikai Kitan", artist: "Eve", genre: "J-Rock", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "Racing into the Night", artist: "YOASOBI", genre: "J-Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "Pretender", artist: "Official HIGE DANdism", genre: "J-Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" }
+      { title: "Kesariya", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
+      { title: "Pal Pal Dil Ke Paas", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2019, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
+      { title: "Apna Bana Le", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
+      { title: "Chaleya", artist: "Arijit Singh & Shilpa Rao", genre: "Bollywood", language: "Hindi", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
+      { title: "Calm Down", artist: "Rema & Selena Gomez", genre: "Afrobeats", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273b7e976d2b35c767f9012cb06" }
     ]
   },
   regional: {
     Hindi: [
-      { title: "Kesariya", artist: "Arijit Singh", genre: "Bollywood", albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Pal Pal Dil Ke Paas", artist: "Arijit Singh", genre: "Bollywood", albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Apna Bana Le", artist: "Arijit Singh", genre: "Bollywood", albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Chaleya", artist: "Arijit Singh & Shilpa Rao", genre: "Bollywood", albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
-      { title: "Tum Hi Ho", artist: "Arijit Singh", genre: "Bollywood", albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" }
+      { title: "Kesariya", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
+      { title: "Pal Pal Dil Ke Paas", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2019, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
+      { title: "Apna Bana Le", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
+      { title: "Chaleya", artist: "Arijit Singh & Shilpa Rao", genre: "Bollywood", language: "Hindi", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" },
+      { title: "Tum Hi Ho", artist: "Arijit Singh", genre: "Bollywood", language: "Hindi", release_year: 2013, albumArt: "https://i.scdn.co/image/ab67616d0000b273e4e0d2e21a27f7b7b2b2b2b2" }
     ],
-    Spanish: [
-      { title: "Bzrp Music Sessions #53", artist: "Bizarrap & Shakira", genre: "Latin Urban", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
-      { title: "Envolver", artist: "Anitta", genre: "Brazilian Funk", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "Quevedo: Bzrp Music Sessions #52", artist: "Bizarrap & Quevedo", genre: "Latin Trap", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "Me Porto Bonito", artist: "Bad Bunny & Chencho Corleone", genre: "Reggaeton", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" }
-    ],
-    French: [
-      { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
-      { title: "La Vie En Rose", artist: "Édith Piaf", genre: "French Chanson", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "Dernière Danse", artist: "Indila", genre: "French Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "Stromae - Alors On Danse", artist: "Stromae", genre: "Electronic", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "Papaoutai", artist: "Stromae", genre: "Electronic", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" }
-    ],
-    Korean: [
-      { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
-      { title: "FLOWER", artist: "JISOO", genre: "K-Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "Shut Down", artist: "BLACKPINK", genre: "K-Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "Yet To Come", artist: "BTS", genre: "K-Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" },
-      { title: "ANTIFRAGILE", artist: "LE SSERAFIM", genre: "K-Pop", albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" }
+    English: [
+      { title: "Flowers", artist: "Miley Cyrus", genre: "Pop", language: "English", release_year: 2023, albumArt: "https://i.scdn.co/image/ab67616d0000b273f4f76ad6c32da8e30fdf7c6c" },
+      { title: "As It Was", artist: "Harry Styles", genre: "Pop Rock", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273b46f74097655d7f353caab14" },
+      { title: "Anti-Hero", artist: "Taylor Swift", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273bb54dde68cd23e2a268ae0f5" },
+      { title: "Unholy", artist: "Sam Smith ft. Kim Petras", genre: "Pop", language: "English", release_year: 2022, albumArt: "https://i.scdn.co/image/ab67616d0000b273f65500c8470b8f8a7bdfbc3a" },
+      { title: "Heat Waves", artist: "Glass Animals", genre: "Indie Pop", language: "English", release_year: 2020, albumArt: "https://i.scdn.co/image/ab67616d0000b273c5716278abba6a103ad14d9f" }
     ]
   }
 }
@@ -106,17 +71,47 @@ serve(async (req) => {
     const countryTrending = TRENDING_DATA.countries[country] || TRENDING_DATA.countries.USA
     const regionalTrending = TRENDING_DATA.regional[language] || TRENDING_DATA.regional.English || []
 
-    // Generate personalized recommendations using Gemini
-    const prompt = `Based on the user's mood: "${mood}", country: "${country}", preferred language: "${language}", and listening history: ${JSON.stringify(userHistory.slice(0, 5))}, 
-    recommend 8 songs that would match their taste. Consider their mood and cultural preferences.
+    // Use structured prompts for Gemini
+    const globalPrompt = `Give me a list of the top 10 most popular songs globally right now. For each song, include:
+    - title
+    - artist
+    - language
+    - release_year
+    - YouTube video title (only the title, not the link)
     
-    Return ONLY a JSON array with this exact format:
-    [{"title": "Song Title", "artist": "Artist Name", "genre": "Genre", "match_reason": "Brief reason why this matches their mood/taste", "albumArt": "https://example.com/album-cover.jpg"}]
-    
-    For albumArt, use a placeholder URL like "https://via.placeholder.com/300x300/1a1a1a/ffffff?text=Album+Art" if you don't have the actual album cover URL.
-    Make the recommendations diverse across genres but relevant to their mood and preferences.`
+    Respond in clean JSON format like this:
+    [{"title": "Song Name", "artist": "Artist Name", "language": "English", "release_year": 2024, "youtube_video_title": "Artist - Song Name (Official Video)"}]`
 
-    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
+    const regionalPrompt = `List the top 10 trending songs in the following languages: Hindi, English, Tamil, Telugu, Punjabi.
+    
+    For each song, include:
+    - title
+    - artist
+    - language
+    - country or region
+    - YouTube video title (only the title, not the link)
+    
+    Respond in clean JSON format like this:
+    [{"title": "Song Name", "artist": "Artist Name", "language": "Hindi", "country": "India", "youtube_video_title": "Artist - Song Name Official Video"}]`
+
+    const newReleasesPrompt = `List 10 newly released songs from the past 7 days in these languages: Hindi, English, Tamil, Telugu, Punjabi.
+    
+    For each song, include:
+    - title
+    - artist
+    - language
+    - release_date
+    - YouTube video title (just the title, no link)
+    
+    Respond in JSON format like this:
+    [{"title": "Song Name", "artist": "Artist Name", "language": "English", "release_date": "2024-01-15", "youtube_video_title": "Artist - Song Name (Official Audio)"}]`
+
+    // Generate personalized recommendations using structured prompts
+    const selectedPrompt = mood === 'global' ? globalPrompt : 
+                          mood === 'regional' ? regionalPrompt : 
+                          mood === 'new' ? newReleasesPrompt : globalPrompt
+
+    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -124,7 +119,7 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: prompt
+            text: selectedPrompt
           }]
         }]
       })
@@ -139,10 +134,12 @@ serve(async (req) => {
         const cleanedText = recommendationText.replace(/```json\n?|\n?```/g, '').trim()
         personalizedRecommendations = JSON.parse(cleanedText)
         
-        // Ensure albumArt field exists for all recommendations
+        // Ensure albumArt field exists for all recommendations and add missing fields
         personalizedRecommendations = personalizedRecommendations.map(song => ({
           ...song,
-          albumArt: song.albumArt || "https://via.placeholder.com/300x300/1a1a1a/ffffff?text=Album+Art"
+          albumArt: song.albumArt || "https://via.placeholder.com/300x300/1a1a1a/ffffff?text=Album+Art",
+          genre: song.genre || "Pop",
+          match_reason: `Matches your ${mood} mood and preferences`
         }))
       } else {
         console.error('Unexpected Gemini response structure:', geminiData)
@@ -150,11 +147,12 @@ serve(async (req) => {
       }
     } catch (parseError) {
       console.error('Error parsing Gemini response:', parseError)
-      // Fallback recommendations based on mood
+      // Fallback recommendations based on mood using structured data
       personalizedRecommendations = globalTrending.slice(0, 8).map(song => ({
         ...song,
         match_reason: `Matches your ${mood} mood`,
-        albumArt: song.albumArt || "https://via.placeholder.com/300x300/1a1a1a/ffffff?text=Album+Art"
+        albumArt: song.albumArt || "https://via.placeholder.com/300x300/1a1a1a/ffffff?text=Album+Art",
+        youtube_video_title: `${song.artist} - ${song.title} (Official Audio)`
       }))
     }
 
