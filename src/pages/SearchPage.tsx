@@ -26,6 +26,7 @@ const SearchPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<YouTubeVideo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const { 
     currentTrack, 
     isPlaying, 
@@ -47,24 +48,66 @@ const SearchPage = () => {
     }
 
     setIsSearching(true);
+    setSearchError(null);
+    
     try {
       const { data, error } = await supabase.functions.invoke('youtube-search', {
-        body: { query: `${query} official audio music`, maxResults: 20 }
+        body: { query: `${query} music`, maxResults: 20 }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Search error:', error);
+        throw new Error(error.message || 'Failed to search YouTube');
+      }
 
-      setSearchResults(data.videos);
-      toast({
-        title: "Search Complete!",
-        description: `Found ${data.videos.length} music tracks`,
-      });
+      if (data?.videos) {
+        setSearchResults(data.videos);
+        
+        if (data.fallback) {
+          toast({
+            title: "Limited Results",
+            description: "Showing popular songs due to API constraints",
+          });
+        } else {
+          toast({
+            title: "Search Complete!",
+            description: `Found ${data.videos.length} music tracks`,
+          });
+        }
+      } else {
+        throw new Error('No results found');
+      }
     } catch (error: any) {
       console.error('Search error:', error);
+      setSearchError(error.message);
+      
+      // Show fallback popular songs on error
+      const fallbackResults = [
+        {
+          id: "G7KNmW9a75Y",
+          title: "Flowers",
+          description: "Flowers by Miley Cyrus",
+          thumbnail: "https://img.youtube.com/vi/G7KNmW9a75Y/hqdefault.jpg",
+          channelTitle: "Miley Cyrus",
+          publishedAt: new Date().toISOString(),
+          url: "https://www.youtube.com/watch?v=G7KNmW9a75Y"
+        },
+        {
+          id: "H5v3kku4y6Q",
+          title: "As It Was",
+          description: "As It Was by Harry Styles",
+          thumbnail: "https://img.youtube.com/vi/H5v3kku4y6Q/hqdefault.jpg",
+          channelTitle: "Harry Styles",
+          publishedAt: new Date().toISOString(),
+          url: "https://www.youtube.com/watch?v=H5v3kku4y6Q"
+        }
+      ];
+      
+      setSearchResults(fallbackResults);
+      
       toast({
-        title: "Search Failed",
-        description: error.message || "Failed to search YouTube",
-        variant: "destructive",
+        title: "Search Issues",
+        description: "Showing popular songs instead",
       });
     } finally {
       setIsSearching(false);
@@ -147,8 +190,23 @@ const SearchPage = () => {
           </button>
         </div>
 
+        {/* Error Message */}
+        {searchError && (
+          <div className="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+            <p className="text-red-200 text-sm">Search temporarily limited. Showing popular tracks instead.</p>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {isSearching && (
+          <div className="text-center py-8">
+            <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-300">Searching for music...</p>
+          </div>
+        )}
+
         {/* Search Results */}
-        {searchResults.length > 0 && (
+        {searchResults.length > 0 && !isSearching && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <Play className="text-green-400 mr-2" size={20} />
@@ -167,6 +225,10 @@ const SearchPage = () => {
                     alt={video.title}
                     className="w-16 h-12 rounded-lg object-cover flex-shrink-0 cursor-pointer"
                     onClick={() => handlePlayTrack(video, index)}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "https://via.placeholder.com/320x180/1a1a1a/ffffff?text=♪";
+                    }}
                   />
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handlePlayTrack(video, index)}>
                     <h3 className="text-white font-semibold text-sm line-clamp-1 mb-1">
@@ -233,13 +295,6 @@ const SearchPage = () => {
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {isSearching && (
-          <div className="text-center py-8">
-            <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-300">Searching for music...</p>
           </div>
         )}
       </div>
