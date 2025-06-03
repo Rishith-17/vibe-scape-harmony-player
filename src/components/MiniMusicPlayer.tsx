@@ -94,9 +94,9 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
 
       {/* Mini Player */}
       <div className="fixed bottom-16 left-0 right-0 bg-gradient-to-r from-gray-900/95 via-purple-900/95 to-gray-900/95 backdrop-blur-lg border-t border-gray-700/50 z-50 transition-all duration-300">
-        <div className="px-4 py-3">
+        <div className="px-3 sm:px-4 py-2 sm:py-3">
           {/* Progress Bar */}
-          <div className="mb-3">
+          <div className="mb-2 sm:mb-3">
             <Slider
               value={[currentTime]}
               max={duration || 100}
@@ -104,82 +104,76 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
               onValueChange={handleSeek}
               className="w-full cursor-pointer"
             />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
+            <div className="flex justify-between text-xs text-gray-400 mt-1 px-1">
+              <span className="min-w-[35px]">{formatTime(currentTime)}</span>
+              <span className="min-w-[35px] text-right">{formatTime(duration)}</span>
             </div>
           </div>
 
           {/* Player Content */}
-          <div 
-            className="flex items-center space-x-3 cursor-pointer"
-            onClick={() => setIsNowPlayingOpen(true)}
-          >
+          <div className="flex items-center space-x-2 sm:space-x-3">
             {/* Track Info */}
-            <div className="relative">
-              <img
-                src={currentTrack.thumbnail}
-                alt={currentTrack.title}
-                className="w-12 h-12 rounded-lg object-cover shadow-lg"
-              />
-              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${isPlaying ? 'bg-green-400 animate-pulse' : 'bg-gray-400'} border-2 border-gray-900`}></div>
-            </div>
-            
-            <div className="flex-1 min-w-0">
-              <h4 className="text-white font-medium text-sm line-clamp-1">
-                {currentTrack.title}
-              </h4>
-              <p className="text-gray-400 text-xs line-clamp-1">
-                {currentTrack.artist || 'Unknown Artist'}
-              </p>
+            <div 
+              className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0 cursor-pointer"
+              onClick={() => setIsNowPlayingOpen(true)}
+            >
+              <div className="relative flex-shrink-0">
+                <img
+                  src={currentTrack.thumbnail}
+                  alt={currentTrack.title}
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover shadow-lg"
+                />
+                <div className={`absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 rounded-full ${isPlaying ? 'bg-green-400 animate-pulse' : 'bg-gray-400'} border-2 border-gray-900`}></div>
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <h4 className="text-white font-medium text-sm line-clamp-1">
+                  {currentTrack.title}
+                </h4>
+                <p className="text-gray-400 text-xs line-clamp-1">
+                  {currentTrack.artist || 'Unknown Artist'}
+                </p>
+              </div>
             </div>
 
             {/* Controls */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+              {/* Previous Button - Hidden on very small screens */}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handlePrevious();
-                }}
-                className="text-gray-400 hover:text-white p-2"
+                onClick={handlePrevious}
+                className="text-gray-400 hover:text-white p-1 sm:p-2 hidden xs:inline-flex"
               >
-                <SkipBack size={18} />
+                <SkipBack size={16} className="sm:w-[18px] sm:h-[18px]" />
               </Button>
 
+              {/* Play/Pause Button */}
               <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  togglePlayPause();
-                }}
-                className="bg-white hover:bg-gray-200 text-black rounded-full w-10 h-10 p-0 shadow-lg"
+                onClick={togglePlayPause}
+                className="bg-white hover:bg-gray-200 text-black rounded-full w-8 h-8 sm:w-10 sm:h-10 p-0 shadow-lg flex-shrink-0"
               >
-                {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                {isPlaying ? <Pause size={16} className="sm:w-5 sm:h-5" /> : <Play size={16} className="sm:w-5 sm:h-5" />}
               </Button>
 
+              {/* Next Button - Hidden on very small screens */}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleNext();
-                }}
-                className="text-gray-400 hover:text-white p-2"
+                onClick={handleNext}
+                className="text-gray-400 hover:text-white p-1 sm:p-2 hidden xs:inline-flex"
               >
-                <SkipForward size={18} />
+                <SkipForward size={16} className="sm:w-[18px] sm:h-[18px]" />
               </Button>
 
+              {/* Expand Button */}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsNowPlayingOpen(true);
-                }}
-                className="text-gray-400 hover:text-white p-2"
+                onClick={() => setIsNowPlayingOpen(true)}
+                className="text-gray-400 hover:text-white p-1 sm:p-2"
               >
-                <ChevronUp size={18} />
+                <ChevronUp size={16} className="sm:w-[18px] sm:h-[18px]" />
               </Button>
             </div>
           </div>
