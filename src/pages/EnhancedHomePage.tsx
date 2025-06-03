@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Shuffle, Globe, Map, Languages, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,7 +38,16 @@ const EnhancedHomePage = () => {
   const { playTrack, currentTrack, isPlaying } = useMusicPlayer();
 
   const countries = ['USA', 'India', 'UK', 'Canada', 'Australia', 'Germany', 'France', 'Japan', 'South Korea', 'Brazil'];
-  const languages = ['English', 'Hindi', 'Spanish', 'French', 'German', 'Japanese', 'Korean', 'Portuguese', 'Tamil', 'Telugu'];
+  
+  // Comprehensive list of Indian languages and major world languages
+  const languages = [
+    'English', 'Hindi', 'Bengali', 'Telugu', 'Marathi', 'Tamil', 'Gujarati', 'Urdu', 
+    'Kannada', 'Odia', 'Malayalam', 'Punjabi', 'Assamese', 'Maithili', 'Sanskrit',
+    'Nepali', 'Sindhi', 'Konkani', 'Dogri', 'Manipuri', 'Bodo', 'Santhali',
+    'Kashmiri', 'Bhojpuri', 'Magahi', 'Haryanvi', 'Rajasthani', 'Chhattisgarhi',
+    'Tulu', 'Kodava', 'Khasi', 'Garo', 'Mizo', 'Tripuri', 'Spanish', 'French', 
+    'German', 'Japanese', 'Korean', 'Portuguese', 'Russian', 'Arabic', 'Chinese'
+  ];
 
   useEffect(() => {
     loadRecommendations();
@@ -248,7 +256,7 @@ const EnhancedHomePage = () => {
               <SelectTrigger className="w-48 bg-gray-800/50 border-gray-600 text-white">
                 <SelectValue placeholder="Select Language" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-60 overflow-y-auto">
                 {languages.map(language => (
                   <SelectItem key={language} value={language}>{language}</SelectItem>
                 ))}

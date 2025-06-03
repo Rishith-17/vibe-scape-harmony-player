@@ -22,7 +22,7 @@ serve(async (req) => {
 
     console.log(`Fetching recommendations for mood: ${mood}, country: ${country}, language: ${language}`)
 
-    // Enhanced search queries based on mood and preferences
+    // Enhanced search queries based on mood and preferences with Indian language support
     let searchQueries: string[] = []
 
     switch (mood) {
@@ -41,12 +41,8 @@ serve(async (req) => {
         ]
         break
       case 'regional':
-        if (language === 'Hindi') {
-          searchQueries = [
-            'bollywood songs 2024 trending hits latest music',
-            'hindi music 2024 popular songs bollywood hits',
-            'indian music 2024 bollywood trending songs'
-          ]
+        if (isIndianLanguage(language)) {
+          searchQueries = getIndianLanguageQueries(language)
         } else if (language === 'English' && country) {
           searchQueries = [
             `${country} music 2024 top songs charts hits`,
@@ -104,7 +100,7 @@ serve(async (req) => {
           const channelTitle = item.snippet.channelTitle
           const videoId = item.id.videoId
           
-          // Filter for music content
+          // Filter for music content with enhanced filtering for Indian languages
           const titleLower = title.toLowerCase()
           const isMusic = titleLower.includes('music') || 
                          titleLower.includes('song') || 
@@ -112,12 +108,19 @@ serve(async (req) => {
                          titleLower.includes('official') ||
                          titleLower.includes('video') ||
                          titleLower.includes('hit') ||
-                         titleLower.includes('chart')
+                         titleLower.includes('chart') ||
+                         titleLower.includes('gaan') ||  // Bengali for song
+                         titleLower.includes('paata') || // Telugu for song
+                         titleLower.includes('geet') ||  // Hindi for song
+                         titleLower.includes('gaana')    // Hindi for song
           
           const isNotMusic = titleLower.includes('trailer') ||
                             titleLower.includes('interview') ||
                             titleLower.includes('reaction') ||
-                            titleLower.includes('review')
+                            titleLower.includes('review') ||
+                            titleLower.includes('news') ||
+                            titleLower.includes('making') ||
+                            titleLower.includes('behind')
           
           if (isMusic && !isNotMusic) {
             const thumbnailUrl = item.snippet.thumbnails.high?.url || 
@@ -188,7 +191,80 @@ serve(async (req) => {
   }
 })
 
+function isIndianLanguage(language: string): boolean {
+  const indianLanguages = [
+    'Hindi', 'Bengali', 'Telugu', 'Marathi', 'Tamil', 'Gujarati', 'Urdu', 
+    'Kannada', 'Odia', 'Malayalam', 'Punjabi', 'Assamese', 'Maithili', 'Sanskrit',
+    'Nepali', 'Sindhi', 'Konkani', 'Dogri', 'Manipuri', 'Bodo', 'Santhali',
+    'Kashmiri', 'Bhojpuri', 'Magahi', 'Haryanvi', 'Rajasthani', 'Chhattisgarhi',
+    'Tulu', 'Kodava', 'Khasi', 'Garo', 'Mizo', 'Tripuri'
+  ]
+  return indianLanguages.includes(language)
+}
+
+function getIndianLanguageQueries(language: string): string[] {
+  const languageQueries: { [key: string]: string[] } = {
+    'Hindi': [
+      'bollywood songs 2024 trending hits latest music hindi',
+      'hindi music 2024 popular songs bollywood hits',
+      'latest hindi songs 2024 bollywood trending music'
+    ],
+    'Tamil': [
+      'tamil songs 2024 kollywood hits latest music',
+      'tamil music 2024 popular songs trending hits',
+      'latest tamil songs 2024 kollywood music'
+    ],
+    'Telugu': [
+      'telugu songs 2024 tollywood hits latest music',
+      'telugu music 2024 popular songs trending hits',
+      'latest telugu songs 2024 tollywood music'
+    ],
+    'Kannada': [
+      'kannada songs 2024 sandalwood hits latest music',
+      'kannada music 2024 popular songs trending hits',
+      'latest kannada songs 2024 sandalwood music'
+    ],
+    'Malayalam': [
+      'malayalam songs 2024 mollywood hits latest music',
+      'malayalam music 2024 popular songs trending hits',
+      'latest malayalam songs 2024 mollywood music'
+    ],
+    'Bengali': [
+      'bengali songs 2024 tollywood hits latest music',
+      'bengali music 2024 popular songs trending hits',
+      'latest bengali songs 2024 rabindra sangeet'
+    ],
+    'Punjabi': [
+      'punjabi songs 2024 trending hits latest music',
+      'punjabi music 2024 popular songs dhol beats',
+      'latest punjabi songs 2024 bhangra music'
+    ],
+    'Gujarati': [
+      'gujarati songs 2024 trending hits latest music',
+      'gujarati music 2024 popular songs folk hits',
+      'latest gujarati songs 2024 garba music'
+    ],
+    'Marathi': [
+      'marathi songs 2024 trending hits latest music',
+      'marathi music 2024 popular songs lavani hits',
+      'latest marathi songs 2024 folk music'
+    ],
+    'Urdu': [
+      'urdu songs 2024 trending hits latest music ghazal',
+      'urdu music 2024 popular songs qawwali hits',
+      'latest urdu songs 2024 sufi music'
+    ]
+  }
+
+  return languageQueries[language] || [
+    `${language} songs 2024 trending music popular hits`,
+    `${language} music 2024 latest popular songs`,
+    `trending ${language} songs 2024 music hits`
+  ]
+}
+
 function generateFallbackResponse(mood: string, country: string, language: string) {
+  // Enhanced fallback with Indian songs
   const fallbackSongs = [
     { title: "Flowers", artist: "Miley Cyrus", id: "G7KNmW9a75Y" },
     { title: "As It Was", artist: "Harry Styles", id: "H5v3kku4y6Q" },
@@ -197,17 +273,17 @@ function generateFallbackResponse(mood: string, country: string, language: strin
     { title: "Good 4 U", artist: "Olivia Rodrigo", id: "gNi_6U5Pm_o" },
     { title: "Levitating", artist: "Dua Lipa", id: "TUVcZfQe-Kw" },
     { title: "Blinding Lights", artist: "The Weeknd", id: "4NRXx6U8ABQ" },
-    { title: "Watermelon Sugar", artist: "Harry Styles", id: "E07s5ZYygMg" },
-    { title: "drivers license", artist: "Olivia Rodrigo", id: "ZmDBbnmKpqQ" },
-    { title: "positions", artist: "Ariana Grande", id: "tcYodQoapMg" },
-    { title: "Peaches", artist: "Justin Bieber ft. Daniel Caesar & Giveon", id: "tQ0yjYUFKAE" },
-    { title: "Save Your Tears", artist: "The Weeknd & Ariana Grande", id: "XXYlFuWEuKI" },
-    { title: "Deja Vu", artist: "Olivia Rodrigo", id: "qZXT0zxQEfE" },
-    { title: "Montero (Call Me By Your Name)", artist: "Lil Nas X", id: "6swmTBVI83k" },
-    { title: "Kiss Me More", artist: "Doja Cat ft. SZA", id: "0EVVKs6DQLo" },
-    { title: "Industry Baby", artist: "Lil Nas X & Jack Harlow", id: "UTHLKHL_whs" },
-    { title: "Bad Habits", artist: "Ed Sheeran", id: "orJSJGHjBLI" },
-    { title: "Shivers", artist: "Ed Sheeran", id: "Il0S8BoucSA" }
+    { title: "Kesariya", artist: "Arijit Singh", id: "BddP6PYo2gs" },
+    { title: "Kahani Suno", artist: "Kaifi Khalil", id: "2-GgNNdl6Ig" },
+    { title: "Pasoori", artist: "Ali Sethi & Shae Gill", id: "5Eqb_-j3FDA" },
+    { title: "Raataan Lambiyan", artist: "Tanishk Bagchi", id: "gm_7h2O7Dfg" },
+    { title: "Excuses", artist: "AP Dhillon", id: "N3Kvy2BZPDU" },
+    { title: "Oo Antava", artist: "Indravathi Chauhan", id: "mtsxE8dUckQ" },
+    { title: "Srivalli", artist: "Javed Ali", id: "EW_PmLb-JzE" },
+    { title: "Vaathi Coming", artist: "Anirudh Ravichander", id: "6Hgm4C0Wi5E" },
+    { title: "Beast Mode", artist: "Anirudh Ravichander", id: "iBhVx5lqCN8" },
+    { title: "Butta Bomma", artist: "Armaan Malik", id: "8p11Xx5wGBg" },
+    { title: "Tum Hi Aana", artist: "Jubin Nautiyal", id: "MpBGpW1HwjE" }
   ]
 
   const recommendations = fallbackSongs.map(song => ({
