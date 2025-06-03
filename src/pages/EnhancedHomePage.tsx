@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useRef } from 'react';
 import { Shuffle, Globe, Map, Languages, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,14 +29,26 @@ interface RecommendationData {
   topByState: Song[];
 }
 
+interface CachedData {
+  data: RecommendationData;
+  country: string;
+  language: string;
+  timestamp: number;
+}
+
 const EnhancedHomePage = () => {
   const [recommendations, setRecommendations] = useState<RecommendationData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedCountry, setSelectedCountry] = useState('USA');
-  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState(() => {
+    return localStorage.getItem('moodtunes_selected_country') || 'USA';
+  });
+  const [selectedLanguage, setSelectedLanguage] = useState(() => {
+    return localStorage.getItem('moodtunes_selected_language') || 'English';
+  });
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const { toast } = useToast();
   const { playTrack, currentTrack, isPlaying } = useMusicPlayer();
+  const hasInitialized = useRef(false);
 
   const countries = ['USA', 'India', 'UK', 'Canada', 'Australia', 'Germany', 'France', 'Japan', 'South Korea', 'Brazil'];
   
@@ -49,10 +62,62 @@ const EnhancedHomePage = () => {
     'German', 'Japanese', 'Korean', 'Portuguese', 'Russian', 'Arabic', 'Chinese'
   ];
 
+  // Cache management
+  const getCachedData = (): CachedData | null => {
+    try {
+      const cached = localStorage.getItem('moodtunes_recommendations_cache');
+      if (cached) {
+        const parsedCache: CachedData = JSON.parse(cached);
+        // Check if cache is less than 1 hour old
+        const cacheAge = Date.now() - parsedCache.timestamp;
+        const oneHour = 60 * 60 * 1000;
+        
+        if (cacheAge < oneHour && 
+            parsedCache.country === selectedCountry && 
+            parsedCache.language === selectedLanguage) {
+          return parsedCache;
+        }
+      }
+    } catch (error) {
+      console.error('Error reading cache:', error);
+    }
+    return null;
+  };
+
+  const setCachedData = (data: RecommendationData) => {
+    try {
+      const cacheData: CachedData = {
+        data,
+        country: selectedCountry,
+        language: selectedLanguage,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('moodtunes_recommendations_cache', JSON.stringify(cacheData));
+    } catch (error) {
+      console.error('Error setting cache:', error);
+    }
+  };
+
   useEffect(() => {
+    // Save selected filters to localStorage
+    localStorage.setItem('moodtunes_selected_country', selectedCountry);
+    localStorage.setItem('moodtunes_selected_language', selectedLanguage);
+
+    // Load recommendations on mount or when filters change
+    if (!hasInitialized.current) {
+      // First load - check cache first
+      const cachedData = getCachedData();
+      if (cachedData) {
+        setRecommendations(cachedData.data);
+        setLastUpdated(new Date(cachedData.timestamp).toLocaleString());
+        hasInitialized.current = true;
+        return;
+      }
+    }
+
+    // Load fresh data if no cache or filters changed
     loadRecommendations();
-    const interval = setInterval(loadRecommendations, 24 * 60 * 60 * 1000); // Update every 24 hours
-    return () => clearInterval(interval);
+    hasInitialized.current = true;
   }, [selectedCountry, selectedLanguage]);
 
   const loadRecommendations = async () => {
@@ -68,7 +133,6 @@ const EnhancedHomePage = () => {
         }
       });
 
-      // New releases
       const newResponse = await supabase.functions.invoke('gemini-music-feed', {
         body: { 
           mood: 'new',
@@ -78,7 +142,6 @@ const EnhancedHomePage = () => {
         }
       });
 
-      // Country-specific
       const countryResponse = await supabase.functions.invoke('gemini-music-feed', {
         body: { 
           mood: 'regional',
@@ -88,7 +151,6 @@ const EnhancedHomePage = () => {
         }
       });
 
-      // Language-specific
       const languageResponse = await supabase.functions.invoke('gemini-music-feed', {
         body: { 
           mood: 'regional',
@@ -139,6 +201,7 @@ const EnhancedHomePage = () => {
       };
       
       setRecommendations(processedData);
+      setCachedData(processedData);
       setLastUpdated(new Date().toLocaleString());
     } catch (error: any) {
       console.error('Error loading recommendations:', error);
@@ -201,7 +264,13 @@ const EnhancedHomePage = () => {
     }
   };
 
-  if (isLoading) {
+  const handleRefresh = () => {
+    // Clear cache and force reload
+    localStorage.removeItem('moodtunes_recommendations_cache');
+    loadRecommendations();
+  };
+
+  if (isLoading && !recommendations) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center px-4">
@@ -231,10 +300,21 @@ const EnhancedHomePage = () => {
           </h1>
           <p className="text-gray-300 text-lg mb-2">Discover the World's Trending Music Videos</p>
           {lastUpdated && (
-            <p className="text-gray-500 text-sm flex items-center justify-center gap-2">
-              <Calendar size={16} />
-              Last updated: {lastUpdated}
-            </p>
+            <div className="flex items-center justify-center gap-4">
+              <p className="text-gray-500 text-sm flex items-center gap-2">
+                <Calendar size={16} />
+                Last updated: {lastUpdated}
+              </p>
+              <Button
+                onClick={handleRefresh}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            </div>
           )}
         </div>
 
