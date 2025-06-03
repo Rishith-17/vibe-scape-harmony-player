@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, maxResults = 10 } = await req.json()
+    const { query, maxResults = 20 } = await req.json()
     
     if (!query) {
       throw new Error('Search query is required')
@@ -20,65 +20,72 @@ serve(async (req) => {
 
     const youtubeApiKey = Deno.env.get('YOUTUBE_API_KEY')
     if (!youtubeApiKey) {
-      throw new Error('YouTube API key not configured')
+      console.log('YouTube API key not configured, using fallback data')
+      return generateFallbackResponse(query)
     }
 
     console.log(`Searching for: ${query}`)
 
-    // Try multiple search approaches if quota is exceeded
-    const searchQueries = [
-      `${query} official audio`,
-      `${query} music video`,
-      `${query} song`
-    ]
+    // Enhanced search with better parameters for music
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?` +
+      `part=snippet&` +
+      `type=video&` +
+      `videoCategoryId=10&` +
+      `q=${encodeURIComponent(query + ' official music video song audio')}&` +
+      `maxResults=${Math.min(maxResults, 50)}&` +
+      `order=relevance&` +
+      `videoEmbeddable=true&` +
+      `videoSyndicated=true&` +
+      `key=${youtubeApiKey}`
+    
+    const response = await fetch(searchUrl)
+    const data = await response.json()
 
-    let videos = []
-    let lastError = null
-
-    for (const searchQuery of searchQueries) {
-      try {
-        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&q=${encodeURIComponent(searchQuery)}&maxResults=${Math.min(maxResults, 5)}&order=relevance&key=${youtubeApiKey}`
-        
-        const response = await fetch(searchUrl)
-        const data = await response.json()
-
-        if (!response.ok) {
-          lastError = data.error?.message || 'YouTube API error'
-          console.error('YouTube API error:', lastError)
-          
-          // If quota exceeded, try with different parameters
-          if (data.error?.reason === 'quotaExceeded') {
-            continue
-          }
-          throw new Error(lastError)
-        }
-
-        if (data.items && data.items.length > 0) {
-          videos = data.items.map((item: any) => ({
-            id: item.id.videoId,
-            title: item.snippet.title,
-            description: item.snippet.description,
-            thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url,
-            channelTitle: item.snippet.channelTitle,
-            publishedAt: item.snippet.publishedAt,
-            url: `https://www.youtube.com/watch?v=${item.id.videoId}`
-          }))
-          break
-        }
-      } catch (error) {
-        console.error(`Search failed for "${searchQuery}":`, error)
-        lastError = error.message
-        continue
+    if (!response.ok) {
+      console.error('YouTube API error:', data.error?.message)
+      
+      if (data.error?.reason === 'quotaExceeded') {
+        console.log('Quota exceeded, using fallback data')
+        return generateFallbackResponse(query)
       }
+      
+      throw new Error(data.error?.message || 'YouTube API error')
     }
 
-    // If no results found, provide fallback data
-    if (videos.length === 0) {
-      console.log('No videos found, providing fallback results')
-      videos = generateFallbackResults(query)
+    if (!data.items || data.items.length === 0) {
+      console.log('No results found, using fallback data')
+      return generateFallbackResponse(query)
     }
 
-    console.log(`Found ${videos.length} videos`)
+    // Filter and enhance results for better music content
+    const videos = data.items
+      .filter((item: any) => {
+        const title = item.snippet.title.toLowerCase()
+        const description = item.snippet.description.toLowerCase()
+        
+        // Filter out non-music content
+        const excludeKeywords = ['trailer', 'interview', 'reaction', 'review', 'commentary', 'news', 'documentary']
+        const includeKeywords = ['music', 'song', 'audio', 'official', 'video', 'lyrics', 'acoustic', 'live']
+        
+        const hasExclude = excludeKeywords.some(keyword => title.includes(keyword) || description.includes(keyword))
+        const hasInclude = includeKeywords.some(keyword => title.includes(keyword) || description.includes(keyword))
+        
+        return !hasExclude && (hasInclude || title.includes('music') || title.includes('song'))
+      })
+      .map((item: any) => ({
+        id: item.id.videoId,
+        title: item.snippet.title,
+        description: item.snippet.description,
+        thumbnail: item.snippet.thumbnails.high?.url || 
+                  item.snippet.thumbnails.medium?.url || 
+                  item.snippet.thumbnails.default?.url ||
+                  `https://img.youtube.com/vi/${item.id.videoId}/hqdefault.jpg`,
+        channelTitle: item.snippet.channelTitle,
+        publishedAt: item.snippet.publishedAt,
+        url: `https://www.youtube.com/watch?v=${item.id.videoId}`
+      }))
+
+    console.log(`Found ${videos.length} filtered music videos`)
 
     return new Response(
       JSON.stringify({ videos }),
@@ -87,22 +94,12 @@ serve(async (req) => {
   } catch (error) {
     console.error('YouTube search error:', error)
     
-    // Provide fallback results even on error
     const { query } = await req.json().catch(() => ({ query: 'music' }))
-    const fallbackVideos = generateFallbackResults(query || 'music')
-    
-    return new Response(
-      JSON.stringify({ 
-        videos: fallbackVideos,
-        error: 'Limited search results due to API constraints',
-        fallback: true
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return generateFallbackResponse(query || 'music')
   }
 })
 
-function generateFallbackResults(query: string) {
+function generateFallbackResponse(query: string) {
   const fallbackSongs = [
     { title: "Flowers", artist: "Miley Cyrus", id: "G7KNmW9a75Y" },
     { title: "As It Was", artist: "Harry Styles", id: "H5v3kku4y6Q" },
@@ -113,10 +110,29 @@ function generateFallbackResults(query: string) {
     { title: "Blinding Lights", artist: "The Weeknd", id: "4NRXx6U8ABQ" },
     { title: "Watermelon Sugar", artist: "Harry Styles", id: "E07s5ZYygMg" },
     { title: "drivers license", artist: "Olivia Rodrigo", id: "ZmDBbnmKpqQ" },
-    { title: "positions", artist: "Ariana Grande", id: "tcYodQoapMg" }
+    { title: "positions", artist: "Ariana Grande", id: "tcYodQoapMg" },
+    { title: "Peaches", artist: "Justin Bieber ft. Daniel Caesar & Giveon", id: "tQ0yjYUFKAE" },
+    { title: "Save Your Tears", artist: "The Weeknd & Ariana Grande", id: "XXYlFuWEuKI" },
+    { title: "Deja Vu", artist: "Olivia Rodrigo", id: "qZXT0zxQEfE" },
+    { title: "Montero (Call Me By Your Name)", artist: "Lil Nas X", id: "6swmTBVI83k" },
+    { title: "Kiss Me More", artist: "Doja Cat ft. SZA", id: "0EVVKs6DQLo" }
   ]
 
-  return fallbackSongs.map(song => ({
+  // Filter based on query if possible
+  let filteredSongs = fallbackSongs
+  if (query && query !== 'music') {
+    const queryLower = query.toLowerCase()
+    filteredSongs = fallbackSongs.filter(song => 
+      song.title.toLowerCase().includes(queryLower) || 
+      song.artist.toLowerCase().includes(queryLower)
+    )
+    
+    if (filteredSongs.length === 0) {
+      filteredSongs = fallbackSongs.slice(0, 10)
+    }
+  }
+
+  const videos = filteredSongs.map(song => ({
     id: song.id,
     title: song.title,
     description: `${song.title} by ${song.artist}`,
@@ -125,4 +141,13 @@ function generateFallbackResults(query: string) {
     publishedAt: new Date().toISOString(),
     url: `https://www.youtube.com/watch?v=${song.id}`
   }))
+
+  return new Response(
+    JSON.stringify({ 
+      videos,
+      fallback: true,
+      message: 'Showing popular songs due to API constraints'
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
 }

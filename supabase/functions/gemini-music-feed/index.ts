@@ -22,79 +22,108 @@ serve(async (req) => {
 
     console.log(`Fetching recommendations for mood: ${mood}, country: ${country}, language: ${language}`)
 
+    // Enhanced search queries based on mood and preferences
     let searchQueries: string[] = []
 
-    // Define search queries based on mood and preferences
     switch (mood) {
       case 'global':
         searchQueries = [
-          'top songs 2024 trending music hits',
-          'viral songs trending worldwide',
-          'popular music 2024 global hits'
+          'top songs 2024 trending music hits global charts billboard',
+          'viral music worldwide popular songs 2024',
+          'best songs 2024 global trending hits music'
         ]
         break
       case 'new':
         searchQueries = [
-          `new ${language} songs 2024 latest releases`,
-          `fresh ${language} music this week`,
-          `${language} new hits 2024`
+          `new ${language} songs 2024 latest releases this week`,
+          `fresh music 2024 ${language} new hits releases`,
+          `latest ${language} songs released 2024 new music`
         ]
         break
       case 'regional':
         if (language === 'Hindi') {
           searchQueries = [
-            'bollywood songs 2024 trending hits',
-            'hindi music latest popular songs',
-            'bollywood new releases 2024'
+            'bollywood songs 2024 trending hits latest music',
+            'hindi music 2024 popular songs bollywood hits',
+            'indian music 2024 bollywood trending songs'
           ]
-        } else if (language === 'English') {
+        } else if (language === 'English' && country) {
           searchQueries = [
-            `${country} top music 2024 hits`,
-            `popular ${country} songs trending`,
-            `${country} music charts 2024`
+            `${country} music 2024 top songs charts hits`,
+            `popular ${country} songs 2024 trending music`,
+            `${country} charts 2024 best music hits songs`
           ]
         } else {
           searchQueries = [
-            `${language} songs 2024 trending music`,
-            `${language} popular hits latest`,
-            `${language} music trending 2024`
+            `${language} songs 2024 trending music popular hits`,
+            `${language} music 2024 latest popular songs`,
+            `trending ${language} songs 2024 music hits`
           ]
         }
         break
       default:
         searchQueries = [
-          'trending music 2024 popular songs',
-          'viral music hits worldwide',
-          'top songs global charts'
+          'trending music 2024 popular songs global hits',
+          'viral songs 2024 music hits trending worldwide',
+          'top music 2024 popular songs global charts'
         ]
     }
 
-    // Fetch recommendations with fallback handling
     const recommendations = []
-    let quotaExceeded = false
     
-    for (const query of searchQueries.slice(0, 2)) { // Limit to 2 queries to conserve quota
-      try {
-        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&q=${encodeURIComponent(query)}&maxResults=5&order=relevance&key=${youtubeApiKey}`
-        
-        const response = await fetch(searchUrl)
-        const data = await response.json()
+    // Use only one search query to conserve quota but make it more targeted
+    const query = searchQueries[0]
+    
+    try {
+      const searchUrl = `https://www.googleapis.com/youtube/v3/search?` +
+        `part=snippet&` +
+        `type=video&` +
+        `videoCategoryId=10&` +
+        `q=${encodeURIComponent(query)}&` +
+        `maxResults=25&` +
+        `order=relevance&` +
+        `videoEmbeddable=true&` +
+        `videoSyndicated=true&` +
+        `key=${youtubeApiKey}`
+      
+      const response = await fetch(searchUrl)
+      const data = await response.json()
 
-        if (!response.ok) {
-          if (data.error?.reason === 'quotaExceeded') {
-            quotaExceeded = true
-            break
-          }
-          console.error('YouTube API error:', data.error?.message)
-          continue
+      if (!response.ok) {
+        if (data.error?.reason === 'quotaExceeded') {
+          console.log('Quota exceeded, using fallback data')
+          return generateFallbackResponse(mood, country, language)
         }
+        console.error('YouTube API error:', data.error?.message)
+        return generateFallbackResponse(mood, country, language)
+      }
 
-        if (data.items) {
-          for (const item of data.items) {
-            const videoId = item.id.videoId
-            const title = item.snippet.title
-            const channelTitle = item.snippet.channelTitle
-            const thumbnailUrl = item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url
+      if (data.items) {
+        for (const item of data.items) {
+          const title = item.snippet.title
+          const channelTitle = item.snippet.channelTitle
+          const videoId = item.id.videoId
+          
+          // Filter for music content
+          const titleLower = title.toLowerCase()
+          const isMusic = titleLower.includes('music') || 
+                         titleLower.includes('song') || 
+                         titleLower.includes('audio') || 
+                         titleLower.includes('official') ||
+                         titleLower.includes('video') ||
+                         titleLower.includes('hit') ||
+                         titleLower.includes('chart')
+          
+          const isNotMusic = titleLower.includes('trailer') ||
+                            titleLower.includes('interview') ||
+                            titleLower.includes('reaction') ||
+                            titleLower.includes('review')
+          
+          if (isMusic && !isNotMusic) {
+            const thumbnailUrl = item.snippet.thumbnails.high?.url || 
+                               item.snippet.thumbnails.medium?.url || 
+                               item.snippet.thumbnails.default?.url ||
+                               `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
             
             recommendations.push({
               title: title,
@@ -108,17 +137,20 @@ serve(async (req) => {
               videoId: videoId,
               thumbnail: thumbnailUrl
             })
+            
+            // Limit results to prevent overwhelming
+            if (recommendations.length >= 15) break
           }
         }
-      } catch (error) {
-        console.error(`Error fetching data for query "${query}":`, error)
-        continue
       }
+    } catch (error) {
+      console.error(`Error fetching data for query "${query}":`, error)
+      return generateFallbackResponse(mood, country, language)
     }
 
-    // If quota exceeded or no results, use fallback data
-    if (quotaExceeded || recommendations.length === 0) {
-      console.log('Using fallback data due to API constraints')
+    // If no good results, use fallback
+    if (recommendations.length === 0) {
+      console.log('No quality music results found, using fallback data')
       return generateFallbackResponse(mood, country, language)
     }
 
@@ -127,9 +159,9 @@ serve(async (req) => {
       .filter((song, index, self) => 
         index === self.findIndex(s => s.title === song.title && s.artist === song.artist)
       )
-      .slice(0, 10)
+      .slice(0, 12)
 
-    console.log(`Found ${uniqueRecommendations.length} unique recommendations`)
+    console.log(`Found ${uniqueRecommendations.length} unique music recommendations`)
 
     const musicFeed = {
       personalizedRecommendations: uniqueRecommendations,
@@ -151,7 +183,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Music feed error:', error)
     
-    // Always return fallback data on error
     const { mood = 'global', country = 'USA', language = 'English' } = await req.json().catch(() => ({}))
     return generateFallbackResponse(mood, country, language)
   }
@@ -170,7 +201,13 @@ function generateFallbackResponse(mood: string, country: string, language: strin
     { title: "drivers license", artist: "Olivia Rodrigo", id: "ZmDBbnmKpqQ" },
     { title: "positions", artist: "Ariana Grande", id: "tcYodQoapMg" },
     { title: "Peaches", artist: "Justin Bieber ft. Daniel Caesar & Giveon", id: "tQ0yjYUFKAE" },
-    { title: "Save Your Tears", artist: "The Weeknd & Ariana Grande", id: "XXYlFuWEuKI" }
+    { title: "Save Your Tears", artist: "The Weeknd & Ariana Grande", id: "XXYlFuWEuKI" },
+    { title: "Deja Vu", artist: "Olivia Rodrigo", id: "qZXT0zxQEfE" },
+    { title: "Montero (Call Me By Your Name)", artist: "Lil Nas X", id: "6swmTBVI83k" },
+    { title: "Kiss Me More", artist: "Doja Cat ft. SZA", id: "0EVVKs6DQLo" },
+    { title: "Industry Baby", artist: "Lil Nas X & Jack Harlow", id: "UTHLKHL_whs" },
+    { title: "Bad Habits", artist: "Ed Sheeran", id: "orJSJGHjBLI" },
+    { title: "Shivers", artist: "Ed Sheeran", id: "Il0S8BoucSA" }
   ]
 
   const recommendations = fallbackSongs.map(song => ({
