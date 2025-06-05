@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
 import { Play, Pause, SkipForward, SkipBack, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { useGlobalYouTubePlayer } from '@/hooks/useGlobalYouTubePlayer';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { formatTime } from '@/lib/timeUtils';
 import NowPlayingModal from './NowPlayingModal';
 
@@ -20,18 +20,24 @@ interface MiniMusicPlayerProps {
 }
 
 const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [isShuffleOn, setIsShuffleOn] = useState(false);
   const [repeatMode, setRepeatMode] = useState<'off' | 'all' | 'one'>('off');
   const [volume, setVolume] = useState(80);
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
+
+  // Use global music player context
+  const { 
+    currentIndex, 
+    skipNext: contextSkipNext, 
+    skipPrevious: contextSkipPrevious,
+    togglePlayPause: contextTogglePlayPause
+  } = useMusicPlayer();
 
   const {
     isPlaying,
     currentTime,
     duration,
     isDragging,
-    togglePlayPause,
     setVolume: setPlayerVolume,
     handleDragStart,
     handleDragMove,
@@ -39,36 +45,15 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
   } = useGlobalYouTubePlayer({
     playlist,
     currentIndex,
-    onTrackChange: (index) => {
-      if (repeatMode === 'one') {
-        return; // Don't change track in repeat one mode
-      }
-      
-      if (repeatMode === 'all' && index >= playlist.length) {
-        setCurrentIndex(0);
-      } else if (index < playlist.length) {
-        setCurrentIndex(index);
-      }
-    },
+    onTrackChange: () => {}, // Handled by context
   });
 
   const handleNext = () => {
-    if (isShuffleOn) {
-      const randomIndex = Math.floor(Math.random() * playlist.length);
-      setCurrentIndex(randomIndex);
-    } else if (currentIndex < playlist.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else if (repeatMode === 'all') {
-      setCurrentIndex(0);
-    }
+    contextSkipNext();
   };
 
   const handlePrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    } else if (repeatMode === 'all') {
-      setCurrentIndex(playlist.length - 1);
-    }
+    contextSkipPrevious();
   };
 
   const handleSeek = (value: number[]) => {
@@ -159,7 +144,7 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
 
               {/* Play/Pause Button */}
               <Button
-                onClick={togglePlayPause}
+                onClick={contextTogglePlayPause}
                 className="bg-gray-900 hover:bg-gray-800 text-white rounded-full w-10 h-10 p-0 shadow-md flex-shrink-0 transition-transform hover:scale-105"
               >
                 {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
@@ -201,7 +186,7 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
         isShuffleOn={isShuffleOn}
         repeatMode={repeatMode}
         isDragging={isDragging}
-        onTogglePlay={togglePlayPause}
+        onTogglePlay={contextTogglePlayPause}
         onNext={handleNext}
         onPrevious={handlePrevious}
         onSeek={handleSeek}
@@ -211,7 +196,7 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
         onRepeatToggle={() => setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')}
         playlist={playlist}
         currentIndex={currentIndex}
-        onTrackSelect={setCurrentIndex}
+        onTrackSelect={() => {}} // Handled by context
       />
     </>
   );

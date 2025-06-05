@@ -46,7 +46,9 @@ export const useGlobalYouTubePlayer = ({
       }
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, [updateState, playerManager, currentIndex, playlist.length, onTrackChange]);
 
   useEffect(() => {
