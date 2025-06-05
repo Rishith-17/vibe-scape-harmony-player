@@ -2,6 +2,7 @@
 import { ChevronDown, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
+import YouTubePlayerManager from '@/lib/youtubePlayerManager';
 import {
   Dialog,
   DialogContent,
@@ -15,13 +16,18 @@ interface FullPlayerProps {
 const FullPlayer = ({ isOpen, onClose }: FullPlayerProps) => {
   const {
     currentTrack,
-    isPlaying,
-    togglePlayPause,
     skipNext,
     skipPrevious,
     canSkipNext,
     canSkipPrevious,
   } = useMusicPlayer();
+
+  const playerManager = YouTubePlayerManager.getInstance();
+  const isPlaying = playerManager.getIsPlaying();
+
+  const togglePlayPause = () => {
+    playerManager.togglePlayPause();
+  };
 
   if (!currentTrack) return null;
 

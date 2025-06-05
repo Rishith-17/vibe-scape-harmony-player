@@ -1,9 +1,9 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Play, Pause, SkipForward, SkipBack, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
+import { useGlobalYouTubePlayer } from '@/hooks/useGlobalYouTubePlayer';
 import { formatTime } from '@/lib/timeUtils';
 import NowPlayingModal from './NowPlayingModal';
 
@@ -26,35 +26,30 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
   const [volume, setVolume] = useState(80);
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
 
-  const handleTrackEnd = () => {
-    if (repeatMode === 'one') {
-      return; // YouTube player will automatically repeat
-    }
-    
-    if (repeatMode === 'all' && currentIndex === playlist.length - 1) {
-      setCurrentIndex(0);
-    } else if (currentIndex < playlist.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
   const {
-    playerRef,
     isPlaying,
     currentTime,
     duration,
     isDragging,
     togglePlayPause,
-    seekTo,
     setVolume: setPlayerVolume,
     handleDragStart,
     handleDragMove,
     handleDragEnd,
-  } = useYouTubePlayer({
+  } = useGlobalYouTubePlayer({
     playlist,
     currentIndex,
-    onTrackChange: setCurrentIndex,
-    onTrackEnd: handleTrackEnd,
+    onTrackChange: (index) => {
+      if (repeatMode === 'one') {
+        return; // Don't change track in repeat one mode
+      }
+      
+      if (repeatMode === 'all' && index >= playlist.length) {
+        setCurrentIndex(0);
+      } else if (index < playlist.length) {
+        setCurrentIndex(index);
+      }
+    },
   });
 
   const handleNext = () => {
@@ -94,17 +89,11 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
   };
 
   const currentTrack = playlist[currentIndex];
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   if (!isVisible || !currentTrack) return null;
 
   return (
     <>
-      {/* Hidden YouTube Player */}
-      <div className="fixed -top-full -left-full opacity-0 pointer-events-none">
-        <div ref={playerRef} />
-      </div>
-
       {/* Mini Player - YouTube Music Style */}
       <div className="fixed bottom-16 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-200/50 z-50 transition-all duration-300 shadow-lg">
         {/* Interactive Progress Bar at Top */}

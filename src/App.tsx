@@ -9,7 +9,6 @@ import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import BottomNavigation from "@/components/BottomNavigation";
 import MiniPlayer from "@/components/MiniPlayer";
-import YouTubePlayer from "@/components/YouTubePlayer";
 import AuthPage from "./pages/AuthPage";
 import EnhancedHomePage from "./pages/EnhancedHomePage";
 import SearchPage from "./pages/SearchPage";
@@ -68,7 +67,6 @@ function App() {
                 </Routes>
                 <BottomNavigation />
                 <MiniPlayer />
-                <YouTubePlayer />
               </div>
             </BrowserRouter>
           </MusicPlayerProvider>
