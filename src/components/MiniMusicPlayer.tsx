@@ -43,9 +43,13 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
     isPlaying,
     currentTime,
     duration,
+    isDragging,
     togglePlayPause,
     seekTo,
     setVolume: setPlayerVolume,
+    handleDragStart,
+    handleDragMove,
+    handleDragEnd,
   } = useYouTubePlayer({
     playlist,
     currentIndex,
@@ -73,7 +77,15 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
   };
 
   const handleSeek = (value: number[]) => {
-    seekTo(value[0]);
+    const targetTime = value[0];
+    if (!isDragging) {
+      handleDragStart(targetTime);
+    }
+    handleDragMove(targetTime);
+  };
+
+  const handleSeekCommit = (value: number[]) => {
+    handleDragEnd(value[0]);
   };
 
   const handleVolumeChange = (value: number[]) => {
@@ -95,15 +107,21 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
 
       {/* Mini Player - YouTube Music Style */}
       <div className="fixed bottom-16 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-200/50 z-50 transition-all duration-300 shadow-lg">
-        {/* Thin Progress Bar at Top */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200">
-          <div 
-            className="h-full bg-red-500 transition-all duration-200 ease-linear"
-            style={{ width: `${progress}%` }}
-          />
+        {/* Interactive Progress Bar at Top */}
+        <div className="absolute top-0 left-0 right-0 h-3 flex items-center cursor-pointer group">
+          <div className="w-full px-2">
+            <Slider
+              value={[currentTime]}
+              max={duration || 100}
+              step={0.1}
+              onValueChange={handleSeek}
+              onValueCommit={handleSeekCommit}
+              className="w-full h-3 group-hover:h-4 transition-all"
+            />
+          </div>
         </div>
 
-        <div className="px-3 py-2">
+        <div className="px-3 py-2 pt-4">
           <div className="flex items-center space-x-3">
             {/* Track Info - Clickable */}
             <div 
@@ -114,7 +132,7 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
                 <img
                   src={currentTrack.thumbnail}
                   alt={currentTrack.title}
-                  className="w-12 h-12 rounded-lg object-cover shadow-md"
+                  className={`w-12 h-12 rounded-lg object-cover shadow-md transition-transform ${isPlaying ? 'animate-spin-slow' : ''}`}
                 />
                 {/* Play Status Indicator */}
                 <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${isPlaying ? 'bg-red-500' : 'bg-gray-400'} border-2 border-white shadow-sm`}>
@@ -131,7 +149,9 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
                     {currentTrack.artist || 'Unknown Artist'}
                   </p>
                   <span className="text-gray-400 text-xs">•</span>
-                  <span className="text-gray-400 text-xs">{formatTime(currentTime)}</span>
+                  <span className="text-gray-400 text-xs">
+                    {formatTime(currentTime)} / {formatTime(duration)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -151,7 +171,7 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
               {/* Play/Pause Button */}
               <Button
                 onClick={togglePlayPause}
-                className="bg-gray-900 hover:bg-gray-800 text-white rounded-full w-10 h-10 p-0 shadow-md flex-shrink-0"
+                className="bg-gray-900 hover:bg-gray-800 text-white rounded-full w-10 h-10 p-0 shadow-md flex-shrink-0 transition-transform hover:scale-105"
               >
                 {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
               </Button>
@@ -191,10 +211,12 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
         volume={volume}
         isShuffleOn={isShuffleOn}
         repeatMode={repeatMode}
+        isDragging={isDragging}
         onTogglePlay={togglePlayPause}
         onNext={handleNext}
         onPrevious={handlePrevious}
         onSeek={handleSeek}
+        onSeekCommit={handleSeekCommit}
         onVolumeChange={handleVolumeChange}
         onShuffleToggle={() => setIsShuffleOn(!isShuffleOn)}
         onRepeatToggle={() => setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')}

@@ -35,6 +35,10 @@ export const useYouTubePlayer = ({
   const [duration, setDuration] = useState(0);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [isApiReady, setIsApiReady] = useState(false);
+  const [playerState, setPlayerState] = useState<number>(-1);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragTime, setDragTime] = useState(0);
+  
   const timeUpdateInterval = useRef<NodeJS.Timeout>();
   const seekingRef = useRef(false);
 
@@ -51,6 +55,42 @@ export const useYouTubePlayer = ({
         }
       };
       checkAPI();
+    }
+  }, []);
+
+  const startTimeUpdates = useCallback(() => {
+    if (timeUpdateInterval.current) {
+      clearInterval(timeUpdateInterval.current);
+    }
+
+    timeUpdateInterval.current = setInterval(() => {
+      if (
+        playerRef.current &&
+        playerRef.current.getCurrentTime &&
+        playerRef.current.getPlayerState &&
+        !seekingRef.current &&
+        !isDragging
+      ) {
+        const state = playerRef.current.getPlayerState();
+        if (state === window.YT?.PlayerState?.PLAYING) {
+          const current = playerRef.current.getCurrentTime();
+          setCurrentTime(current);
+          
+          // Update duration if available and changed
+          if (playerRef.current.getDuration) {
+            const dur = playerRef.current.getDuration();
+            if (dur > 0 && Math.abs(dur - duration) > 1) {
+              setDuration(dur);
+            }
+          }
+        }
+      }
+    }, 1000); // Update every second for accurate timer
+  }, [duration, isDragging]);
+
+  const stopTimeUpdates = useCallback(() => {
+    if (timeUpdateInterval.current) {
+      clearInterval(timeUpdateInterval.current);
     }
   }, []);
 
@@ -79,23 +119,25 @@ export const useYouTubePlayer = ({
           onReady: (event: any) => {
             console.log('YouTube player ready');
             setIsPlayerReady(true);
-            // Get duration immediately
+            
+            // Get initial duration
             setTimeout(() => {
               if (event.target && event.target.getDuration) {
                 const videoDuration = event.target.getDuration();
                 console.log('Video duration:', videoDuration);
                 setDuration(videoDuration);
               }
-            }, 500);
-            startTimeUpdates();
+            }, 1000);
           },
           onStateChange: (event: any) => {
             const state = event.data;
             console.log('Player state changed:', state);
+            setPlayerState(state);
             
             if (state === window.YT.PlayerState.PLAYING) {
               setIsPlaying(true);
               startTimeUpdates();
+              
               // Update duration when playing starts
               if (event.target && event.target.getDuration) {
                 const dur = event.target.getDuration();
@@ -109,6 +151,7 @@ export const useYouTubePlayer = ({
             } else if (state === window.YT.PlayerState.ENDED) {
               setIsPlaying(false);
               stopTimeUpdates();
+              setCurrentTime(0);
               onTrackEnd();
             } else if (state === window.YT.PlayerState.BUFFERING) {
               // Update duration during buffering as well
@@ -122,37 +165,13 @@ export const useYouTubePlayer = ({
           },
           onError: (event: any) => {
             console.error('YouTube player error:', event.data);
+            // Auto-skip to next track on error
+            onTrackEnd();
           }
         },
       });
     }
-  }, [playlist, currentIndex, onTrackEnd, isApiReady]);
-
-  const startTimeUpdates = () => {
-    if (timeUpdateInterval.current) {
-      clearInterval(timeUpdateInterval.current);
-    }
-    timeUpdateInterval.current = setInterval(() => {
-      if (playerRef.current && playerRef.current.getCurrentTime && playerRef.current.getPlayerState() === window.YT?.PlayerState?.PLAYING && !seekingRef.current) {
-        const current = playerRef.current.getCurrentTime();
-        setCurrentTime(current);
-        
-        // Also update duration if it's not set or changed
-        if (playerRef.current.getDuration) {
-          const dur = playerRef.current.getDuration();
-          if (dur > 0 && Math.abs(dur - duration) > 1) {
-            setDuration(dur);
-          }
-        }
-      }
-    }, 100); // More frequent updates for smoother progress
-  };
-
-  const stopTimeUpdates = () => {
-    if (timeUpdateInterval.current) {
-      clearInterval(timeUpdateInterval.current);
-    }
-  };
+  }, [playlist, currentIndex, onTrackEnd, isApiReady, startTimeUpdates, stopTimeUpdates]);
 
   // Load YouTube API if not already loaded
   useEffect(() => {
@@ -184,7 +203,7 @@ export const useYouTubePlayer = ({
         }
       }
     };
-  }, []);
+  }, [stopTimeUpdates]);
 
   // Initialize player when API is ready
   useEffect(() => {
@@ -200,10 +219,11 @@ export const useYouTubePlayer = ({
       playerRef.current.loadVideoById(playlist[currentIndex].id);
       setCurrentTime(0);
       setDuration(0);
+      setPlayerState(-1);
     }
   }, [currentIndex, playlist, isPlayerReady]);
 
-  const togglePlayPause = () => {
+  const togglePlayPause = useCallback(() => {
     if (playerRef.current && isPlayerReady) {
       try {
         if (isPlaying) {
@@ -215,9 +235,9 @@ export const useYouTubePlayer = ({
         console.error('Error toggling playback:', error);
       }
     }
-  };
+  }, [isPlaying, isPlayerReady]);
 
-  const seekTo = (time: number) => {
+  const seekTo = useCallback((time: number) => {
     if (playerRef.current && isPlayerReady && playerRef.current.seekTo) {
       try {
         console.log('Seeking to:', time);
@@ -225,17 +245,17 @@ export const useYouTubePlayer = ({
         playerRef.current.seekTo(time, true);
         setCurrentTime(time);
         
-        // Reset seeking flag after a short delay
+        // Reset seeking flag after a delay
         setTimeout(() => {
           seekingRef.current = false;
-        }, 500);
+        }, 1000);
       } catch (error) {
         console.error('Error seeking:', error);
       }
     }
-  };
+  }, [isPlayerReady]);
 
-  const setVolume = (volume: number) => {
+  const setVolume = useCallback((volume: number) => {
     if (playerRef.current && isPlayerReady && playerRef.current.setVolume) {
       try {
         playerRef.current.setVolume(volume);
@@ -243,16 +263,44 @@ export const useYouTubePlayer = ({
         console.error('Error setting volume:', error);
       }
     }
-  };
+  }, [isPlayerReady]);
+
+  // Dragging handlers for progress bar
+  const handleDragStart = useCallback((time: number) => {
+    setIsDragging(true);
+    setDragTime(time);
+    stopTimeUpdates();
+  }, [stopTimeUpdates]);
+
+  const handleDragMove = useCallback((time: number) => {
+    if (isDragging) {
+      setDragTime(time);
+    }
+  }, [isDragging]);
+
+  const handleDragEnd = useCallback((time: number) => {
+    setIsDragging(false);
+    seekTo(time);
+    if (isPlaying) {
+      startTimeUpdates();
+    }
+  }, [seekTo, isPlaying, startTimeUpdates]);
+
+  const displayTime = isDragging ? dragTime : currentTime;
 
   return {
     playerRef: containerRef,
     isPlaying,
-    currentTime,
+    currentTime: displayTime,
     duration,
     isPlayerReady,
+    playerState,
+    isDragging,
     togglePlayPause,
     seekTo,
     setVolume,
+    handleDragStart,
+    handleDragMove,
+    handleDragEnd,
   };
 };
