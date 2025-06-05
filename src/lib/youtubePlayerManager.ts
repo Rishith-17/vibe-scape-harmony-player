@@ -12,6 +12,7 @@ class YouTubePlayerManager {
   private isApiReady = false;
   private playerReady = false;
   private onTrackEndCallback: (() => void) | null = null;
+  private isLoadingNewTrack = false;
 
   private constructor() {
     this.initializeAPI();
@@ -99,6 +100,7 @@ class YouTubePlayerManager {
     switch (state) {
       case YT.PlayerState.PLAYING:
         this.isPlaying = true;
+        this.isLoadingNewTrack = false;
         this.updateDuration();
         break;
       case YT.PlayerState.PAUSED:
@@ -107,12 +109,22 @@ class YouTubePlayerManager {
       case YT.PlayerState.ENDED:
         this.isPlaying = false;
         this.currentTime = 0;
-        if (this.onTrackEndCallback) {
+        if (this.onTrackEndCallback && !this.isLoadingNewTrack) {
           this.onTrackEndCallback();
         }
         break;
       case YT.PlayerState.BUFFERING:
         this.updateDuration();
+        break;
+      case YT.PlayerState.CUED:
+        // Video is loaded and ready to play
+        if (this.isLoadingNewTrack) {
+          setTimeout(() => {
+            if (this.player && this.player.playVideo) {
+              this.player.playVideo();
+            }
+          }, 100);
+        }
         break;
     }
     this.notifyListeners();
@@ -169,20 +181,30 @@ class YouTubePlayerManager {
     }
 
     console.log('Playing track:', track.id);
+    
+    // Stop current playback immediately to prevent overlapping
+    if (this.currentTrack && this.currentTrack.id !== track.id) {
+      this.isLoadingNewTrack = true;
+      try {
+        this.player.pauseVideo();
+      } catch (error) {
+        console.error('Error pausing current video:', error);
+      }
+    }
+
     this.currentTrack = track;
     this.currentTime = 0;
     this.duration = 0;
 
     try {
-      this.player.loadVideoById(track.id);
-      // Small delay to ensure video is loaded before playing
-      setTimeout(() => {
-        if (this.player && this.player.playVideo) {
-          this.player.playVideo();
-        }
-      }, 500);
+      // Use loadVideoById for fast switching
+      this.player.loadVideoById({
+        videoId: track.id,
+        startSeconds: 0
+      });
     } catch (error) {
-      console.error('Error playing track:', error);
+      console.error('Error loading track:', error);
+      this.isLoadingNewTrack = false;
     }
 
     this.notifyListeners();

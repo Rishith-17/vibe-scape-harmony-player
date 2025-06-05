@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -49,6 +50,34 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const playerManager = YouTubePlayerManager.getInstance();
   const [isPlaying, setIsPlaying] = useState(false);
 
+  const skipNext = useCallback(() => {
+    if (currentIndex < playlist.length - 1) {
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      setCurrentTrack(playlist[nextIndex]);
+      playerManager.playTrack({
+        id: playlist[nextIndex].id,
+        title: playlist[nextIndex].title,
+        thumbnail: playlist[nextIndex].thumbnail,
+        artist: playlist[nextIndex].channelTitle
+      });
+    }
+  }, [currentIndex, playlist, playerManager]);
+
+  const skipPrevious = useCallback(() => {
+    if (currentIndex > 0) {
+      const prevIndex = currentIndex - 1;
+      setCurrentIndex(prevIndex);
+      setCurrentTrack(playlist[prevIndex]);
+      playerManager.playTrack({
+        id: playlist[prevIndex].id,
+        title: playlist[prevIndex].title,
+        thumbnail: playlist[prevIndex].thumbnail,
+        artist: playlist[prevIndex].channelTitle
+      });
+    }
+  }, [currentIndex, playlist, playerManager]);
+
   // Subscribe to player state changes
   useEffect(() => {
     const unsubscribe = playerManager.subscribe(() => {
@@ -98,9 +127,20 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
 
   const createPlaylist = async (name: string) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to create playlists",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('playlists')
-        .insert([{ name }])
+        .insert([{ name, user_id: user.id }])
         .select()
         .single();
 
@@ -164,8 +204,15 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const addToPlaylist = async (playlistId: string, track: Track) => {
     try {
       const { error } = await supabase
-        .from('playlist_tracks')
-        .insert([{ playlist_id: playlistId, track_id: track.id, track_data: track }]);
+        .from('playlist_songs')
+        .insert([{ 
+          playlist_id: playlistId, 
+          song_id: track.id, 
+          title: track.title,
+          artist: track.channelTitle,
+          thumbnail: track.thumbnail,
+          url: track.url
+        }]);
 
       if (error) {
         console.error('Error adding to playlist:', error);
@@ -173,6 +220,11 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
           title: "Error",
           description: "Failed to add song to playlist",
           variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Song added to playlist",
         });
       }
     } catch (error) {
@@ -188,10 +240,10 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const removeFromPlaylist = async (playlistId: string, trackId: string) => {
     try {
       const { error } = await supabase
-        .from('playlist_tracks')
+        .from('playlist_songs')
         .delete()
         .eq('playlist_id', playlistId)
-        .eq('track_id', trackId);
+        .eq('song_id', trackId);
 
       if (error) {
         console.error('Error removing from playlist:', error);
@@ -199,6 +251,11 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
           title: "Error",
           description: "Failed to remove song from playlist",
           variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Song removed from playlist",
         });
       }
     } catch (error) {
@@ -214,6 +271,11 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const playTrack = useCallback((track: Track, newPlaylist?: Track[], index = 0) => {
     console.log('Playing track:', track.title);
     
+    // Stop current playback immediately to prevent overlapping
+    if (currentTrack && currentTrack.id !== track.id) {
+      playerManager.togglePlayPause(); // Pause current if playing
+    }
+    
     if (newPlaylist) {
       setPlaylist(newPlaylist);
       setCurrentIndex(index);
@@ -227,46 +289,18 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     
     setCurrentTrack(track);
     
-    // Play through YouTube player manager
+    // Load and play the new track immediately
     playerManager.playTrack({
       id: track.id,
       title: track.title,
       thumbnail: track.thumbnail,
       artist: track.channelTitle
     });
-  }, [playlist, playerManager]);
+  }, [playlist, playerManager, currentTrack]);
 
   const togglePlayPause = useCallback(() => {
     playerManager.togglePlayPause();
   }, [playerManager]);
-
-  const skipNext = useCallback(() => {
-    if (currentIndex < playlist.length - 1) {
-      const nextIndex = currentIndex + 1;
-      setCurrentIndex(nextIndex);
-      setCurrentTrack(playlist[nextIndex]);
-      playerManager.playTrack({
-        id: playlist[nextIndex].id,
-        title: playlist[nextIndex].title,
-        thumbnail: playlist[nextIndex].thumbnail,
-        artist: playlist[nextIndex].channelTitle
-      });
-    }
-  }, [currentIndex, playlist, playerManager]);
-
-  const skipPrevious = useCallback(() => {
-    if (currentIndex > 0) {
-      const prevIndex = currentIndex - 1;
-      setCurrentIndex(prevIndex);
-      setCurrentTrack(playlist[prevIndex]);
-      playerManager.playTrack({
-        id: playlist[prevIndex].id,
-        title: playlist[prevIndex].title,
-        thumbnail: playlist[prevIndex].thumbnail,
-        artist: playlist[prevIndex].channelTitle
-      });
-    }
-  }, [currentIndex, playlist, playerManager]);
 
   const value = {
     currentTrack,
