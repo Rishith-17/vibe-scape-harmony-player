@@ -47,6 +47,11 @@ html, body {
   100% { transform: translateX(100%); }
 }
 
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
@@ -61,6 +66,10 @@ html, body {
 
 .animate-shimmer {
   animation: shimmer 2s linear infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 10s linear infinite;
 }
 
 /* 3D Card effects */
@@ -135,14 +144,27 @@ html, body {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
-/* Enhanced loading animations */
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+/* Custom slider styles for YouTube Music look */
+.youtube-slider [data-radix-slider-track] {
+  background-color: #e5e7eb;
+  height: 4px;
 }
 
-.animate-spin-slow {
-  animation: spin-slow 3s linear infinite;
+.youtube-slider [data-radix-slider-range] {
+  background-color: #ef4444;
+  height: 4px;
+}
+
+.youtube-slider [data-radix-slider-thumb] {
+  width: 16px;
+  height: 16px;
+  background-color: #ef4444;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.youtube-slider [data-radix-slider-thumb]:hover {
+  transform: scale(1.2);
 }
 
 /* Mobile responsive utilities */
@@ -168,6 +190,11 @@ html, body {
   /* Reduce 3D effects on mobile for performance */
   .card-3d:hover {
     transform: translateY(-2px);
+  }
+  
+  /* Slower rotation on mobile */
+  .animate-spin-slow {
+    animation: spin-slow 20s linear infinite;
   }
 }
 

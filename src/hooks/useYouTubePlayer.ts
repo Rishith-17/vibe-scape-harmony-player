@@ -36,6 +36,7 @@ export const useYouTubePlayer = ({
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [isApiReady, setIsApiReady] = useState(false);
   const timeUpdateInterval = useRef<NodeJS.Timeout>();
+  const seekingRef = useRef(false);
 
   // Check if YouTube API is ready
   useEffect(() => {
@@ -78,14 +79,14 @@ export const useYouTubePlayer = ({
           onReady: (event: any) => {
             console.log('YouTube player ready');
             setIsPlayerReady(true);
-            // Get duration after a short delay to ensure video is loaded
+            // Get duration immediately
             setTimeout(() => {
               if (event.target && event.target.getDuration) {
                 const videoDuration = event.target.getDuration();
                 console.log('Video duration:', videoDuration);
                 setDuration(videoDuration);
               }
-            }, 1000);
+            }, 500);
             startTimeUpdates();
           },
           onStateChange: (event: any) => {
@@ -97,7 +98,10 @@ export const useYouTubePlayer = ({
               startTimeUpdates();
               // Update duration when playing starts
               if (event.target && event.target.getDuration) {
-                setDuration(event.target.getDuration());
+                const dur = event.target.getDuration();
+                if (dur > 0) {
+                  setDuration(dur);
+                }
               }
             } else if (state === window.YT.PlayerState.PAUSED) {
               setIsPlaying(false);
@@ -109,7 +113,10 @@ export const useYouTubePlayer = ({
             } else if (state === window.YT.PlayerState.BUFFERING) {
               // Update duration during buffering as well
               if (event.target && event.target.getDuration) {
-                setDuration(event.target.getDuration());
+                const dur = event.target.getDuration();
+                if (dur > 0) {
+                  setDuration(dur);
+                }
               }
             }
           },
@@ -126,19 +133,19 @@ export const useYouTubePlayer = ({
       clearInterval(timeUpdateInterval.current);
     }
     timeUpdateInterval.current = setInterval(() => {
-      if (playerRef.current && playerRef.current.getCurrentTime && playerRef.current.getPlayerState() === window.YT?.PlayerState?.PLAYING) {
+      if (playerRef.current && playerRef.current.getCurrentTime && playerRef.current.getPlayerState() === window.YT?.PlayerState?.PLAYING && !seekingRef.current) {
         const current = playerRef.current.getCurrentTime();
         setCurrentTime(current);
         
         // Also update duration if it's not set or changed
         if (playerRef.current.getDuration) {
           const dur = playerRef.current.getDuration();
-          if (dur > 0 && dur !== duration) {
+          if (dur > 0 && Math.abs(dur - duration) > 1) {
             setDuration(dur);
           }
         }
       }
-    }, 500); // Update every 500ms for smoother updates
+    }, 100); // More frequent updates for smoother progress
   };
 
   const stopTimeUpdates = () => {
@@ -214,8 +221,14 @@ export const useYouTubePlayer = ({
     if (playerRef.current && isPlayerReady && playerRef.current.seekTo) {
       try {
         console.log('Seeking to:', time);
+        seekingRef.current = true;
         playerRef.current.seekTo(time, true);
         setCurrentTime(time);
+        
+        // Reset seeking flag after a short delay
+        setTimeout(() => {
+          seekingRef.current = false;
+        }, 500);
       } catch (error) {
         console.error('Error seeking:', error);
       }
