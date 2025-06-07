@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -19,15 +18,29 @@ interface Playlist {
   created_at: string;
 }
 
+interface PlayerState {
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  isLoading: boolean;
+  hasError: boolean;
+}
+
 interface MusicPlayerContextType {
   currentTrack: Track | null;
   isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  isLoading: boolean;
+  hasError: boolean;
   playlist: Track[];
   currentIndex: number;
   playTrack: (track: Track, newPlaylist?: Track[], index?: number) => void;
   togglePlayPause: () => void;
   skipNext: () => void;
   skipPrevious: () => void;
+  seekTo: (time: number) => void;
+  setVolume: (volume: number) => void;
   canSkipNext: boolean;
   canSkipPrevious: boolean;
   playlists: Playlist[];
@@ -46,29 +59,58 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [playlist, setPlaylist] = useState<Track[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [playerState, setPlayerState] = useState<PlayerState>({
+    isPlaying: false,
+    currentTime: 0,
+    duration: 0,
+    isLoading: false,
+    hasError: false,
+  });
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const { toast } = useToast();
   
   // Get YouTube player manager instance
   const playerManager = YouTubePlayerManager.getInstance();
-  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Subscribe to player state changes
+  useEffect(() => {
+    const unsubscribe = playerManager.subscribe(() => {
+      setPlayerState({
+        isPlaying: playerManager.getIsPlaying(),
+        currentTime: playerManager.getCurrentTime(),
+        duration: playerManager.getDuration(),
+        isLoading: playerManager.getIsLoading(),
+        hasError: playerManager.getHasError(),
+      });
+    });
+
+    // Set up track end callback for autoplay
+    playerManager.setOnTrackEnd(() => {
+      skipNext();
+    });
+
+    // Set up error callback for auto-skip
+    playerManager.setOnError(() => {
+      toast({
+        title: "Playback Error",
+        description: "This video is not available. Skipping to next song.",
+        variant: "destructive",
+      });
+      setTimeout(() => skipNext(), 1000);
+    });
+
+    return unsubscribe; // This now returns void, fixing the TypeScript error
+  }, []);
 
   const skipNext = useCallback(() => {
     if (currentIndex < playlist.length - 1) {
       const nextIndex = currentIndex + 1;
       const nextTrack = playlist[nextIndex];
       
-      console.log('Skipping to next track:', nextTrack.title);
-      
       setCurrentIndex(nextIndex);
       setCurrentTrack(nextTrack);
       
-      playerManager.playTrack({
-        id: nextTrack.id,
-        title: nextTrack.title,
-        thumbnail: nextTrack.thumbnail,
-        artist: nextTrack.channelTitle
-      });
+      playerManager.playTrack(nextTrack);
     }
   }, [currentIndex, playlist, playerManager]);
 
@@ -77,34 +119,41 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
       const prevIndex = currentIndex - 1;
       const prevTrack = playlist[prevIndex];
       
-      console.log('Skipping to previous track:', prevTrack.title);
-      
       setCurrentIndex(prevIndex);
       setCurrentTrack(prevTrack);
       
-      playerManager.playTrack({
-        id: prevTrack.id,
-        title: prevTrack.title,
-        thumbnail: prevTrack.thumbnail,
-        artist: prevTrack.channelTitle
-      });
+      playerManager.playTrack(prevTrack);
     }
   }, [currentIndex, playlist, playerManager]);
 
-  // Subscribe to player state changes - Fixed useEffect return type
-  useEffect(() => {
-    const unsubscribe = playerManager.subscribe(() => {
-      setIsPlaying(playerManager.getIsPlaying());
-    });
+  const playTrack = useCallback((track: Track, newPlaylist?: Track[], index = 0) => {
+    console.log('PlayTrack called:', track.title);
+    
+    if (newPlaylist) {
+      setPlaylist(newPlaylist);
+      setCurrentIndex(index);
+    } else {
+      const trackIndex = playlist.findIndex(t => t.id === track.id);
+      if (trackIndex !== -1) {
+        setCurrentIndex(trackIndex);
+      }
+    }
+    
+    setCurrentTrack(track);
+    playerManager.playTrack(track);
+  }, [playlist, playerManager]);
 
-    // Set up track end callback
-    playerManager.setOnTrackEnd(() => {
-      console.log('Track ended, skipping to next');
-      skipNext();
-    });
+  const togglePlayPause = useCallback(() => {
+    playerManager.togglePlayPause();
+  }, [playerManager]);
 
-    return unsubscribe; // This now returns void, fixing the TypeScript error
-  }, [skipNext, playerManager]);
+  const seekTo = useCallback((time: number) => {
+    playerManager.seekTo(time);
+  }, [playerManager]);
+
+  const setVolume = useCallback((volume: number) => {
+    playerManager.setVolume(volume);
+  }, [playerManager]);
 
   const refreshPlaylists = useCallback(async () => {
     try {
@@ -343,53 +392,21 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const playTrack = useCallback((track: Track, newPlaylist?: Track[], index = 0) => {
-    console.log('PlayTrack called with:', track.title, 'Index:', index);
-    
-    // Prevent infinite loops by checking if we're already playing this track
-    if (currentTrack?.id === track.id && isPlaying) {
-      console.log('Already playing this track, skipping');
-      return;
-    }
-    
-    if (newPlaylist) {
-      console.log('Setting new playlist with', newPlaylist.length, 'tracks');
-      setPlaylist(newPlaylist);
-      setCurrentIndex(index);
-    } else {
-      // Find track in current playlist
-      const trackIndex = playlist.findIndex(t => t.id === track.id);
-      if (trackIndex !== -1) {
-        setCurrentIndex(trackIndex);
-      }
-    }
-    
-    setCurrentTrack(track);
-    
-    // Load and play the track
-    console.log('Loading track in player manager:', track.id);
-    playerManager.playTrack({
-      id: track.id,
-      title: track.title,
-      thumbnail: track.thumbnail,
-      artist: track.channelTitle
-    });
-  }, [playlist, playerManager, currentTrack, isPlaying]);
-
-  const togglePlayPause = useCallback(() => {
-    console.log('TogglePlayPause called, current isPlaying:', isPlaying);
-    playerManager.togglePlayPause();
-  }, [playerManager, isPlaying]);
-
   const value = {
     currentTrack,
-    isPlaying,
+    isPlaying: playerState.isPlaying,
+    currentTime: playerState.currentTime,
+    duration: playerState.duration,
+    isLoading: playerState.isLoading,
+    hasError: playerState.hasError,
     playlist,
     currentIndex,
     playTrack,
     togglePlayPause,
     skipNext,
     skipPrevious,
+    seekTo,
+    setVolume,
     canSkipNext: currentIndex < playlist.length - 1,
     canSkipPrevious: currentIndex > 0,
     playlists,

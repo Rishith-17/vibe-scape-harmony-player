@@ -7,13 +7,14 @@ class YouTubePlayerManager {
   private isPlaying = false;
   private currentTime = 0;
   private duration = 0;
+  private isLoading = false;
+  private hasError = false;
   private listeners = new Set<() => void>();
   private timeUpdateInterval: NodeJS.Timeout | null = null;
   private isApiReady = false;
   private playerReady = false;
   private onTrackEndCallback: (() => void) | null = null;
-  private isLoadingNewTrack = false;
-  private lastTrackId: string | null = null;
+  private onErrorCallback: (() => void) | null = null;
 
   private constructor() {
     this.initializeAPI();
@@ -52,7 +53,6 @@ class YouTubePlayerManager {
 
     console.log('Creating YouTube player');
 
-    // Create hidden container if it doesn't exist
     if (!this.playerContainer) {
       this.playerContainer = document.createElement('div');
       this.playerContainer.id = 'youtube-player-container';
@@ -92,8 +92,11 @@ class YouTubePlayerManager {
         },
         onError: (event: any) => {
           console.error('YouTube player error:', event.data);
-          if (this.onTrackEndCallback) {
-            this.onTrackEndCallback();
+          this.hasError = true;
+          this.isLoading = false;
+          this.notifyListeners();
+          if (this.onErrorCallback) {
+            this.onErrorCallback();
           }
         }
       },
@@ -105,23 +108,29 @@ class YouTubePlayerManager {
     if (!YT) return;
 
     console.log('Player state changed:', state);
+    this.hasError = false;
 
     switch (state) {
+      case YT.PlayerState.UNSTARTED:
+        this.isLoading = true;
+        break;
       case YT.PlayerState.PLAYING:
         console.log('Player started playing');
         this.isPlaying = true;
-        this.isLoadingNewTrack = false;
+        this.isLoading = false;
         this.updateDuration();
         break;
       case YT.PlayerState.PAUSED:
         console.log('Player paused');
         this.isPlaying = false;
+        this.isLoading = false;
         break;
       case YT.PlayerState.ENDED:
         console.log('Player ended');
         this.isPlaying = false;
+        this.isLoading = false;
         this.currentTime = 0;
-        if (this.onTrackEndCallback && !this.isLoadingNewTrack) {
+        if (this.onTrackEndCallback) {
           setTimeout(() => {
             this.onTrackEndCallback?.();
           }, 500);
@@ -129,19 +138,18 @@ class YouTubePlayerManager {
         break;
       case YT.PlayerState.BUFFERING:
         console.log('Player buffering');
+        this.isLoading = true;
         this.updateDuration();
         break;
       case YT.PlayerState.CUED:
         console.log('Player cued');
-        // Video is loaded and ready to play
-        if (this.isLoadingNewTrack) {
-          setTimeout(() => {
-            if (this.player && this.player.playVideo) {
-              console.log('Auto-playing cued video');
-              this.player.playVideo();
-            }
-          }, 100);
-        }
+        this.isLoading = false;
+        setTimeout(() => {
+          if (this.player && this.player.playVideo) {
+            console.log('Auto-playing cued video');
+            this.player.playVideo();
+          }
+        }, 100);
         break;
     }
     this.notifyListeners();
@@ -190,12 +198,6 @@ class YouTubePlayerManager {
       return;
     }
 
-    // Prevent infinite loops - check if we're already loading this track
-    if (this.isLoadingNewTrack && this.lastTrackId === track.id) {
-      console.log('Already loading this track, skipping duplicate request');
-      return;
-    }
-
     if (!this.isApiReady) {
       console.log('API not ready, waiting...');
       setTimeout(() => this.playTrack(track), 200);
@@ -217,15 +219,23 @@ class YouTubePlayerManager {
 
     console.log('Playing track:', track.id, track.title);
     
-    // Set loading flag and track ID to prevent duplicates
-    this.isLoadingNewTrack = true;
-    this.lastTrackId = track.id;
+    // Stop current playback immediately
+    try {
+      if (this.isPlaying) {
+        this.player.stopVideo();
+      }
+    } catch (error) {
+      console.error('Error stopping current video:', error);
+    }
+
     this.currentTrack = track;
     this.currentTime = 0;
     this.duration = 0;
+    this.hasError = false;
+    this.isLoading = true;
 
     try {
-      // Use loadVideoById for fast switching
+      // Load and play new video
       this.player.loadVideoById({
         videoId: track.id,
         startSeconds: 0
@@ -234,8 +244,8 @@ class YouTubePlayerManager {
       console.log('Video loaded successfully');
     } catch (error) {
       console.error('Error loading track:', error);
-      this.isLoadingNewTrack = false;
-      this.lastTrackId = null;
+      this.hasError = true;
+      this.isLoading = false;
     }
 
     this.notifyListeners();
@@ -286,6 +296,10 @@ class YouTubePlayerManager {
     this.onTrackEndCallback = callback;
   }
 
+  setOnError(callback: () => void) {
+    this.onErrorCallback = callback;
+  }
+
   getCurrentTrack() {
     return this.currentTrack;
   }
@@ -300,6 +314,14 @@ class YouTubePlayerManager {
 
   getDuration() {
     return this.duration;
+  }
+
+  getIsLoading() {
+    return this.isLoading;
+  }
+
+  getHasError() {
+    return this.hasError;
   }
 
   destroy() {
