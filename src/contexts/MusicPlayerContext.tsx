@@ -72,6 +72,30 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   // Get YouTube player manager instance
   const playerManager = YouTubePlayerManager.getInstance();
 
+  const skipNext = useCallback(() => {
+    if (currentIndex < playlist.length - 1) {
+      const nextIndex = currentIndex + 1;
+      const nextTrack = playlist[nextIndex];
+      
+      setCurrentIndex(nextIndex);
+      setCurrentTrack(nextTrack);
+      
+      playerManager.playTrack(nextTrack);
+    }
+  }, [currentIndex, playlist, playerManager]);
+
+  const skipPrevious = useCallback(() => {
+    if (currentIndex > 0) {
+      const prevIndex = currentIndex - 1;
+      const prevTrack = playlist[prevIndex];
+      
+      setCurrentIndex(prevIndex);
+      setCurrentTrack(prevTrack);
+      
+      playerManager.playTrack(prevTrack);
+    }
+  }, [currentIndex, playlist, playerManager]);
+
   // Subscribe to player state changes
   useEffect(() => {
     const unsubscribe = playerManager.subscribe(() => {
@@ -99,32 +123,8 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
       setTimeout(() => skipNext(), 1000);
     });
 
-    return unsubscribe; // This now returns void, fixing the TypeScript error
-  }, []);
-
-  const skipNext = useCallback(() => {
-    if (currentIndex < playlist.length - 1) {
-      const nextIndex = currentIndex + 1;
-      const nextTrack = playlist[nextIndex];
-      
-      setCurrentIndex(nextIndex);
-      setCurrentTrack(nextTrack);
-      
-      playerManager.playTrack(nextTrack);
-    }
-  }, [currentIndex, playlist, playerManager]);
-
-  const skipPrevious = useCallback(() => {
-    if (currentIndex > 0) {
-      const prevIndex = currentIndex - 1;
-      const prevTrack = playlist[prevIndex];
-      
-      setCurrentIndex(prevIndex);
-      setCurrentTrack(prevTrack);
-      
-      playerManager.playTrack(prevTrack);
-    }
-  }, [currentIndex, playlist, playerManager]);
+    return unsubscribe;
+  }, [skipNext, toast]);
 
   const playTrack = useCallback((track: Track, newPlaylist?: Track[], index = 0) => {
     console.log('PlayTrack called:', track.title);

@@ -7,6 +7,7 @@ export const useGlobalYouTubePlayer = () => {
   
   return {
     ...musicPlayer,
+    isDragging: false,
     handleDragStart: () => {},
     handleDragMove: () => {},
     handleDragEnd: (time: number) => musicPlayer.seekTo(time),

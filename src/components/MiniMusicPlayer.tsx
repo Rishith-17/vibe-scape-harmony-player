@@ -1,8 +1,8 @@
+
 import { useState } from 'react';
 import { Play, Pause, SkipForward, SkipBack, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { useGlobalYouTubePlayer } from '@/hooks/useGlobalYouTubePlayer';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { formatTime } from '@/lib/timeUtils';
 import NowPlayingModal from './NowPlayingModal';
@@ -24,48 +24,31 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
   const [repeatMode, setRepeatMode] = useState<'off' | 'all' | 'one'>('off');
   const [volume, setVolume] = useState(80);
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragTime, setDragTime] = useState(0);
 
   // Use global music player context
   const { 
     currentIndex, 
-    skipNext: contextSkipNext, 
-    skipPrevious: contextSkipPrevious,
-    togglePlayPause: contextTogglePlayPause
-  } = useMusicPlayer();
-
-  const {
+    skipNext,
+    skipPrevious,
+    togglePlayPause,
     isPlaying,
     currentTime,
     duration,
-    isDragging,
-    setVolume: setPlayerVolume,
-    handleDragStart,
-    handleDragMove,
-    handleDragEnd,
-  } = useGlobalYouTubePlayer({
-    playlist,
-    currentIndex,
-    onTrackChange: () => {}, // Handled by context
-  });
-
-  const handleNext = () => {
-    contextSkipNext();
-  };
-
-  const handlePrevious = () => {
-    contextSkipPrevious();
-  };
+    seekTo,
+    setVolume: setPlayerVolume
+  } = useMusicPlayer();
 
   const handleSeek = (value: number[]) => {
     const targetTime = value[0];
-    if (!isDragging) {
-      handleDragStart(targetTime);
-    }
-    handleDragMove(targetTime);
+    setIsDragging(true);
+    setDragTime(targetTime);
   };
 
   const handleSeekCommit = (value: number[]) => {
-    handleDragEnd(value[0]);
+    setIsDragging(false);
+    seekTo(value[0]);
   };
 
   const handleVolumeChange = (value: number[]) => {
@@ -73,6 +56,7 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
     setPlayerVolume(value[0]);
   };
 
+  const displayTime = isDragging ? dragTime : currentTime;
   const currentTrack = playlist[currentIndex];
 
   if (!isVisible || !currentTrack) return null;
@@ -85,7 +69,7 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
         <div className="absolute top-0 left-0 right-0 h-3 flex items-center cursor-pointer group">
           <div className="w-full px-2">
             <Slider
-              value={[currentTime]}
+              value={[displayTime]}
               max={duration || 100}
               step={0.1}
               onValueChange={handleSeek}
@@ -124,7 +108,7 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
                   </p>
                   <span className="text-gray-400 text-xs">•</span>
                   <span className="text-gray-400 text-xs">
-                    {formatTime(currentTime)} / {formatTime(duration)}
+                    {formatTime(displayTime)} / {formatTime(duration)}
                   </span>
                 </div>
               </div>
@@ -136,7 +120,7 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handlePrevious}
+                onClick={skipPrevious}
                 className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-full hidden sm:inline-flex"
               >
                 <SkipBack size={18} />
@@ -144,7 +128,7 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
 
               {/* Play/Pause Button */}
               <Button
-                onClick={contextTogglePlayPause}
+                onClick={togglePlayPause}
                 className="bg-gray-900 hover:bg-gray-800 text-white rounded-full w-10 h-10 p-0 shadow-md flex-shrink-0 transition-transform hover:scale-105"
               >
                 {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
@@ -154,7 +138,7 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleNext}
+                onClick={skipNext}
                 className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-full hidden sm:inline-flex"
               >
                 <SkipForward size={18} />
@@ -180,15 +164,15 @@ const MiniMusicPlayer = ({ playlist, isVisible }: MiniMusicPlayerProps) => {
         onClose={() => setIsNowPlayingOpen(false)}
         currentTrack={currentTrack}
         isPlaying={isPlaying}
-        currentTime={currentTime}
+        currentTime={displayTime}
         duration={duration}
         volume={volume}
         isShuffleOn={isShuffleOn}
         repeatMode={repeatMode}
         isDragging={isDragging}
-        onTogglePlay={contextTogglePlayPause}
-        onNext={handleNext}
-        onPrevious={handlePrevious}
+        onTogglePlay={togglePlayPause}
+        onNext={skipNext}
+        onPrevious={skipPrevious}
         onSeek={handleSeek}
         onSeekCommit={handleSeekCommit}
         onVolumeChange={handleVolumeChange}
