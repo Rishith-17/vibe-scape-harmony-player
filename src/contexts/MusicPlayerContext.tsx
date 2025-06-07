@@ -33,8 +33,11 @@ interface MusicPlayerContextType {
   playlists: Playlist[];
   createPlaylist: (name: string) => Promise<void>;
   deletePlaylist: (id: string) => Promise<void>;
+  renamePlaylist: (id: string, name: string) => Promise<void>;
   addToPlaylist: (playlistId: string, track: Track) => Promise<void>;
   removeFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
+  getPlaylistSongs: (playlistId: string) => Promise<Track[]>;
+  refreshPlaylists: () => Promise<void>;
 }
 
 const MusicPlayerContext = createContext<MusicPlayerContextType | undefined>(undefined);
@@ -92,38 +95,38 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     return unsubscribe;
   }, [skipNext, playerManager]);
 
-  useEffect(() => {
-    const fetchPlaylists = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('playlists')
-          .select('*')
-          .order('created_at', { ascending: false });
+  const refreshPlaylists = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('playlists')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('Error fetching playlists:', error);
-          toast({
-            title: "Error",
-            description: "Failed to load playlists",
-            variant: "destructive",
-          });
-        }
-
-        if (data) {
-          setPlaylists(data);
-        }
-      } catch (error) {
-        console.error('Unexpected error fetching playlists:', error);
+      if (error) {
+        console.error('Error fetching playlists:', error);
         toast({
           title: "Error",
           description: "Failed to load playlists",
           variant: "destructive",
         });
       }
-    };
 
-    fetchPlaylists();
+      if (data) {
+        setPlaylists(data);
+      }
+    } catch (error) {
+      console.error('Unexpected error fetching playlists:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load playlists",
+        variant: "destructive",
+      });
+    }
   }, [toast]);
+
+  useEffect(() => {
+    refreshPlaylists();
+  }, [refreshPlaylists]);
 
   const createPlaylist = async (name: string) => {
     try {
@@ -198,6 +201,67 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
         description: "Failed to delete playlist",
         variant: "destructive",
       });
+    }
+  };
+
+  const renamePlaylist = async (id: string, name: string) => {
+    try {
+      const { error } = await supabase
+        .from('playlists')
+        .update({ name })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error renaming playlist:', error);
+        toast({
+          title: "Error",
+          description: "Failed to rename playlist",
+          variant: "destructive",
+        });
+      } else {
+        setPlaylists(prevPlaylists => 
+          prevPlaylists.map(playlist => 
+            playlist.id === id ? { ...playlist, name } : playlist
+          )
+        );
+        toast({
+          title: "Success",
+          description: "Playlist renamed successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error renaming playlist:', error);
+      toast({
+        title: "Error",
+        description: "Failed to rename playlist",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getPlaylistSongs = async (playlistId: string): Promise<Track[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('playlist_songs')
+        .select('*')
+        .eq('playlist_id', playlistId)
+        .order('position');
+
+      if (error) {
+        console.error('Error getting playlist songs:', error);
+        throw error;
+      }
+
+      return (data || []).map(song => ({
+        id: song.song_id,
+        title: song.title,
+        channelTitle: song.artist,
+        thumbnail: song.thumbnail,
+        url: song.url,
+      }));
+    } catch (error) {
+      console.error('Unexpected error getting playlist songs:', error);
+      throw error;
     }
   };
 
@@ -316,8 +380,11 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     playlists,
     createPlaylist,
     deletePlaylist,
+    renamePlaylist,
     addToPlaylist,
     removeFromPlaylist,
+    getPlaylistSongs,
+    refreshPlaylists,
   };
 
   return (
