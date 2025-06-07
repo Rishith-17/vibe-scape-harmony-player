@@ -124,7 +124,7 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return unsubscribe;
-  }, [skipNext, toast]);
+  }, [skipNext, toast, playerManager]);
 
   const playTrack = useCallback((track: Track, newPlaylist?: Track[], index = 0) => {
     console.log('PlayTrack called:', track.title);
