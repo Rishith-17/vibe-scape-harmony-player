@@ -56,13 +56,18 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const skipNext = useCallback(() => {
     if (currentIndex < playlist.length - 1) {
       const nextIndex = currentIndex + 1;
+      const nextTrack = playlist[nextIndex];
+      
+      console.log('Skipping to next track:', nextTrack.title);
+      
       setCurrentIndex(nextIndex);
-      setCurrentTrack(playlist[nextIndex]);
+      setCurrentTrack(nextTrack);
+      
       playerManager.playTrack({
-        id: playlist[nextIndex].id,
-        title: playlist[nextIndex].title,
-        thumbnail: playlist[nextIndex].thumbnail,
-        artist: playlist[nextIndex].channelTitle
+        id: nextTrack.id,
+        title: nextTrack.title,
+        thumbnail: nextTrack.thumbnail,
+        artist: nextTrack.channelTitle
       });
     }
   }, [currentIndex, playlist, playerManager]);
@@ -70,18 +75,23 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const skipPrevious = useCallback(() => {
     if (currentIndex > 0) {
       const prevIndex = currentIndex - 1;
+      const prevTrack = playlist[prevIndex];
+      
+      console.log('Skipping to previous track:', prevTrack.title);
+      
       setCurrentIndex(prevIndex);
-      setCurrentTrack(playlist[prevIndex]);
+      setCurrentTrack(prevTrack);
+      
       playerManager.playTrack({
-        id: playlist[prevIndex].id,
-        title: playlist[prevIndex].title,
-        thumbnail: playlist[prevIndex].thumbnail,
-        artist: playlist[prevIndex].channelTitle
+        id: prevTrack.id,
+        title: prevTrack.title,
+        thumbnail: prevTrack.thumbnail,
+        artist: prevTrack.channelTitle
       });
     }
   }, [currentIndex, playlist, playerManager]);
 
-  // Subscribe to player state changes
+  // Subscribe to player state changes - Fixed useEffect return type
   useEffect(() => {
     const unsubscribe = playerManager.subscribe(() => {
       setIsPlaying(playerManager.getIsPlaying());
@@ -89,10 +99,11 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
 
     // Set up track end callback
     playerManager.setOnTrackEnd(() => {
+      console.log('Track ended, skipping to next');
       skipNext();
     });
 
-    return unsubscribe;
+    return unsubscribe; // This now returns void, fixing the TypeScript error
   }, [skipNext, playerManager]);
 
   const refreshPlaylists = useCallback(async () => {
@@ -333,14 +344,16 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const playTrack = useCallback((track: Track, newPlaylist?: Track[], index = 0) => {
-    console.log('Playing track:', track.title);
+    console.log('PlayTrack called with:', track.title, 'Index:', index);
     
-    // Stop current playback immediately to prevent overlapping
-    if (currentTrack && currentTrack.id !== track.id) {
-      playerManager.togglePlayPause(); // Pause current if playing
+    // Prevent infinite loops by checking if we're already playing this track
+    if (currentTrack?.id === track.id && isPlaying) {
+      console.log('Already playing this track, skipping');
+      return;
     }
     
     if (newPlaylist) {
+      console.log('Setting new playlist with', newPlaylist.length, 'tracks');
       setPlaylist(newPlaylist);
       setCurrentIndex(index);
     } else {
@@ -353,18 +366,20 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     
     setCurrentTrack(track);
     
-    // Load and play the new track immediately
+    // Load and play the track
+    console.log('Loading track in player manager:', track.id);
     playerManager.playTrack({
       id: track.id,
       title: track.title,
       thumbnail: track.thumbnail,
       artist: track.channelTitle
     });
-  }, [playlist, playerManager, currentTrack]);
+  }, [playlist, playerManager, currentTrack, isPlaying]);
 
   const togglePlayPause = useCallback(() => {
+    console.log('TogglePlayPause called, current isPlaying:', isPlaying);
     playerManager.togglePlayPause();
-  }, [playerManager]);
+  }, [playerManager, isPlaying]);
 
   const value = {
     currentTrack,
