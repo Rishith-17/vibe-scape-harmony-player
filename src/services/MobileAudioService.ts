@@ -1,25 +1,6 @@
 
 import { Capacitor } from '@capacitor/core';
 
-// Conditional imports with fallbacks
-let BackgroundMode: any = null;
-let LocalNotifications: any = null;
-
-// Dynamic imports to handle missing plugins gracefully
-const initializePlugins = async () => {
-  try {
-    if (Capacitor.isNativePlatform()) {
-      const { BackgroundMode: BG } = await import('@capacitor/background-mode');
-      BackgroundMode = BG;
-      
-      const { LocalNotifications: LN } = await import('@capacitor/local-notifications');
-      LocalNotifications = LN;
-    }
-  } catch (error) {
-    console.log('Some Capacitor plugins not available:', error);
-  }
-};
-
 declare global {
   interface Window {
     MusicControls: any;
@@ -53,90 +34,21 @@ class MobileAudioService {
     }
 
     try {
-      // Initialize plugins
-      await initializePlugins();
-
       if (!Capacitor.isNativePlatform()) {
         console.log('Running in web mode - native features disabled');
         this.isInitialized = true;
         return;
       }
 
-      // Request notification permissions
-      if (LocalNotifications) {
-        await LocalNotifications.requestPermissions();
-      }
-
-      // Initialize background mode
-      if (BackgroundMode) {
-        await BackgroundMode.enable();
-      }
-
-      // Initialize music controls if available
-      if (window.MusicControls) {
-        await this.setupMusicControls();
-      }
-
+      // For native platforms, we would initialize plugins here
+      // But for now, we'll focus on web functionality
+      console.log('Native platform detected but plugins not configured');
+      
       this.isInitialized = true;
       console.log('Mobile audio service initialized');
     } catch (error) {
       console.error('Failed to initialize mobile audio service:', error);
-      // Still mark as initialized to prevent repeated attempts
       this.isInitialized = true;
-    }
-  }
-
-  private async setupMusicControls() {
-    if (!window.MusicControls) return;
-
-    const controls = window.MusicControls;
-
-    try {
-      // Create music controls
-      await controls.create({
-        track: 'Loading...',
-        artist: 'Music Player',
-        cover: '',
-        isPlaying: false,
-        dismissable: false,
-        hasPrev: true,
-        hasNext: true,
-        hasClose: false,
-        album: '',
-        duration: 0,
-        elapsed: 0,
-        hasSkipForward: true,
-        hasSkipBackward: true,
-        skipForwardInterval: 15,
-        skipBackwardInterval: 15,
-        hasScrubbing: true,
-        ticker: 'Now playing'
-      });
-
-      // Listen to control events
-      controls.subscribe((action: string) => {
-        console.log('Music control action:', action);
-        
-        switch (action) {
-          case 'music-controls-next':
-            this.onNext?.();
-            break;
-          case 'music-controls-previous':
-            this.onPrevious?.();
-            break;
-          case 'music-controls-pause':
-          case 'music-controls-play':
-            this.onTogglePlay?.();
-            break;
-          case 'music-controls-destroy':
-            this.destroy();
-            break;
-        }
-      });
-
-      controls.listen();
-    } catch (error) {
-      console.error('Failed to setup music controls:', error);
     }
   }
 
@@ -150,40 +62,8 @@ class MobileAudioService {
       return;
     }
 
-    try {
-      // Update music controls
-      if (window.MusicControls) {
-        await window.MusicControls.updateIsPlaying(isPlaying);
-        await window.MusicControls.updateElapsed({
-          elapsed: Math.floor(currentTime),
-          isPlaying: isPlaying
-        });
-        
-        if (track) {
-          await window.MusicControls.updateMetas({
-            track: track.title,
-            artist: track.channelTitle,
-            album: 'YouTube Music',
-            cover: track.thumbnail,
-            duration: Math.floor(duration)
-          });
-        }
-      }
-
-      // Update background mode notification
-      if (BackgroundMode && BackgroundMode.isEnabled) {
-        const isEnabled = await BackgroundMode.isEnabled();
-        if (isEnabled) {
-          await BackgroundMode.configure({
-            title: track?.title || 'Music Player',
-            text: `${track?.channelTitle || 'Unknown Artist'} • ${isPlaying ? 'Playing' : 'Paused'}`,
-            icon: 'icon'
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Failed to update now playing:', error);
-    }
+    // Native platform updates would go here when plugins are properly configured
+    console.log('Native platform - media controls would be updated here');
   }
 
   private updateWebMediaSession(track: Track, isPlaying: boolean, currentTime: number, duration: number) {
@@ -222,39 +102,19 @@ class MobileAudioService {
   }
 
   async enableBackgroundMode() {
-    if (!Capacitor.isNativePlatform() || !BackgroundMode) return;
-
-    try {
-      await BackgroundMode.enable();
-      console.log('Background mode enabled');
-    } catch (error) {
-      console.error('Failed to enable background mode:', error);
-    }
+    if (!Capacitor.isNativePlatform()) return;
+    console.log('Background mode would be enabled for native platform');
   }
 
   async disableBackgroundMode() {
-    if (!Capacitor.isNativePlatform() || !BackgroundMode) return;
-
-    try {
-      await BackgroundMode.disable();
-      console.log('Background mode disabled');
-    } catch (error) {
-      console.error('Failed to disable background mode:', error);
-    }
+    if (!Capacitor.isNativePlatform()) return;
+    console.log('Background mode would be disabled for native platform');
   }
 
   async destroy() {
     if (!Capacitor.isNativePlatform()) return;
-
-    try {
-      if (window.MusicControls) {
-        await window.MusicControls.destroy();
-      }
-      await this.disableBackgroundMode();
-      this.isInitialized = false;
-    } catch (error) {
-      console.error('Failed to destroy mobile audio service:', error);
-    }
+    console.log('Mobile audio service would be destroyed for native platform');
+    this.isInitialized = false;
   }
 
   // Callback handlers - set these from your music player context
