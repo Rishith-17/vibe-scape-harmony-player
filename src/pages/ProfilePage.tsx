@@ -1,18 +1,38 @@
 
-import { Camera, Settings, Bell, Moon, HelpCircle, Info, LogOut } from 'lucide-react';
+import { Camera, Settings, Bell, Moon, HelpCircle, Info, LogOut, Edit } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import CameraAvatarDialog from '@/components/CameraAvatarDialog';
+import EditProfileDialog from '@/components/EditProfileDialog';
+import { useToast } from '@/hooks/use-toast';
 
 const ProfilePage = () => {
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
+  };
+
+  const handleImageSelected = (imageUrl: string) => {
+    setAvatarUrl(imageUrl);
+    toast({
+      title: "Success",
+      description: "Profile photo updated successfully",
+    });
+  };
+
+  const handleProfileUpdated = () => {
+    // Force a re-render to show updated user data
+    window.location.reload();
   };
 
   const settingsItems = [
@@ -39,12 +59,23 @@ const ProfilePage = () => {
         {/* Profile Header */}
         <div className="text-center mb-8">
           <div className="relative inline-block mb-4">
-            <div className="w-32 h-32 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto">
-              <span className="text-4xl font-bold">
-                {username.charAt(0).toUpperCase()}
-              </span>
+            <div className="w-32 h-32 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto overflow-hidden">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-4xl font-bold">
+                  {username.charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
-            <button className="absolute bottom-0 right-0 bg-yellow-400 p-2 rounded-full hover:scale-110 transition-transform duration-200">
+            <button 
+              onClick={() => setIsCameraDialogOpen(true)}
+              className="absolute bottom-0 right-0 bg-yellow-400 p-2 rounded-full hover:scale-110 transition-transform duration-200"
+            >
               <Camera size={16} className="text-black" />
             </button>
           </div>
@@ -53,7 +84,11 @@ const ProfilePage = () => {
           <p className="text-gray-400 mb-6">{displayEmail}</p>
           
           <div className="flex gap-4 justify-center">
-            <button className="bg-gray-800/50 border border-gray-600 px-6 py-3 rounded-full hover:bg-gray-700/60 transition-all duration-300">
+            <button 
+              onClick={() => setIsEditDialogOpen(true)}
+              className="bg-gray-800/50 border border-gray-600 px-6 py-3 rounded-full hover:bg-gray-700/60 transition-all duration-300 flex items-center gap-2"
+            >
+              <Edit size={16} />
               Edit Profile
             </button>
             <button 
@@ -116,6 +151,19 @@ const ProfilePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Dialogs */}
+      <CameraAvatarDialog
+        isOpen={isCameraDialogOpen}
+        onClose={() => setIsCameraDialogOpen(false)}
+        onImageSelected={handleImageSelected}
+      />
+      
+      <EditProfileDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        onProfileUpdated={handleProfileUpdated}
+      />
     </div>
   );
 };

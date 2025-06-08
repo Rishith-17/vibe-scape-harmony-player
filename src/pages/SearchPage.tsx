@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Search, Play, Pause, Plus, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,7 +32,9 @@ const SearchPage = () => {
     playTrack, 
     togglePlayPause, 
     playlists, 
-    addToPlaylist 
+    addToPlaylist,
+    toggleLikeSong,
+    isLiked
   } = useMusicPlayer();
   const { toast } = useToast();
 
@@ -241,9 +242,16 @@ const SearchPage = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-gray-400 hover:text-red-400"
+                      onClick={() => toggleLikeSong({
+                        id: video.id,
+                        title: video.title,
+                        channelTitle: video.channelTitle,
+                        thumbnail: video.thumbnail,
+                        url: video.url,
+                      })}
+                      className={`${isLiked(video.id) ? 'text-red-400' : 'text-gray-400'} hover:text-red-400`}
                     >
-                      <Heart size={16} />
+                      <Heart size={16} fill={isLiked(video.id) ? 'currentColor' : 'none'} />
                     </Button>
                     
                     <DropdownMenu>

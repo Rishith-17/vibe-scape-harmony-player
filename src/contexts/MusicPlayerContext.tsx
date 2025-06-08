@@ -51,6 +51,9 @@ interface MusicPlayerContextType {
   removeFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
   getPlaylistSongs: (playlistId: string) => Promise<Track[]>;
   refreshPlaylists: () => Promise<void>;
+  likedSongs: Set<string>;
+  toggleLikeSong: (track: Track) => Promise<void>;
+  isLiked: (trackId: string) => boolean;
 }
 
 const MusicPlayerContext = createContext<MusicPlayerContextType | undefined>(undefined);
@@ -67,6 +70,7 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     hasError: false,
   });
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   
   // Get YouTube player manager instance
@@ -394,6 +398,124 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const createLikedSongsPlaylist = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return null;
+
+      // Check if "Liked Songs" playlist already exists
+      const { data: existingPlaylist } = await supabase
+        .from('playlists')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('name', 'Liked Songs')
+        .single();
+
+      if (existingPlaylist) {
+        return existingPlaylist.id;
+      }
+
+      // Create "Liked Songs" playlist
+      const { data: newPlaylist, error } = await supabase
+        .from('playlists')
+        .insert([{ 
+          name: 'Liked Songs', 
+          description: 'Your favorite songs',
+          user_id: user.id 
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (newPlaylist) {
+        setPlaylists(prevPlaylists => [...prevPlaylists, newPlaylist]);
+        return newPlaylist.id;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error creating Liked Songs playlist:', error);
+      return null;
+    }
+  };
+
+  const toggleLikeSong = async (track: Track) => {
+    try {
+      const isCurrentlyLiked = likedSongs.has(track.id);
+      
+      if (isCurrentlyLiked) {
+        // Unlike the song - remove from all playlists named "Liked Songs"
+        const likedPlaylist = playlists.find(p => p.name === 'Liked Songs');
+        if (likedPlaylist) {
+          await removeFromPlaylist(likedPlaylist.id, track.id);
+        }
+        
+        setLikedSongs(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(track.id);
+          return newSet;
+        });
+
+        toast({
+          title: "Removed from Liked Songs",
+          description: `"${track.title}" removed from your liked songs`,
+        });
+      } else {
+        // Like the song - add to "Liked Songs" playlist
+        let likedPlaylistId = playlists.find(p => p.name === 'Liked Songs')?.id;
+        
+        if (!likedPlaylistId) {
+          likedPlaylistId = await createLikedSongsPlaylist();
+        }
+
+        if (likedPlaylistId) {
+          await addToPlaylist(likedPlaylistId, track);
+        }
+
+        setLikedSongs(prev => new Set([...prev, track.id]));
+
+        toast({
+          title: "Added to Liked Songs",
+          description: `"${track.title}" added to your liked songs`,
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling like for song:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update liked songs",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isLiked = (trackId: string) => {
+    return likedSongs.has(trackId);
+  };
+
+  // Load liked songs on component mount
+  useEffect(() => {
+    const loadLikedSongs = async () => {
+      try {
+        const likedPlaylist = playlists.find(p => p.name === 'Liked Songs');
+        if (likedPlaylist) {
+          const songs = await getPlaylistSongs(likedPlaylist.id);
+          setLikedSongs(new Set(songs.map(song => song.id)));
+        }
+      } catch (error) {
+        console.error('Error loading liked songs:', error);
+      }
+    };
+
+    if (playlists.length > 0) {
+      loadLikedSongs();
+    }
+  }, [playlists]);
+
   const value = {
     currentTrack,
     isPlaying: playerState.isPlaying,
@@ -419,6 +541,9 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     removeFromPlaylist,
     getPlaylistSongs,
     refreshPlaylists,
+    likedSongs,
+    toggleLikeSong,
+    isLiked,
   };
 
   return (

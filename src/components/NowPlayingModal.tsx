@@ -1,9 +1,9 @@
-
 import { ChevronDown, Play, Pause, SkipForward, SkipBack, Volume2, Shuffle, Repeat, Heart, MoreHorizontal, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { formatTime } from '@/lib/timeUtils';
+import { useMusicPlayer } from '@/lib/hooks';
 
 interface Track {
   id: string;
@@ -59,6 +59,12 @@ const NowPlayingModal = ({
   currentIndex,
   onTrackSelect,
 }: NowPlayingModalProps) => {
+  const { toggleLikeSong, isLiked } = useMusicPlayer();
+
+  const handleToggleLike = () => {
+    toggleLikeSong(currentTrack);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-full h-full bg-gradient-to-br from-red-50 via-white to-orange-50 text-gray-900 border-none p-0 m-0 overflow-hidden">
@@ -86,12 +92,7 @@ const NowPlayingModal = ({
               <p className="text-sm text-gray-600 font-medium">Now Playing</p>
               <p className="text-gray-500 text-xs mt-0.5">{playlist.length} songs</p>
             </div>
-            <Button
-              variant="ghost"
-              className="text-gray-700 hover:bg-gray-200/80 rounded-full p-2"
-            >
-              <MoreHorizontal size={24} />
-            </Button>
+            <div className="w-10"></div>
           </div>
 
           {/* Album Art - YouTube Music Style */}
@@ -125,10 +126,15 @@ const NowPlayingModal = ({
               </div>
               <Button
                 variant="ghost"
-                className="text-gray-600 hover:text-red-500 hover:bg-red-50 ml-4 rounded-full flex-shrink-0 p-2 sm:p-3"
+                onClick={handleToggleLike}
+                className={`ml-4 rounded-full flex-shrink-0 p-2 sm:p-3 ${
+                  isLiked(currentTrack.id) 
+                    ? 'text-red-500 bg-red-50 hover:bg-red-100' 
+                    : 'text-gray-600 hover:text-red-500 hover:bg-red-50'
+                }`}
               >
-                <Heart size={20} className="sm:hidden" />
-                <Heart size={24} className="hidden sm:block" />
+                <Heart size={20} className="sm:hidden" fill={isLiked(currentTrack.id) ? 'currentColor' : 'none'} />
+                <Heart size={24} className="hidden sm:block" fill={isLiked(currentTrack.id) ? 'currentColor' : 'none'} />
               </Button>
             </div>
           </div>
