@@ -96,7 +96,7 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [currentIndex, playlist, playerManager]);
 
-  // Subscribe to player state changes
+  // Subscribe to player state changes - Fixed useEffect
   useEffect(() => {
     const unsubscribe = playerManager.subscribe(() => {
       setPlayerState({
@@ -123,7 +123,9 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
       setTimeout(() => skipNext(), 1000);
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, [skipNext, toast, playerManager]);
 
   const playTrack = useCallback((track: Track, newPlaylist?: Track[], index = 0) => {
