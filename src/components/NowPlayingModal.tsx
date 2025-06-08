@@ -1,9 +1,9 @@
-import { ChevronDown, Play, Pause, SkipForward, SkipBack, Volume2, Shuffle, Repeat, Heart, MoreHorizontal, Music } from 'lucide-react';
+import { ChevronDown, Play, Pause, SkipForward, SkipBack, Volume2, Shuffle, Repeat, Heart, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { formatTime } from '@/lib/timeUtils';
-import { useMusicPlayer } from '@/lib/hooks';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 
 interface Track {
   id: string;
