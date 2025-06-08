@@ -1,7 +1,24 @@
 
 import { Capacitor } from '@capacitor/core';
-import { BackgroundMode } from '@capacitor/background-mode';
-import { LocalNotifications } from '@capacitor/local-notifications';
+
+// Conditional imports with fallbacks
+let BackgroundMode: any = null;
+let LocalNotifications: any = null;
+
+// Dynamic imports to handle missing plugins gracefully
+const initializePlugins = async () => {
+  try {
+    if (Capacitor.isNativePlatform()) {
+      const { BackgroundMode: BG } = await import('@capacitor/background-mode');
+      BackgroundMode = BG;
+      
+      const { LocalNotifications: LN } = await import('@capacitor/local-notifications');
+      LocalNotifications = LN;
+    }
+  } catch (error) {
+    console.log('Some Capacitor plugins not available:', error);
+  }
+};
 
 declare global {
   interface Window {
@@ -31,16 +48,29 @@ class MobileAudioService {
   }
 
   async initialize() {
-    if (!Capacitor.isNativePlatform() || this.isInitialized) {
+    if (this.isInitialized) {
       return;
     }
 
     try {
+      // Initialize plugins
+      await initializePlugins();
+
+      if (!Capacitor.isNativePlatform()) {
+        console.log('Running in web mode - native features disabled');
+        this.isInitialized = true;
+        return;
+      }
+
       // Request notification permissions
-      await LocalNotifications.requestPermissions();
+      if (LocalNotifications) {
+        await LocalNotifications.requestPermissions();
+      }
 
       // Initialize background mode
-      await BackgroundMode.enable();
+      if (BackgroundMode) {
+        await BackgroundMode.enable();
+      }
 
       // Initialize music controls if available
       if (window.MusicControls) {
@@ -51,6 +81,8 @@ class MobileAudioService {
       console.log('Mobile audio service initialized');
     } catch (error) {
       console.error('Failed to initialize mobile audio service:', error);
+      // Still mark as initialized to prevent repeated attempts
+      this.isInitialized = true;
     }
   }
 
@@ -59,49 +91,53 @@ class MobileAudioService {
 
     const controls = window.MusicControls;
 
-    // Create music controls
-    await controls.create({
-      track: 'Loading...',
-      artist: 'Music Player',
-      cover: '',
-      isPlaying: false,
-      dismissable: false,
-      hasPrev: true,
-      hasNext: true,
-      hasClose: false,
-      album: '',
-      duration: 0,
-      elapsed: 0,
-      hasSkipForward: true,
-      hasSkipBackward: true,
-      skipForwardInterval: 15,
-      skipBackwardInterval: 15,
-      hasScrubbing: true,
-      ticker: 'Now playing'
-    });
+    try {
+      // Create music controls
+      await controls.create({
+        track: 'Loading...',
+        artist: 'Music Player',
+        cover: '',
+        isPlaying: false,
+        dismissable: false,
+        hasPrev: true,
+        hasNext: true,
+        hasClose: false,
+        album: '',
+        duration: 0,
+        elapsed: 0,
+        hasSkipForward: true,
+        hasSkipBackward: true,
+        skipForwardInterval: 15,
+        skipBackwardInterval: 15,
+        hasScrubbing: true,
+        ticker: 'Now playing'
+      });
 
-    // Listen to control events
-    controls.subscribe((action: string) => {
-      console.log('Music control action:', action);
-      
-      switch (action) {
-        case 'music-controls-next':
-          this.onNext?.();
-          break;
-        case 'music-controls-previous':
-          this.onPrevious?.();
-          break;
-        case 'music-controls-pause':
-        case 'music-controls-play':
-          this.onTogglePlay?.();
-          break;
-        case 'music-controls-destroy':
-          this.destroy();
-          break;
-      }
-    });
+      // Listen to control events
+      controls.subscribe((action: string) => {
+        console.log('Music control action:', action);
+        
+        switch (action) {
+          case 'music-controls-next':
+            this.onNext?.();
+            break;
+          case 'music-controls-previous':
+            this.onPrevious?.();
+            break;
+          case 'music-controls-pause':
+          case 'music-controls-play':
+            this.onTogglePlay?.();
+            break;
+          case 'music-controls-destroy':
+            this.destroy();
+            break;
+        }
+      });
 
-    controls.listen();
+      controls.listen();
+    } catch (error) {
+      console.error('Failed to setup music controls:', error);
+    }
   }
 
   async updateNowPlaying(track: Track, isPlaying: boolean, currentTime = 0, duration = 0) {
@@ -135,12 +171,15 @@ class MobileAudioService {
       }
 
       // Update background mode notification
-      if (BackgroundMode.isEnabled()) {
-        await BackgroundMode.configure({
-          title: track?.title || 'Music Player',
-          text: `${track?.channelTitle || 'Unknown Artist'} • ${isPlaying ? 'Playing' : 'Paused'}`,
-          icon: 'icon'
-        });
+      if (BackgroundMode && BackgroundMode.isEnabled) {
+        const isEnabled = await BackgroundMode.isEnabled();
+        if (isEnabled) {
+          await BackgroundMode.configure({
+            title: track?.title || 'Music Player',
+            text: `${track?.channelTitle || 'Unknown Artist'} • ${isPlaying ? 'Playing' : 'Paused'}`,
+            icon: 'icon'
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to update now playing:', error);
@@ -183,7 +222,7 @@ class MobileAudioService {
   }
 
   async enableBackgroundMode() {
-    if (!Capacitor.isNativePlatform()) return;
+    if (!Capacitor.isNativePlatform() || !BackgroundMode) return;
 
     try {
       await BackgroundMode.enable();
@@ -194,7 +233,7 @@ class MobileAudioService {
   }
 
   async disableBackgroundMode() {
-    if (!Capacitor.isNativePlatform()) return;
+    if (!Capacitor.isNativePlatform() || !BackgroundMode) return;
 
     try {
       await BackgroundMode.disable();
