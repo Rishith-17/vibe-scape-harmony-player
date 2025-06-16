@@ -1,5 +1,6 @@
+
 import { useState, useRef } from 'react';
-import { Camera, Brain, Zap, CameraOff, Image } from 'lucide-react';
+import { Camera, Brain, Zap, CameraOff, Image, Upload } from 'lucide-react';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { useToast } from '@/hooks/use-toast';
 
@@ -11,6 +12,7 @@ const EmotionsPage = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const startCamera = async () => {
@@ -39,7 +41,6 @@ const EmotionsPage = () => {
       streamRef.current = null;
     }
     setIsCameraOn(false);
-    setCapturedImage(null);
   };
 
   const captureImage = () => {
@@ -55,6 +56,7 @@ const EmotionsPage = () => {
         ctx.drawImage(video, 0, 0);
         const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
         setCapturedImage(imageDataUrl);
+        stopCamera();
       }
     }
   };
@@ -70,7 +72,7 @@ const EmotionsPage = () => {
 
       if (image.dataUrl) {
         setCapturedImage(image.dataUrl);
-        stopCamera(); // Stop web camera if it's running
+        stopCamera();
         toast({
           title: "Photo Captured",
           description: "Photo captured successfully from camera",
@@ -97,7 +99,7 @@ const EmotionsPage = () => {
 
       if (image.dataUrl) {
         setCapturedImage(image.dataUrl);
-        stopCamera(); // Stop web camera if it's running
+        stopCamera();
         toast({
           title: "Photo Selected",
           description: "Photo selected successfully from gallery",
@@ -105,11 +107,26 @@ const EmotionsPage = () => {
       }
     } catch (error) {
       console.error('Error selecting from gallery:', error);
-      toast({
-        title: "Gallery Error",
-        description: "Failed to select photo from gallery",
-        variant: "destructive",
-      });
+      // Fallback to file input for web
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setCapturedImage(result);
+        toast({
+          title: "Photo Selected",
+          description: "Photo uploaded successfully",
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -125,7 +142,6 @@ const EmotionsPage = () => {
 
     setIsAnalyzing(true);
     try {
-      // Convert image to base64 (remove data:image/jpeg;base64, prefix)
       const base64Image = capturedImage.split(',')[1];
       
       const response = await fetch('https://api-inference.huggingface.co/models/dima806/facial_emotions_image_detection', {
@@ -144,10 +160,9 @@ const EmotionsPage = () => {
       }
 
       const data = await response.json();
-      console.log('Hugging Face API response:', data);
+      console.log('Emotion detection result:', data);
 
       if (data && data.length > 0) {
-        // Find the emotion with highest score
         const topEmotion = data.reduce((prev: any, current: any) => 
           (prev.score > current.score) ? prev : current
         );
@@ -177,6 +192,12 @@ const EmotionsPage = () => {
     }
   };
 
+  const resetAnalysis = () => {
+    setCapturedImage(null);
+    setAnalysisResult(null);
+    stopCamera();
+  };
+
   const getMoodEmoji = (emotion: string) => {
     const emojiMap: { [key: string]: string } = {
       happy: '😊',
@@ -203,168 +224,93 @@ const EmotionsPage = () => {
     return colorMap[emotion] || 'from-gray-400 to-gray-600';
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white pb-20">
-      <div className="pt-8 px-6">
-        <h1 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-yellow-400 to-teal-400 bg-clip-text text-transparent">
-          AI Emotion Detector
-        </h1>
+  // Show results if analysis is complete
+  if (analysisResult) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-purple-800 text-white pb-20">
+        <div className="pt-8 px-6">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <Brain className="text-white" size={32} />
+              <h1 className="text-3xl font-bold">Emotion Detector</h1>
+              <Zap className="text-white" size={32} />
+            </div>
+            <p className="text-white/80">
+              Upload a photo and let AI detect the emotion from facial expressions with advanced machine learning
+            </p>
+          </div>
 
-        {/* Camera Interface */}
-        <div className="bg-gray-800/50 rounded-2xl p-6 backdrop-blur-sm mb-8">
-          <h2 className="text-xl font-semibold mb-6 text-center flex items-center justify-center gap-2">
-            <Camera className="text-blue-400" size={24} />
-            Face Emotion Detection
-          </h2>
-
-          <div className="space-y-4">
-            <div className="relative aspect-square bg-gray-700 rounded-xl overflow-hidden max-w-md mx-auto">
-              {isCameraOn ? (
-                <>
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover"
-                  />
-                  {capturedImage && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <img
-                        src={capturedImage}
-                        alt="Captured"
-                        className="max-w-full max-h-full object-contain rounded-lg"
-                      />
-                    </div>
-                  )}
-                </>
-              ) : capturedImage ? (
-                <img
-                  src={capturedImage}
-                  alt="Selected for analysis"
-                  className="w-full h-full object-cover rounded-lg"
-                />
+          {/* Image Display */}
+          <div className="bg-white/10 rounded-2xl p-6 backdrop-blur-sm mb-8">
+            <div className="relative aspect-square bg-gray-700 rounded-xl overflow-hidden max-w-md mx-auto mb-6">
+              <img
+                src={capturedImage}
+                alt="Analyzed"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            
+            <button
+              onClick={analyzeEmotion}
+              disabled={isAnalyzing}
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-4 rounded-xl transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+            >
+              {isAnalyzing ? (
+                <div className="flex items-center justify-center">
+                  <Brain className="animate-pulse mr-2" size={20} />
+                  Analyzing...
+                </div>
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <Camera size={64} className="text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-400">Camera Preview / Selected Image</p>
-                  </div>
+                <div className="flex items-center justify-center">
+                  <Brain className="mr-2" size={20} />
+                  Detect Emotion
                 </div>
               )}
-            </div>
-            
-            <canvas ref={canvasRef} className="hidden" />
-            
-            <div className="flex gap-3 justify-center flex-wrap">
-              {!isCameraOn ? (
-                <>
-                  <button
-                    onClick={startCamera}
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-4 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 hover:scale-105"
-                  >
-                    <Camera size={20} />
-                    Web Camera
-                  </button>
-                  <button
-                    onClick={takePhotoWithCapacitor}
-                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-4 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 hover:scale-105"
-                  >
-                    <Camera size={20} />
-                    Take Photo
-                  </button>
-                  <button
-                    onClick={selectFromGallery}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 hover:scale-105"
-                  >
-                    <Image size={20} />
-                    Gallery
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={captureImage}
-                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-4 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 hover:scale-105"
-                  >
-                    <Camera size={20} />
-                    Capture
-                  </button>
-                  <button
-                    onClick={stopCamera}
-                    className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white px-4 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 hover:scale-105"
-                  >
-                    <CameraOff size={20} />
-                    Stop Camera
-                  </button>
-                </>
-              )}
-            </div>
-
-            {capturedImage && (
-              <button
-                onClick={analyzeEmotion}
-                disabled={isAnalyzing}
-                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-semibold py-4 rounded-xl transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isAnalyzing ? (
-                  <div className="flex items-center justify-center">
-                    <Brain className="animate-pulse mr-2" size={20} />
-                    Analyzing Emotion...
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center">
-                    <Zap className="mr-2" size={20} />
-                    Detect Emotion
-                  </div>
-                )}
-              </button>
-            )}
+            </button>
           </div>
-        </div>
 
-        {/* Results Section */}
-        {analysisResult && (
-          <div className="bg-gray-800/50 rounded-2xl p-6 backdrop-blur-sm">
+          {/* Detection Results */}
+          <div className="bg-white/10 rounded-2xl p-6 backdrop-blur-sm">
             <h3 className="text-lg font-semibold mb-6 flex items-center">
-              <Brain className="text-purple-400 mr-2" size={20} />
-              Emotion Analysis Results
+              <Zap className="text-white mr-2" size={20} />
+              Detection Results
             </h3>
             
             {/* Primary Emotion Display */}
             <div className="text-center mb-6">
-              <div className="text-6xl mb-2">{getMoodEmoji(analysisResult.emotion)}</div>
-              <h4 className="text-2xl font-bold capitalize text-white mb-2">
+              <div className="text-8xl mb-4">{getMoodEmoji(analysisResult.emotion)}</div>
+              <h4 className="text-3xl font-bold capitalize text-white mb-2">
                 {analysisResult.emotion}
               </h4>
-              <p className="text-gray-400">
-                Confidence: {Math.round(analysisResult.confidence * 100)}%
+              <div className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-6 py-2 rounded-full inline-block">
+                {Math.round(analysisResult.confidence * 100)}% Confidence
+              </div>
+              <p className="text-white/70 mt-4">
+                The AI detected <span className="font-semibold text-white">{analysisResult.emotion}</span> emotion with{' '}
+                {Math.round(analysisResult.confidence * 100)}% confidence.
               </p>
             </div>
 
             {/* Confidence Bar */}
             <div className="mb-6">
-              <h5 className="text-white font-semibold mb-2">Confidence Level:</h5>
               <div className="w-full bg-gray-700 rounded-full h-3">
                 <div 
                   className={`bg-gradient-to-r ${getEmotionColor(analysisResult.emotion)} h-3 rounded-full transition-all duration-1000`}
                   style={{ width: `${analysisResult.confidence * 100}%` }}
                 ></div>
               </div>
-              <p className="text-gray-400 text-sm mt-1">
-                {Math.round(analysisResult.confidence * 100)}% confident
-              </p>
             </div>
 
             {/* All Detected Emotions */}
             {analysisResult.allEmotions && (
-              <div>
+              <div className="mb-6">
                 <h5 className="text-white font-semibold mb-3">All Detected Emotions:</h5>
                 <div className="space-y-2">
                   {analysisResult.allEmotions
                     .sort((a: any, b: any) => b.score - a.score)
                     .map((emotion: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between bg-gray-700/50 rounded-lg p-3">
+                    <div key={index} className="flex items-center justify-between bg-white/10 rounded-lg p-3">
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{getMoodEmoji(emotion.label.toLowerCase())}</span>
                         <span className="capitalize font-medium">{emotion.label}</span>
@@ -376,7 +322,7 @@ const EmotionsPage = () => {
                             style={{ width: `${emotion.score * 100}%` }}
                           ></div>
                         </div>
-                        <span className="text-sm text-gray-300 w-12 text-right">
+                        <span className="text-sm text-white w-12 text-right">
                           {Math.round(emotion.score * 100)}%
                         </span>
                       </div>
@@ -385,8 +331,157 @@ const EmotionsPage = () => {
                 </div>
               </div>
             )}
+
+            <button
+              onClick={resetAnalysis}
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 rounded-xl transition-all duration-300"
+            >
+              Analyze Another Image
+            </button>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-purple-800 text-white pb-20">
+      <div className="pt-8 px-6">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Brain className="text-white" size={32} />
+            <h1 className="text-3xl font-bold">Emotion Detector</h1>
+            <Zap className="text-white" size={32} />
+          </div>
+          <p className="text-white/80">
+            Upload a photo and let AI detect the emotion from facial expressions with advanced machine learning
+          </p>
+        </div>
+
+        {/* Upload Section */}
+        <div className="bg-white/10 rounded-2xl p-6 backdrop-blur-sm mb-8">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <Upload className="text-white" size={24} />
+            <h2 className="text-xl font-semibold">Upload Image</h2>
+          </div>
+
+          {!capturedImage && !isCameraOn && (
+            <div className="space-y-4">
+              {/* Camera Option */}
+              <button
+                onClick={takePhotoWithCapacitor}
+                className="w-full border-2 border-dashed border-white/30 rounded-xl p-8 hover:border-white/50 transition-all duration-300 hover:bg-white/5"
+              >
+                <div className="flex flex-col items-center">
+                  <Camera size={48} className="text-white/70 mb-4" />
+                  <p className="text-white font-medium">Take Photo with Camera</p>
+                </div>
+              </button>
+
+              {/* Gallery Option */}
+              <button
+                onClick={selectFromGallery}
+                className="w-full border-2 border-dashed border-white/30 rounded-xl p-8 hover:border-white/50 transition-all duration-300 hover:bg-white/5"
+              >
+                <div className="flex flex-col items-center">
+                  <Upload size={48} className="text-white/70 mb-4" />
+                  <p className="text-white font-medium">Upload from Gallery</p>
+                </div>
+              </button>
+
+              {/* Web Camera Option */}
+              <button
+                onClick={startCamera}
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-4 rounded-xl transition-all duration-300"
+              >
+                <div className="flex items-center justify-center">
+                  <Camera className="mr-2" size={20} />
+                  Use Web Camera
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* Camera Preview */}
+          {isCameraOn && (
+            <div className="space-y-4">
+              <div className="relative aspect-square bg-gray-700 rounded-xl overflow-hidden max-w-md mx-auto">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={captureImage}
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition-all duration-300"
+                >
+                  <Camera size={20} />
+                  Capture
+                </button>
+                <button
+                  onClick={stopCamera}
+                  className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition-all duration-300"
+                >
+                  <CameraOff size={20} />
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Selected Image Preview */}
+          {capturedImage && (
+            <div className="space-y-4">
+              <div className="relative aspect-square bg-gray-700 rounded-xl overflow-hidden max-w-md mx-auto">
+                <img
+                  src={capturedImage}
+                  alt="Selected for analysis"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              
+              <button
+                onClick={analyzeEmotion}
+                disabled={isAnalyzing}
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-4 rounded-xl transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isAnalyzing ? (
+                  <div className="flex items-center justify-center">
+                    <Brain className="animate-pulse mr-2" size={20} />
+                    Detecting Emotion...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <Brain className="mr-2" size={20} />
+                    Detect Emotion
+                  </div>
+                )}
+              </button>
+
+              <button
+                onClick={resetAnalysis}
+                className="w-full bg-white/10 hover:bg-white/20 text-white font-medium py-3 rounded-xl transition-all duration-300"
+              >
+                Choose Different Image
+              </button>
+            </div>
+          )}
+        </div>
+
+        <canvas ref={canvasRef} className="hidden" />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
       </div>
     </div>
   );
