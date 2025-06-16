@@ -1,6 +1,6 @@
-
 import { useState, useRef } from 'react';
-import { Camera, Brain, Zap, CameraOff } from 'lucide-react';
+import { Camera, Brain, Zap, CameraOff, Image } from 'lucide-react';
+import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { useToast } from '@/hooks/use-toast';
 
 const EmotionsPage = () => {
@@ -59,11 +59,65 @@ const EmotionsPage = () => {
     }
   };
 
+  const takePhotoWithCapacitor = async () => {
+    try {
+      const image = await CapacitorCamera.getPhoto({
+        quality: 90,
+        allowEditing: true,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera,
+      });
+
+      if (image.dataUrl) {
+        setCapturedImage(image.dataUrl);
+        stopCamera(); // Stop web camera if it's running
+        toast({
+          title: "Photo Captured",
+          description: "Photo captured successfully from camera",
+        });
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      toast({
+        title: "Camera Error",
+        description: "Failed to take photo with camera",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const selectFromGallery = async () => {
+    try {
+      const image = await CapacitorCamera.getPhoto({
+        quality: 90,
+        allowEditing: true,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Photos,
+      });
+
+      if (image.dataUrl) {
+        setCapturedImage(image.dataUrl);
+        stopCamera(); // Stop web camera if it's running
+        toast({
+          title: "Photo Selected",
+          description: "Photo selected successfully from gallery",
+        });
+      }
+    } catch (error) {
+      console.error('Error selecting from gallery:', error);
+      toast({
+        title: "Gallery Error",
+        description: "Failed to select photo from gallery",
+        variant: "destructive",
+      });
+    }
+  };
+
   const analyzeEmotion = async () => {
     if (!capturedImage) {
       toast({
         title: "Error",
-        description: "Please capture an image first",
+        description: "Please capture or select an image first",
         variant: "destructive",
       });
       return;
@@ -184,11 +238,17 @@ const EmotionsPage = () => {
                     </div>
                   )}
                 </>
+              ) : capturedImage ? (
+                <img
+                  src={capturedImage}
+                  alt="Selected for analysis"
+                  className="w-full h-full object-cover rounded-lg"
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <div className="text-center">
                     <Camera size={64} className="text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-400">Camera Preview</p>
+                    <p className="text-gray-400">Camera Preview / Selected Image</p>
                   </div>
                 </div>
               )}
@@ -196,27 +256,43 @@ const EmotionsPage = () => {
             
             <canvas ref={canvasRef} className="hidden" />
             
-            <div className="flex gap-4 justify-center flex-wrap">
+            <div className="flex gap-3 justify-center flex-wrap">
               {!isCameraOn ? (
-                <button
-                  onClick={startCamera}
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 hover:scale-105"
-                >
-                  <Camera size={20} />
-                  Start Camera
-                </button>
+                <>
+                  <button
+                    onClick={startCamera}
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-4 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 hover:scale-105"
+                  >
+                    <Camera size={20} />
+                    Web Camera
+                  </button>
+                  <button
+                    onClick={takePhotoWithCapacitor}
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-4 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 hover:scale-105"
+                  >
+                    <Camera size={20} />
+                    Take Photo
+                  </button>
+                  <button
+                    onClick={selectFromGallery}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 hover:scale-105"
+                  >
+                    <Image size={20} />
+                    Gallery
+                  </button>
+                </>
               ) : (
                 <>
                   <button
                     onClick={captureImage}
-                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 hover:scale-105"
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-4 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 hover:scale-105"
                   >
                     <Camera size={20} />
                     Capture
                   </button>
                   <button
                     onClick={stopCamera}
-                    className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 hover:scale-105"
+                    className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white px-4 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 hover:scale-105"
                   >
                     <CameraOff size={20} />
                     Stop Camera
