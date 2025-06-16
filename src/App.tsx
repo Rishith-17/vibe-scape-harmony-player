@@ -15,6 +15,7 @@ import EnhancedHomePage from "./pages/EnhancedHomePage";
 import SearchPage from "./pages/SearchPage";
 import LibraryPage from "./pages/LibraryPage";
 import ProfilePage from "./pages/ProfilePage";
+import EmotionsPage from "./pages/EmotionsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute>
               <SearchPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/emotions"
+          element={
+            <ProtectedRoute>
+              <EmotionsPage />
             </ProtectedRoute>
           }
         />
