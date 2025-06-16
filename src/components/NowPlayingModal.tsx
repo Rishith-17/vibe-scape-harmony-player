@@ -1,3 +1,4 @@
+
 import { ChevronDown, Play, Pause, SkipForward, SkipBack, Volume2, Shuffle, Repeat, Heart, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -10,6 +11,8 @@ interface Track {
   title: string;
   thumbnail: string;
   artist?: string;
+  channelTitle: string;
+  url: string;
 }
 
 interface NowPlayingModalProps {
