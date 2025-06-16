@@ -12,6 +12,8 @@ interface Track {
   title: string;
   thumbnail: string;
   artist?: string;
+  channelTitle: string;
+  url: string;
 }
 
 interface MiniMusicPlayerProps {

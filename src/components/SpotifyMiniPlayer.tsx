@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Play, Pause, SkipForward, SkipBack, ChevronUp, Volume2, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -199,12 +198,7 @@ const SpotifyMiniPlayer = () => {
       <NowPlayingModal
         isOpen={isNowPlayingOpen}
         onClose={() => setIsNowPlayingOpen(false)}
-        currentTrack={{
-          id: currentTrack.id,
-          title: currentTrack.title,
-          thumbnail: currentTrack.thumbnail,
-          artist: currentTrack.channelTitle,
-        }}
+        currentTrack={currentTrack}
         isPlaying={isPlaying}
         currentTime={displayTime}
         duration={duration}
@@ -220,12 +214,7 @@ const SpotifyMiniPlayer = () => {
         onVolumeChange={handleVolumeChange}
         onShuffleToggle={() => {}}
         onRepeatToggle={() => {}}
-        playlist={playlist.map(track => ({
-          id: track.id,
-          title: track.title,
-          thumbnail: track.thumbnail,
-          artist: track.channelTitle,
-        }))}
+        playlist={playlist}
         currentIndex={currentIndex}
         onTrackSelect={() => {}}
       />
