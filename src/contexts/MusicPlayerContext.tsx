@@ -18,6 +18,16 @@ interface Playlist {
   created_at: string;
 }
 
+interface EmotionPlaylist {
+  id: string;
+  emotion: string;
+  name: string;
+  description: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface PlayerState {
   isPlaying: boolean;
   currentTime: number;
@@ -54,6 +64,12 @@ interface MusicPlayerContextType {
   likedSongs: Set<string>;
   toggleLikeSong: (track: Track) => Promise<void>;
   isLiked: (trackId: string) => boolean;
+  emotionPlaylists: EmotionPlaylist[];
+  getEmotionPlaylist: (emotion: string) => EmotionPlaylist | null;
+  addToEmotionPlaylist: (emotion: string, track: Track) => Promise<void>;
+  getEmotionPlaylistSongs: (emotion: string) => Promise<Track[]>;
+  playEmotionPlaylist: (emotion: string) => Promise<void>;
+  refreshEmotionPlaylists: () => Promise<void>;
 }
 
 const MusicPlayerContext = createContext<MusicPlayerContextType | undefined>(undefined);
@@ -70,6 +86,7 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     hasError: false,
   });
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [emotionPlaylists, setEmotionPlaylists] = useState<EmotionPlaylist[]>([]);
   const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   
@@ -190,9 +207,30 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [toast]);
 
+  const refreshEmotionPlaylists = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('emotion_playlists')
+        .select('*')
+        .order('emotion');
+
+      if (error) {
+        console.error('Error fetching emotion playlists:', error);
+        return;
+      }
+
+      if (data) {
+        setEmotionPlaylists(data);
+      }
+    } catch (error) {
+      console.error('Unexpected error fetching emotion playlists:', error);
+    }
+  }, []);
+
   useEffect(() => {
     refreshPlaylists();
-  }, [refreshPlaylists]);
+    refreshEmotionPlaylists();
+  }, [refreshPlaylists, refreshEmotionPlaylists]);
 
   const createPlaylist = async (name: string) => {
     try {
@@ -398,6 +436,113 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Emotion playlist functions
+  const getEmotionPlaylist = useCallback((emotion: string): EmotionPlaylist | null => {
+    return emotionPlaylists.find(ep => ep.emotion === emotion) || null;
+  }, [emotionPlaylists]);
+
+  const addToEmotionPlaylist = async (emotion: string, track: Track) => {
+    try {
+      const emotionPlaylist = getEmotionPlaylist(emotion);
+      if (!emotionPlaylist) {
+        toast({
+          title: "Error",
+          description: "Emotion playlist not found",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('emotion_playlist_songs')
+        .insert([{
+          emotion_playlist_id: emotionPlaylist.id,
+          song_id: track.id,
+          title: track.title,
+          artist: track.channelTitle,
+          thumbnail: track.thumbnail,
+          url: track.url
+        }]);
+
+      if (error) {
+        console.error('Error adding to emotion playlist:', error);
+        toast({
+          title: "Error",
+          description: "Failed to add song to emotion playlist",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: `Song added to ${emotion} playlist`,
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error adding to emotion playlist:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add song to emotion playlist",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getEmotionPlaylistSongs = async (emotion: string): Promise<Track[]> => {
+    try {
+      const emotionPlaylist = getEmotionPlaylist(emotion);
+      if (!emotionPlaylist) {
+        return [];
+      }
+
+      const { data, error } = await supabase
+        .from('emotion_playlist_songs')
+        .select('*')
+        .eq('emotion_playlist_id', emotionPlaylist.id)
+        .order('created_at');
+
+      if (error) {
+        console.error('Error getting emotion playlist songs:', error);
+        return [];
+      }
+
+      return (data || []).map(song => ({
+        id: song.song_id,
+        title: song.title,
+        channelTitle: song.artist,
+        thumbnail: song.thumbnail,
+        url: song.url,
+      }));
+    } catch (error) {
+      console.error('Unexpected error getting emotion playlist songs:', error);
+      return [];
+    }
+  };
+
+  const playEmotionPlaylist = async (emotion: string) => {
+    try {
+      const songs = await getEmotionPlaylistSongs(emotion);
+      if (songs.length > 0) {
+        playTrack(songs[0], songs, 0);
+        toast({
+          title: "Now Playing",
+          description: `Playing ${emotion} playlist`,
+        });
+      } else {
+        toast({
+          title: "Empty Playlist",
+          description: `No songs in ${emotion} playlist`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to play emotion playlist",
+        variant: "destructive",
+      });
+    }
+  };
+
   const createLikedSongsPlaylist = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -544,6 +689,12 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     likedSongs,
     toggleLikeSong,
     isLiked,
+    emotionPlaylists,
+    getEmotionPlaylist,
+    addToEmotionPlaylist,
+    getEmotionPlaylistSongs,
+    playEmotionPlaylist,
+    refreshEmotionPlaylists,
   };
 
   return (

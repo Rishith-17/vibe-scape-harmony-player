@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { Plus, Music, MoreHorizontal, Play, Trash2, Edit, ArrowLeft, Shuffle, ArrowUpDown } from 'lucide-react';
+import { Plus, Music, MoreHorizontal, Play, Trash2, Edit, ArrowLeft, Shuffle, ArrowUpDown, Heart, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
@@ -19,6 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface PlaylistSong {
   id: string;
@@ -33,15 +33,19 @@ interface PlaylistSong {
 const LibraryPage = () => {
   const {
     playlists,
+    emotionPlaylists,
     createPlaylist,
     deletePlaylist,
     renamePlaylist,
     getPlaylistSongs,
+    getEmotionPlaylistSongs,
     playTrack,
     refreshPlaylists,
+    refreshEmotionPlaylists,
     currentTrack,
     isPlaying,
     removeFromPlaylist,
+    playEmotionPlaylist,
   } = useMusicPlayer();
   
   const [newPlaylistName, setNewPlaylistName] = useState('');
@@ -50,6 +54,7 @@ const LibraryPage = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedPlaylist, setSelectedPlaylist] = useState<any>(null);
+  const [selectedEmotionPlaylist, setSelectedEmotionPlaylist] = useState<any>(null);
   const [playlistSongs, setPlaylistSongs] = useState<PlaylistSong[]>([]);
   const [recommendedSongs, setRecommendedSongs] = useState<any[]>([]);
   const [isLoadingSongs, setIsLoadingSongs] = useState(false);
@@ -57,27 +62,43 @@ const LibraryPage = () => {
 
   useEffect(() => {
     refreshPlaylists();
-  }, [refreshPlaylists]);
+    refreshEmotionPlaylists();
+  }, [refreshPlaylists, refreshEmotionPlaylists]);
 
   useEffect(() => {
-    if (selectedPlaylist) {
+    if (selectedPlaylist || selectedEmotionPlaylist) {
       loadPlaylistSongs();
       loadRecommendedSongs();
     }
-  }, [selectedPlaylist]);
+  }, [selectedPlaylist, selectedEmotionPlaylist]);
 
   const loadPlaylistSongs = async () => {
-    if (!selectedPlaylist) return;
+    if (!selectedPlaylist && !selectedEmotionPlaylist) return;
     
     setIsLoadingSongs(true);
     try {
-      const { data: songsData, error } = await supabase
-        .from('playlist_songs')
-        .select('*')
-        .eq('playlist_id', selectedPlaylist.id)
-        .order('position');
+      let songsData;
+      
+      if (selectedPlaylist) {
+        const { data, error } = await supabase
+          .from('playlist_songs')
+          .select('*')
+          .eq('playlist_id', selectedPlaylist.id)
+          .order('position');
+        
+        if (error) throw error;
+        songsData = data || [];
+      } else if (selectedEmotionPlaylist) {
+        const { data, error } = await supabase
+          .from('emotion_playlist_songs')
+          .select('*')
+          .eq('emotion_playlist_id', selectedEmotionPlaylist.id)
+          .order('created_at');
+        
+        if (error) throw error;
+        songsData = data || [];
+      }
 
-      if (error) throw error;
       setPlaylistSongs(songsData || []);
     } catch (error) {
       console.error('Error loading playlist songs:', error);
@@ -221,6 +242,18 @@ const LibraryPage = () => {
     }
   };
 
+  const handlePlayEmotionPlaylist = async (emotion: string) => {
+    try {
+      await playEmotionPlaylist(emotion);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to play emotion playlist",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handlePlaySong = async (song: PlaylistSong, index: number) => {
     try {
       const tracks = playlistSongs.map(s => ({
@@ -267,10 +300,22 @@ const LibraryPage = () => {
   };
 
   const handleRemoveSong = async (songId: string) => {
-    if (!selectedPlaylist) return;
+    if (!selectedPlaylist && !selectedEmotionPlaylist) return;
     
     try {
-      await removeFromPlaylist(selectedPlaylist.id, songId);
+      if (selectedPlaylist) {
+        await removeFromPlaylist(selectedPlaylist.id, songId);
+      } else if (selectedEmotionPlaylist) {
+        // Remove from emotion playlist
+        const { error } = await supabase
+          .from('emotion_playlist_songs')
+          .delete()
+          .eq('emotion_playlist_id', selectedEmotionPlaylist.id)
+          .eq('song_id', songId);
+        
+        if (error) throw error;
+      }
+      
       setPlaylistSongs(playlistSongs.filter(s => s.song_id !== songId));
       toast({
         title: "Song Removed",
@@ -321,14 +366,46 @@ const LibraryPage = () => {
     );
   };
 
-  if (selectedPlaylist) {
+  const getEmotionEmoji = (emotion: string) => {
+    const emojiMap: { [key: string]: string } = {
+      happy: '😊',
+      sad: '😢',
+      angry: '😠',
+      fear: '😨',
+      surprise: '😲',
+      disgust: '🤢',
+      neutral: '😐'
+    };
+    return emojiMap[emotion] || '😐';
+  };
+
+  const getEmotionColor = (emotion: string) => {
+    const colorMap: { [key: string]: string } = {
+      happy: 'from-yellow-400 to-orange-500',
+      sad: 'from-blue-400 to-blue-600',
+      angry: 'from-red-400 to-red-600',
+      fear: 'from-purple-400 to-purple-600',
+      surprise: 'from-pink-400 to-pink-600',
+      disgust: 'from-green-400 to-green-600',
+      neutral: 'from-gray-400 to-gray-600'
+    };
+    return colorMap[emotion] || 'from-gray-400 to-gray-600';
+  };
+
+  if (selectedPlaylist || selectedEmotionPlaylist) {
+    const currentPlaylistData = selectedPlaylist || selectedEmotionPlaylist;
+    const isEmotionPlaylist = !!selectedEmotionPlaylist;
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white pb-32">
         {/* Header */}
         <div className="p-6">
           <Button
             variant="ghost"
-            onClick={() => setSelectedPlaylist(null)}
+            onClick={() => {
+              setSelectedPlaylist(null);
+              setSelectedEmotionPlaylist(null);
+            }}
             className="text-gray-400 hover:text-white mb-4 p-2"
           >
             <ArrowLeft size={20} className="mr-2" />
@@ -341,19 +418,25 @@ const LibraryPage = () => {
           <div className="flex flex-col md:flex-row items-start md:items-end space-y-6 md:space-y-0 md:space-x-6">
             {/* Playlist Cover */}
             <div className="flex-shrink-0">
-              {generatePlaylistCover(selectedPlaylist) || (
-                <div className="w-48 h-48 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center shadow-xl">
-                  <div className="text-white text-6xl">♪</div>
+              {generatePlaylistCover(currentPlaylistData) || (
+                <div className={`w-48 h-48 bg-gradient-to-br ${
+                  isEmotionPlaylist ? getEmotionColor(currentPlaylistData.emotion) : 'from-purple-500 to-pink-500'
+                } rounded-lg flex items-center justify-center shadow-xl`}>
+                  <div className="text-white text-6xl">
+                    {isEmotionPlaylist ? getEmotionEmoji(currentPlaylistData.emotion) : '♪'}
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Playlist Info */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-400 mb-2">Playlist</p>
-              <h1 className="text-4xl md:text-6xl font-bold mb-4 line-clamp-2">{selectedPlaylist.name}</h1>
-              {selectedPlaylist.description && (
-                <p className="text-gray-300 mb-4">{selectedPlaylist.description}</p>
+              <p className="text-sm text-gray-400 mb-2">
+                {isEmotionPlaylist ? 'Emotion Playlist' : 'Playlist'}
+              </p>
+              <h1 className="text-4xl md:text-6xl font-bold mb-4 line-clamp-2">{currentPlaylistData.name}</h1>
+              {currentPlaylistData.description && (
+                <p className="text-gray-300 mb-4">{currentPlaylistData.description}</p>
               )}
               <div className="flex items-center space-x-4 text-sm text-gray-400">
                 <span>Created by You</span>
@@ -384,14 +467,16 @@ const LibraryPage = () => {
               Sort
             </Button>
             
-            <Button 
-              variant="outline" 
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
-              onClick={() => startEditPlaylist(selectedPlaylist)}
-            >
-              <Edit size={20} className="mr-2" />
-              Edit
-            </Button>
+            {!isEmotionPlaylist && (
+              <Button 
+                variant="outline" 
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                onClick={() => startEditPlaylist(selectedPlaylist)}
+              >
+                <Edit size={20} className="mr-2" />
+                Edit
+              </Button>
+            )}
           </div>
         </div>
 
@@ -405,7 +490,12 @@ const LibraryPage = () => {
           ) : playlistSongs.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-gray-400 text-xl mb-4">No songs in this playlist</div>
-              <p className="text-gray-500">Add some songs from the search page to get started</p>
+              <p className="text-gray-500">
+                {isEmotionPlaylist 
+                  ? `Add songs to your ${currentPlaylistData.emotion} playlist from search or when emotions are detected`
+                  : 'Add some songs from the search page to get started'
+                }
+              </p>
             </div>
           ) : (
             <div className="space-y-1">
@@ -550,7 +640,7 @@ const LibraryPage = () => {
       <div className="pt-8 px-6">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-teal-400 bg-clip-text text-transparent">
-            Your Playlists
+            Your Library
           </h1>
           
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -592,76 +682,230 @@ const LibraryPage = () => {
           </Dialog>
         </div>
 
-        {/* Playlists */}
-        <div className="space-y-4">
-          {playlists.map((playlist) => (
-            <div
-              key={playlist.id}
-              className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 flex items-center justify-between cursor-pointer"
-              onClick={() => setSelectedPlaylist(playlist)}
-            >
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                  <Music size={20} className="text-white" />
-                </div>
-                <div>
-                  <h3 className="text-white font-semibold">{playlist.name}</h3>
-                  <p className="text-gray-400 text-sm">Playlist</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Button
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePlayPlaylist(playlist.id);
-                  }}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <Play size={16} />
-                </Button>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-gray-400 hover:text-white"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreHorizontal size={16} />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-gray-800 border-gray-700">
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        startEditPlaylist(playlist);
-                      }}
-                      className="text-white hover:bg-gray-700"
-                    >
-                      <Edit size={16} className="mr-2" />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeletePlaylist(playlist.id, playlist.name);
-                      }}
-                      className="text-red-400 hover:bg-gray-700"
-                    >
-                      <Trash2 size={16} className="mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+        {/* Tabs for different playlist types */}
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-800/50">
+            <TabsTrigger value="all" className="data-[state=active]:bg-gray-700">All</TabsTrigger>
+            <TabsTrigger value="regular" className="data-[state=active]:bg-gray-700">My Playlists</TabsTrigger>
+            <TabsTrigger value="emotions" className="data-[state=active]:bg-gray-700">
+              <Brain size={16} className="mr-2" />
+              Emotions
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="all" className="space-y-4 mt-6">
+            {/* Emotion Playlists Section */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <Brain size={20} className="mr-2" />
+                Emotion Playlists
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {emotionPlaylists.map((playlist) => (
+                  <div
+                    key={playlist.id}
+                    className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 cursor-pointer"
+                    onClick={() => setSelectedEmotionPlaylist(playlist)}
+                  >
+                    <div className={`w-full aspect-square bg-gradient-to-br ${getEmotionColor(playlist.emotion)} rounded-lg flex items-center justify-center mb-3`}>
+                      <div className="text-white text-4xl">{getEmotionEmoji(playlist.emotion)}</div>
+                    </div>
+                    <h3 className="text-white font-semibold text-center capitalize">{playlist.emotion}</h3>
+                    <p className="text-gray-400 text-sm text-center mt-1">{playlist.description}</p>
+                    <div className="flex justify-center mt-3">
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayEmotionPlaylist(playlist.emotion);
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <Play size={16} />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
 
-        {playlists.length === 0 && (
+            {/* Regular Playlists */}
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Your Playlists</h2>
+              <div className="space-y-4">
+                {playlists.map((playlist) => (
+                  <div
+                    key={playlist.id}
+                    className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 flex items-center justify-between cursor-pointer"
+                    onClick={() => setSelectedPlaylist(playlist)}
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                        <Music size={20} className="text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold">{playlist.name}</h3>
+                        <p className="text-gray-400 text-sm">Playlist</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayPlaylist(playlist.id);
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <Play size={16} />
+                      </Button>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-gray-400 hover:text-white"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal size={16} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-gray-800 border-gray-700">
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditPlaylist(playlist);
+                            }}
+                            className="text-white hover:bg-gray-700"
+                          >
+                            <Edit size={16} className="mr-2" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePlaylist(playlist.id, playlist.name);
+                            }}
+                            className="text-red-400 hover:bg-gray-700"
+                          >
+                            <Trash2 size={16} className="mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="regular" className="space-y-4 mt-6">
+            {/* Regular Playlists */}
+            <div className="space-y-4">
+              {playlists.map((playlist) => (
+                <div
+                  key={playlist.id}
+                  className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 flex items-center justify-between cursor-pointer"
+                  onClick={() => setSelectedPlaylist(playlist)}
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                      <Music size={20} className="text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-semibold">{playlist.name}</h3>
+                      <p className="text-gray-400 text-sm">Playlist</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePlayPlaylist(playlist.id);
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Play size={16} />
+                    </Button>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-gray-400 hover:text-white"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal size={16} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-gray-800 border-gray-700">
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditPlaylist(playlist);
+                          }}
+                          className="text-white hover:bg-gray-700"
+                        >
+                          <Edit size={16} className="mr-2" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletePlaylist(playlist.id, playlist.name);
+                          }}
+                          className="text-red-400 hover:bg-gray-700"
+                        >
+                          <Trash2 size={16} className="mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="emotions" className="space-y-4 mt-6">
+            {/* Emotion Playlists Only */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {emotionPlaylists.map((playlist) => (
+                <div
+                  key={playlist.id}
+                  className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 cursor-pointer"
+                  onClick={() => setSelectedEmotionPlaylist(playlist)}
+                >
+                  <div className={`w-full aspect-square bg-gradient-to-br ${getEmotionColor(playlist.emotion)} rounded-lg flex items-center justify-center mb-3`}>
+                    <div className="text-white text-4xl">{getEmotionEmoji(playlist.emotion)}</div>
+                  </div>
+                  <h3 className="text-white font-semibold text-center capitalize">{playlist.emotion}</h3>
+                  <p className="text-gray-400 text-sm text-center mt-1">{playlist.description}</p>
+                  <div className="flex justify-center mt-3">
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePlayEmotionPlaylist(playlist.emotion);
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Play size={16} />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {playlists.length === 0 && emotionPlaylists.length === 0 && (
           <div className="text-center py-16">
             <Music size={64} className="text-gray-600 mx-auto mb-4" />
             <h3 className="text-xl text-gray-400 mb-2">No playlists yet</h3>

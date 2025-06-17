@@ -9,6 +9,80 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      emotion_playlist_songs: {
+        Row: {
+          artist: string
+          created_at: string
+          emotion_playlist_id: string
+          id: string
+          position: number | null
+          song_id: string
+          thumbnail: string | null
+          title: string
+          url: string
+        }
+        Insert: {
+          artist: string
+          created_at?: string
+          emotion_playlist_id: string
+          id?: string
+          position?: number | null
+          song_id: string
+          thumbnail?: string | null
+          title: string
+          url: string
+        }
+        Update: {
+          artist?: string
+          created_at?: string
+          emotion_playlist_id?: string
+          id?: string
+          position?: number | null
+          song_id?: string
+          thumbnail?: string | null
+          title?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emotion_playlist_songs_emotion_playlist_id_fkey"
+            columns: ["emotion_playlist_id"]
+            isOneToOne: false
+            referencedRelation: "emotion_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emotion_playlists: {
+        Row: {
+          created_at: string
+          description: string | null
+          emotion: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          emotion: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          emotion?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       playlist_songs: {
         Row: {
           added_at: string

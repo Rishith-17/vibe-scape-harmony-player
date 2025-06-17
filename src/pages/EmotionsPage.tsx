@@ -1,8 +1,9 @@
-
 import { useState, useRef } from 'react';
-import { Camera, Brain, Zap, CameraOff, Image, Upload } from 'lucide-react';
+import { Camera, Brain, Zap, CameraOff, Image, Upload, Music, Plus } from 'lucide-react';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { useToast } from '@/hooks/use-toast';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
+import { Button } from '@/components/ui/button';
 
 const EmotionsPage = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -14,6 +15,12 @@ const EmotionsPage = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { 
+    getEmotionPlaylist, 
+    addToEmotionPlaylist, 
+    playEmotionPlaylist,
+    getEmotionPlaylistSongs 
+  } = useMusicPlayer();
 
   const startCamera = async () => {
     try {
@@ -177,6 +184,18 @@ const EmotionsPage = () => {
           title: "Analysis Complete!",
           description: `Detected emotion: ${topEmotion.label} (${Math.round(topEmotion.score * 100)}% confidence)`,
         });
+
+        // Auto-play emotion playlist if it has songs
+        const detectedEmotion = topEmotion.label.toLowerCase();
+        const emotionPlaylist = getEmotionPlaylist(detectedEmotion);
+        if (emotionPlaylist) {
+          const songs = await getEmotionPlaylistSongs(detectedEmotion);
+          if (songs.length > 0) {
+            setTimeout(() => {
+              playEmotionPlaylist(detectedEmotion);
+            }, 2000);
+          }
+        }
       } else {
         throw new Error('No emotion data received from API');
       }
@@ -222,6 +241,20 @@ const EmotionsPage = () => {
       neutral: 'from-gray-400 to-gray-600'
     };
     return colorMap[emotion] || 'from-gray-400 to-gray-600';
+  };
+
+  const handlePlayEmotionPlaylist = async () => {
+    if (!analysisResult) return;
+    
+    try {
+      await playEmotionPlaylist(analysisResult.emotion);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to play emotion playlist",
+        variant: "destructive",
+      });
+    }
   };
 
   // Show results if analysis is complete
@@ -332,12 +365,28 @@ const EmotionsPage = () => {
               </div>
             )}
 
-            <button
+            {/* Music Actions */}
+            <div className="space-y-3">
+              <Button
+                onClick={handlePlayEmotionPlaylist}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-3 rounded-xl transition-all duration-300"
+              >
+                <Music className="mr-2" size={20} />
+                Play {analysisResult.emotion} Playlist
+              </Button>
+
+              <p className="text-center text-white/70 text-sm">
+                Music will automatically play based on your detected emotion. 
+                You can add more songs to your emotion playlists from the search page!
+              </p>
+            </div>
+
+            <Button
               onClick={resetAnalysis}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 rounded-xl transition-all duration-300"
+              className="w-full mt-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 rounded-xl transition-all duration-300"
             >
               Analyze Another Image
-            </button>
+            </Button>
           </div>
         </div>
       </div>
