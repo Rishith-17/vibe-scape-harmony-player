@@ -1,11 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
+// lib/getHuggingFaceToken.ts
+import { supabase } from './supabaseClient';
 
-const supabaseUrl = 'https://your-project-id.supabase.co';
-const supabaseAnonKey = 'your-anon-public-key';
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-export async function getHuggingFaceToken(): Promise<string> {
+export async function getHuggingFaceToken() {
   const { data, error } = await supabase
     .from('secrets')
     .select('value')
@@ -13,8 +9,8 @@ export async function getHuggingFaceToken(): Promise<string> {
     .single();
 
   if (error || !data) {
-    console.error('Supabase error:', error);
-    throw new Error('Failed to retrieve Hugging Face token');
+    console.error('Error fetching token:', error);
+    throw new Error('Failed to fetch Hugging Face token');
   }
 
   return data.value;
