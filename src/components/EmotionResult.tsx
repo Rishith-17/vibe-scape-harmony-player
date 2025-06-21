@@ -5,22 +5,22 @@ interface Emotion {
   score: number;
 }
 
-interface EmotionResultProps {
+interface Props {
   emotions: Emotion[];
 }
 
-const EmotionResult: React.FC<EmotionResultProps> = ({ emotions }) => {
+const EmotionResult: React.FC<Props> = ({ emotions }) => {
   return (
-    <div className="space-y-4">
-      {emotions.map((emotion, index) => (
-        <div
-          key={index}
-          className="flex justify-between items-center bg-white/10 text-white p-3 rounded-lg shadow-md"
-        >
-          <span className="capitalize font-semibold">{emotion.label}</span>
-          <span className="text-sm">{(emotion.score * 100).toFixed(2)}%</span>
-        </div>
-      ))}
+    <div className="mt-6">
+      <h2 className="text-xl font-semibold mb-4">Detected Emotions:</h2>
+      <ul className="space-y-2">
+        {emotions.map((emotion, index) => (
+          <li key={index} className="flex justify-between border-b pb-2">
+            <span>{emotion.label}</span>
+            <span>{(emotion.score * 100).toFixed(2)}%</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };
