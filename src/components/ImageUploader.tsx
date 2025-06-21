@@ -1,3 +1,5 @@
+// src/components/ImageUploader.tsx
+
 import React, { forwardRef } from 'react';
 
 interface Props {
@@ -42,4 +44,5 @@ const ImageUploader = forwardRef<HTMLInputElement, Props>(({ onImageSelect, sele
   );
 });
 
+ImageUploader.displayName = 'ImageUploader';
 export default ImageUploader;
