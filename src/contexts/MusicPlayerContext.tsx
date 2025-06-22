@@ -1,72 +1,134 @@
-// MusicPlayerContext.tsx (complete corrected code with emotion playlist support)
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabase";
+import { usePlayerManager } from "@/hooks/usePlayerManager";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'; import { supabase } from '@/integrations/supabase/client'; import { useToast } from '@/hooks/use-toast'; import YouTubePlayerManager from '@/lib/youtubePlayerManager';
+// Define Song and Playlist types
+type Song = {
+  id: string;
+  title: string;
+  artist: string;
+  thumbnail: string;
+  url: string;
+};
 
-interface Track { id: string; title: string; channelTitle: string; thumbnail: string; url: string; }
+type EmotionPlaylist = {
+  id: string;
+  user_id: string;
+  emotion: string;
+};
 
-interface EmotionPlaylist { id: string; emotion: string; user_id: string; created_at: string; }
-
-interface MusicPlayerContextType { playEmotionPlaylist: (emotion: string) => Promise<void>; addToEmotionPlaylist: (emotion: string, track: Track) => Promise<void>; // Add other types as needed from your existing context }
+type MusicPlayerContextType = {
+  playTrack: (track: Song, queue?: Song[], index?: number) => void;
+  addToEmotionPlaylist: (emotion: string, song: Song) => void;
+  playEmotionPlaylist: (emotion: string) => void;
+};
 
 const MusicPlayerContext = createContext<MusicPlayerContextType | undefined>(undefined);
 
-export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => { const [emotionPlaylists, setEmotionPlaylists] = useState<EmotionPlaylist[]>([]); const { toast } = useToast(); const playerManager = YouTubePlayerManager.getInstance();
+export const MusicPlayerProvider = ({ children }: { children: React.ReactNode }) => {
+  const playerManager = usePlayerManager();
+  const [emotionPlaylists, setEmotionPlaylists] = useState<EmotionPlaylist[]>([]);
 
-const getEmotionPlaylist = useCallback((emotion: string): EmotionPlaylist | null => { return emotionPlaylists.find((pl) => pl.emotion === emotion) || null; }, [emotionPlaylists]);
+  // Fetch emotion playlists
+  const refreshEmotionPlaylists = useCallback(async () => {
+    const { data, error } = await supabase.from("emotion_playlists").select("*");
+    if (error) console.error("Error fetching emotion playlists:", error);
+    else setEmotionPlaylists(data);
+  }, []);
 
-const getEmotionPlaylistSongs = async (emotion: string): Promise<Track[]> => { const playlist = getEmotionPlaylist(emotion); if (!playlist) return []; const { data } = await supabase .from('emotion_playlist_songs') .select('*') .eq('emotion_playlist_id', playlist.id);
+  useEffect(() => {
+    refreshEmotionPlaylists();
+  }, [refreshEmotionPlaylists]);
 
-return (data || []).map((song: any) => ({
-  id: song.song_id,
-  title: song.title,
-  channelTitle: song.artist,
-  thumbnail: song.thumbnail,
-  url: song.url,
-}));
+  // Get specific emotion playlist
+  const getEmotionPlaylist = (emotion: string) => {
+    return emotionPlaylists.find((p) => p.emotion === emotion);
+  };
 
+  // Add song to emotion playlist
+  const addToEmotionPlaylist = async (emotion: string, song: Song) => {
+    const playlist = getEmotionPlaylist(emotion);
+    if (!playlist) {
+      toast({ title: "Playlist not found", description: `No playlist for ${emotion}`, variant: "destructive" });
+      return;
+    }
+
+    const { error } = await supabase.from("emotion_playlist_songs").insert({
+      emotion_playlist_id: playlist.id,
+      song_id: song.id,
+      title: song.title,
+      artist: song.artist,
+      thumbnail: song.thumbnail,
+      url: song.url,
+    });
+
+    if (error) {
+      toast({ title: "Error", description: "Could not add song to emotion playlist", variant: "destructive" });
+    } else {
+      toast({ title: "Success", description: `Added to ${emotion} playlist` });
+    }
+  };
+
+  // Get songs from emotion playlist
+  const getEmotionPlaylistSongs = async (emotion: string): Promise<Song[]> => {
+    const playlist = getEmotionPlaylist(emotion);
+    if (!playlist) return [];
+
+    const { data, error } = await supabase
+      .from("emotion_playlist_songs")
+      .select("*")
+      .eq("emotion_playlist_id", playlist.id);
+
+    if (error) {
+      console.error("Error fetching songs:", error);
+      return [];
+    }
+
+    return (data || []).map((song: any) => ({
+      id: song.song_id,
+      title: song.title,
+      artist: song.artist,
+      thumbnail: song.thumbnail,
+      url: song.url,
+    }));
+  };
+
+  // Play all songs in an emotion playlist
+  const playEmotionPlaylist = async (emotion: string) => {
+    const songs = await getEmotionPlaylistSongs(emotion);
+
+    if (songs.length === 0) {
+      toast({
+        title: "Empty Playlist",
+        description: `No songs in ${emotion} playlist`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    playerManager.playTrack(songs[0], songs);
+    toast({
+      title: "Playing",
+      description: `Playing ${emotion} playlist`,
+    });
+  };
+
+  return (
+    <MusicPlayerContext.Provider
+      value={{
+        playTrack: playerManager.playTrack,
+        addToEmotionPlaylist,
+        playEmotionPlaylist,
+      }}
+    >
+      {children}
+    </MusicPlayerContext.Provider>
+  );
 };
 
-const playEmotionPlaylist = async (emotion: string) => { const songs = await getEmotionPlaylistSongs(emotion); if (songs.length === 0) { toast({ title: 'Empty Playlist', description: No songs in ${emotion} playlist, variant: 'destructive', }); return; }
-
-playerManager.playTrack(songs[0], songs);
-toast({
-  title: 'Playing',
-  description: `Playing ${emotion} playlist`,
-});
-
+export const useMusicPlayer = () => {
+  const context = useContext(MusicPlayerContext);
+  if (!context) throw new Error("useMusicPlayer must be used within a MusicPlayerProvider");
+  return context;
 };
-
-const addToEmotionPlaylist = async (emotion: string, track: Track) => { const playlist = getEmotionPlaylist(emotion); if (!playlist) { toast({ title: 'Error', description: Emotion playlist '${emotion}' not found, variant: 'destructive', }); return; }
-
-const { error } = await supabase.from('emotion_playlist_songs').insert({
-  emotion_playlist_id: playlist.id,
-  song_id: track.id,
-  title: track.title,
-  artist: track.channelTitle,
-  thumbnail: track.thumbnail,
-  url: track.url,
-});
-
-if (error) {
-  toast({
-    title: 'Error',
-    description: 'Failed to add song to emotion playlist',
-    variant: 'destructive',
-  });
-} else {
-  toast({
-    title: 'Success',
-    description: `Added to ${emotion} playlist`,
-  });
-}
-
-};
-
-const refreshEmotionPlaylists = useCallback(async () => { const { data } = await supabase.from('emotion_playlists').select('*'); if (data) setEmotionPlaylists(data); }, []);
-
-useEffect(() => { refreshEmotionPlaylists(); }, [refreshEmotionPlaylists]);
-
-return ( <MusicPlayerContext.Provider value={{ playEmotionPlaylist, addToEmotionPlaylist }}> {children} </MusicPlayerContext.Provider> ); };
-
-export const useMusicPlayer = () => { const context = useContext(MusicPlayerContext); if (!context) throw new Error('useMusicPlayer must be used within MusicPlayerProvider'); return context; };
-
