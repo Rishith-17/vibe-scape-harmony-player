@@ -38,7 +38,7 @@ const EmotionDetector = () => {
       const response = await fetch('https://api-inference.huggingface.co/models/dima806/facial_emotions_image_detection', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer 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 ',
+          'Authorization': 'Bearer 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 ',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
