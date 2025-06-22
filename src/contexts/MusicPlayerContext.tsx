@@ -3,7 +3,6 @@ import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { usePlayerManager } from "@/hooks/usePlayerManager";
 
-// Define Song and Playlist types
 type Song = {
   id: string;
   title: string;
@@ -30,27 +29,31 @@ export const MusicPlayerProvider = ({ children }: { children: React.ReactNode })
   const playerManager = usePlayerManager();
   const [emotionPlaylists, setEmotionPlaylists] = useState<EmotionPlaylist[]>([]);
 
-  // Fetch emotion playlists
   const refreshEmotionPlaylists = useCallback(async () => {
     const { data, error } = await supabase.from("emotion_playlists").select("*");
-    if (error) console.error("Error fetching emotion playlists:", error);
-    else setEmotionPlaylists(data);
+    if (error) {
+      console.error("Error fetching emotion playlists:", error);
+    } else {
+      setEmotionPlaylists(data);
+    }
   }, []);
 
   useEffect(() => {
     refreshEmotionPlaylists();
   }, [refreshEmotionPlaylists]);
 
-  // Get specific emotion playlist
   const getEmotionPlaylist = (emotion: string) => {
     return emotionPlaylists.find((p) => p.emotion === emotion);
   };
 
-  // Add song to emotion playlist
   const addToEmotionPlaylist = async (emotion: string, song: Song) => {
     const playlist = getEmotionPlaylist(emotion);
     if (!playlist) {
-      toast({ title: "Playlist not found", description: `No playlist for ${emotion}`, variant: "destructive" });
+      toast({
+        title: "Playlist not found",
+        description: `No playlist for ${emotion}`,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -64,13 +67,19 @@ export const MusicPlayerProvider = ({ children }: { children: React.ReactNode })
     });
 
     if (error) {
-      toast({ title: "Error", description: "Could not add song to emotion playlist", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Could not add song to emotion playlist",
+        variant: "destructive",
+      });
     } else {
-      toast({ title: "Success", description: `Added to ${emotion} playlist` });
+      toast({
+        title: "Success",
+        description: `Added to ${emotion} playlist`,
+      });
     }
   };
 
-  // Get songs from emotion playlist
   const getEmotionPlaylistSongs = async (emotion: string): Promise<Song[]> => {
     const playlist = getEmotionPlaylist(emotion);
     if (!playlist) return [];
@@ -94,7 +103,6 @@ export const MusicPlayerProvider = ({ children }: { children: React.ReactNode })
     }));
   };
 
-  // Play all songs in an emotion playlist
   const playEmotionPlaylist = async (emotion: string) => {
     const songs = await getEmotionPlaylistSongs(emotion);
 
