@@ -32,7 +32,9 @@ const SearchPage = () => {
     playTrack, 
     togglePlayPause, 
     playlists, 
+    emotionPlaylists,
     addToPlaylist,
+    addToEmotionPlaylist,
     toggleLikeSong,
     isLiked
   } = useMusicPlayer();
@@ -164,6 +166,26 @@ const SearchPage = () => {
     }
   };
 
+  const handleAddToEmotionPlaylist = async (video: YouTubeVideo, emotion: string) => {
+    try {
+      const track = {
+        id: video.id,
+        title: video.title,
+        channelTitle: video.channelTitle,
+        thumbnail: video.thumbnail,
+        url: video.url,
+      };
+
+      await addToEmotionPlaylist(emotion, track);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add song to emotion playlist",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white pb-32">
       <div className="pt-8 px-6">
@@ -265,16 +287,39 @@ const SearchPage = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="bg-gray-800 border-gray-700">
-                        {playlists.map((playlist) => (
-                          <DropdownMenuItem
-                            key={playlist.id}
-                            onClick={() => handleAddToPlaylist(video, playlist.id)}
-                            className="text-white hover:bg-gray-700"
-                          >
-                            Add to {playlist.name}
-                          </DropdownMenuItem>
-                        ))}
-                        {playlists.length === 0 && (
+                        {playlists.length > 0 && (
+                          <>
+                            {playlists.map((playlist) => (
+                              <DropdownMenuItem
+                                key={playlist.id}
+                                onClick={() => handleAddToPlaylist(video, playlist.id)}
+                                className="text-white hover:bg-gray-700"
+                              >
+                                Add to {playlist.name}
+                              </DropdownMenuItem>
+                            ))}
+                          </>
+                        )}
+                        
+                        {emotionPlaylists.length > 0 && (
+                          <>
+                            {playlists.length > 0 && (
+                              <div className="border-t border-gray-600 my-1" />
+                            )}
+                            <div className="px-2 py-1 text-xs text-gray-400 font-medium">Emotion Playlists</div>
+                            {emotionPlaylists.map((emotionPlaylist) => (
+                              <DropdownMenuItem
+                                key={emotionPlaylist.id}
+                                onClick={() => handleAddToEmotionPlaylist(video, emotionPlaylist.emotion)}
+                                className="text-white hover:bg-gray-700"
+                              >
+                                Add to {emotionPlaylist.name}
+                              </DropdownMenuItem>
+                            ))}
+                          </>
+                        )}
+                        
+                        {playlists.length === 0 && emotionPlaylists.length === 0 && (
                           <DropdownMenuItem disabled className="text-gray-400">
                             No playlists available
                           </DropdownMenuItem>

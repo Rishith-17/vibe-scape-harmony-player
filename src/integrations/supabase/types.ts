@@ -181,6 +181,45 @@ export type Database = {
         }
         Relationships: []
       }
+      secrets: {
+        Row: {
+          created_at: string | null
+          key: string
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          key: string
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          key?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      songs: {
+        Row: {
+          artist: string | null
+          id: string
+          title: string
+          url: string | null
+        }
+        Insert: {
+          artist?: string | null
+          id?: string
+          title: string
+          url?: string | null
+        }
+        Update: {
+          artist?: string | null
+          id?: string
+          title?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       user_sessions: {
         Row: {
           id: string
