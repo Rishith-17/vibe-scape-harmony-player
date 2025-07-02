@@ -177,7 +177,13 @@ const SearchPage = () => {
       };
 
       await addToEmotionPlaylist(emotion, track);
+      
+      toast({
+        title: "Added to Emotion Playlist",
+        description: `"${video.title}" added to your ${emotion} playlist`,
+      });
     } catch (error) {
+      console.error('Error adding to emotion playlist:', error);
       toast({
         title: "Error",
         description: "Failed to add song to emotion playlist",
