@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { Button } from '@/components/ui/button';
 import { Play } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface Emotion {
   label: string;
@@ -13,24 +14,65 @@ interface Props {
 }
 
 const EmotionResult: React.FC<Props> = ({ emotions }) => {
-  const { playEmotionPlaylist } = useMusicPlayer();
+  const { playlists, getPlaylistSongs, playTrack } = useMusicPlayer();
+  const { toast } = useToast();
   const primaryEmotion = emotions[0]?.label?.toLowerCase();
+  const [message, setMessage] = useState<string | null>(null);
 
-  // Auto-play emotion playlist when emotion is detected
+  // Auto-play from matching user playlist when emotion is detected
   useEffect(() => {
     if (primaryEmotion) {
-      // Small delay to allow user to see the result first
-      const timer = setTimeout(() => {
-        playEmotionPlaylist(primaryEmotion);
+      const timer = setTimeout(async () => {
+        await findAndPlayMatchingPlaylist(primaryEmotion);
       }, 1500);
       
       return () => clearTimeout(timer);
     }
-  }, [primaryEmotion, playEmotionPlaylist]);
+  }, [primaryEmotion, playlists]);
 
-  const handlePlayEmotionPlaylist = () => {
+  const findAndPlayMatchingPlaylist = async (emotion: string) => {
+    try {
+      // Find playlists that match the emotion name (case-insensitive)
+      const matchingPlaylists = playlists.filter(playlist => 
+        playlist.name.toLowerCase() === emotion.toLowerCase()
+      );
+
+      if (matchingPlaylists.length === 0) {
+        setMessage(`No playlist named '${emotion}' found. Create a playlist with this name to auto-play your mood next time.`);
+        return;
+      }
+
+      // If multiple playlists, choose the most recently created one
+      const selectedPlaylist = matchingPlaylists.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )[0];
+
+      // Get songs from the selected playlist
+      const songs = await getPlaylistSongs(selectedPlaylist.id);
+      
+      if (songs.length === 0) {
+        setMessage(`Playlist '${selectedPlaylist.name}' is empty. Add some songs to auto-play your mood next time.`);
+        return;
+      }
+
+      // Play the first song from the playlist
+      playTrack(songs[0], songs, 0);
+      
+      toast({
+        title: "Now Playing",
+        description: `Playing from your '${selectedPlaylist.name}' playlist`,
+      });
+
+      setMessage(null);
+    } catch (error) {
+      console.error('Error finding and playing matching playlist:', error);
+      setMessage(`Error loading playlist for '${emotion}'. Please try again.`);
+    }
+  };
+
+  const handlePlayEmotionPlaylist = async () => {
     if (primaryEmotion) {
-      playEmotionPlaylist(primaryEmotion);
+      await findAndPlayMatchingPlaylist(primaryEmotion);
     }
   };
 
@@ -53,6 +95,12 @@ const EmotionResult: React.FC<Props> = ({ emotions }) => {
           </div>
         )}
       </div>
+      
+      {message && (
+        <div className="bg-blue-500/20 border border-blue-500/50 rounded-xl p-4 backdrop-blur-sm">
+          <p className="text-blue-200 text-center">{message}</p>
+        </div>
+      )}
       
       <div className="space-y-3">
         <h3 className="text-lg font-semibold text-white">All Detected Emotions:</h3>
