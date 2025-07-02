@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import EmotionResult from '@/components/EmotionResult';
 import ImageUploader from '@/components/ImageUploader';
+import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 const EmotionDetector = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -77,6 +78,33 @@ const EmotionDetector = () => {
     }
   };
 
+  const handleCameraCapture = async () => {
+    try {
+      const image = await CapacitorCamera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera,
+      });
+
+      if (image.dataUrl) {
+        setSelectedImage(image.dataUrl);
+        setEmotionResult(null);
+        toast({
+          title: "Photo Captured!",
+          description: "Ready for emotion analysis",
+        });
+      }
+    } catch (error) {
+      console.error('Error capturing photo:', error);
+      toast({
+        title: "Camera Error",
+        description: "Could not access camera. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const resetDetector = () => {
     setSelectedImage(null);
     setEmotionResult(null);
@@ -87,27 +115,52 @@ const EmotionDetector = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
-      {/* Animated Background Elements - Optimized for mobile */}
+      {/* Enhanced 3D Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-20 -right-20 sm:-top-40 sm:-right-40 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-pink-500 to-violet-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
-        <div className="absolute -bottom-20 -left-20 sm:-bottom-40 sm:-left-40 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-yellow-400 to-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-pulse delay-500"></div>
+        <div className="absolute -top-20 -right-20 sm:-top-40 sm:-right-40 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-pink-500 to-violet-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse transform-gpu"></div>
+        <div className="absolute -bottom-20 -left-20 sm:-bottom-40 sm:-left-40 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-yellow-400 to-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000 transform-gpu"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-pulse delay-500 transform-gpu"></div>
+        
+        {/* Additional floating 3D spheres */}
+        <div className="absolute top-20 left-20 w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full opacity-30 animate-bounce transform-gpu" style={{ animationDuration: '3s' }}></div>
+        <div className="absolute bottom-32 right-32 w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-orange-400 to-red-500 rounded-full opacity-40 animate-bounce delay-700 transform-gpu" style={{ animationDuration: '4s' }}></div>
+        <div className="absolute top-1/3 right-20 w-12 h-12 sm:w-20 sm:h-20 bg-gradient-to-br from-violet-400 to-purple-500 rounded-full opacity-50 animate-bounce delay-300 transform-gpu" style={{ animationDuration: '2.5s' }}></div>
       </div>
 
-      {/* Floating Particles - Reduced for mobile */}
-      <div className="absolute inset-0 hidden sm:block">
-        {[...Array(12)].map((_, i) => (
+      {/* Enhanced Floating Particles with 3D effect */}
+      <div className="absolute inset-0">
+        {[...Array(20)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-2 h-2 bg-white rounded-full opacity-20 animate-ping"
+            className="absolute w-2 h-2 bg-white rounded-full opacity-20 animate-ping transform-gpu"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               animationDelay: `${Math.random() * 2}s`,
-              animationDuration: `${2 + Math.random() * 2}s`
+              animationDuration: `${2 + Math.random() * 2}s`,
+              transform: `perspective(1000px) rotateX(${Math.random() * 360}deg) rotateY(${Math.random() * 360}deg)`
             }}
           ></div>
         ))}
+      </div>
+
+      {/* Animated Neural Network Lines */}
+      <div className="absolute inset-0 opacity-10">
+        <svg className="w-full h-full">
+          {[...Array(8)].map((_, i) => (
+            <line
+              key={i}
+              x1={`${Math.random() * 100}%`}
+              y1={`${Math.random() * 100}%`}
+              x2={`${Math.random() * 100}%`}
+              y2={`${Math.random() * 100}%`}
+              stroke="white"
+              strokeWidth="1"
+              className="animate-pulse"
+              style={{ animationDelay: `${i * 0.3}s` }}
+            />
+          ))}
+        </svg>
       </div>
 
       <div className="relative z-10 container mx-auto px-4 sm:px-6 py-6 sm:py-12">
@@ -165,6 +218,28 @@ const EmotionDetector = () => {
                   selectedImage={selectedImage}
                   ref={fileInputRef}
                 />
+
+                {/* Camera and Gallery Options */}
+                <div className="flex gap-3 mt-6">
+                  <Button
+                    onClick={handleCameraCapture}
+                    className="flex-1 h-12 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium transition-all duration-300 shadow-lg hover:shadow-green-500/50 transform hover:scale-105 border-0"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Take Photo</span>
+                    <span className="sm:hidden">Camera</span>
+                  </Button>
+                  
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    variant="outline"
+                    className="flex-1 h-12 border-2 border-white/30 hover:bg-white/10 text-white hover:text-white backdrop-blur-sm transition-all duration-300 transform hover:scale-105"
+                  >
+                    <ImageIcon className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Gallery</span>
+                    <span className="sm:hidden">Upload</span>
+                  </Button>
+                </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8">
                   <Button
