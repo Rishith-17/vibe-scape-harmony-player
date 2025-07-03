@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Rea
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import YouTubePlayerManager from '@/lib/youtubePlayerManager';
+import { useBackgroundPlayback } from '@/hooks/useBackgroundPlayback';
 
 interface Track {
   id: string;
@@ -92,6 +93,9 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   
   // Get YouTube player manager instance
   const playerManager = YouTubePlayerManager.getInstance();
+
+  // Initialize background playback
+  useBackgroundPlayback();
 
   const skipNext = useCallback(() => {
     if (currentIndex < playlist.length - 1) {

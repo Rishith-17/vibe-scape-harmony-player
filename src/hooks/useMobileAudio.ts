@@ -10,6 +10,8 @@ export const useMobileAudio = () => {
     isPlaying, 
     currentTime, 
     duration, 
+    playlist,
+    currentIndex,
     togglePlayPause, 
     skipNext, 
     skipPrevious 
@@ -38,10 +40,12 @@ export const useMobileAudio = () => {
         currentTrack,
         isPlaying,
         currentTime,
-        duration
+        duration,
+        playlist,
+        currentIndex
       );
     }
-  }, [currentTrack, isPlaying, currentTime, duration]);
+  }, [currentTrack, isPlaying, currentTime, duration, playlist, currentIndex]);
 
   useEffect(() => {
     // Enable background mode when playing

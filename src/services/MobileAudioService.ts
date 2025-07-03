@@ -20,6 +20,11 @@ class MobileAudioService {
   private isInitialized = false;
   private currentTrack: Track | null = null;
   private isPlaying = false;
+  private currentTime = 0;
+  private duration = 0;
+  private volume = 80;
+  private playlist: Track[] = [];
+  private currentIndex = 0;
 
   static getInstance(): MobileAudioService {
     if (!MobileAudioService.instance) {
@@ -34,8 +39,12 @@ class MobileAudioService {
     }
 
     try {
+      // Restore previous playback state
+      this.restorePlaybackState();
+
       if (!Capacitor.isNativePlatform()) {
-        console.log('Running in web mode - native features disabled');
+        console.log('Running in web mode - background playback enabled');
+        this.setupWebBackgroundPlayback();
         this.isInitialized = true;
         return;
       }
@@ -52,9 +61,16 @@ class MobileAudioService {
     }
   }
 
-  async updateNowPlaying(track: Track, isPlaying: boolean, currentTime = 0, duration = 0) {
+  async updateNowPlaying(track: Track, isPlaying: boolean, currentTime = 0, duration = 0, playlist: Track[] = [], currentIndex = 0) {
     this.currentTrack = track;
     this.isPlaying = isPlaying;
+    this.currentTime = currentTime;
+    this.duration = duration;
+    this.playlist = playlist;
+    this.currentIndex = currentIndex;
+
+    // Save state to localStorage for persistence
+    this.savePlaybackState();
 
     if (!Capacitor.isNativePlatform()) {
       // Web PWA - Update document title and media session
@@ -111,7 +127,113 @@ class MobileAudioService {
     console.log('Background mode would be disabled for native platform');
   }
 
+  savePlaybackState() {
+    try {
+      const state = {
+        currentTrack: this.currentTrack,
+        isPlaying: this.isPlaying,
+        currentTime: this.currentTime,
+        duration: this.duration,
+        volume: this.volume,
+        playlist: this.playlist,
+        currentIndex: this.currentIndex,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('vibescape_playback_state', JSON.stringify(state));
+    } catch (error) {
+      console.error('Failed to save playback state:', error);
+    }
+  }
+
+  private restorePlaybackState() {
+    try {
+      const savedState = localStorage.getItem('vibescape_playback_state');
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        
+        // Only restore if state is recent (within 24 hours)
+        if (Date.now() - state.timestamp < 24 * 60 * 60 * 1000) {
+          this.currentTrack = state.currentTrack;
+          this.isPlaying = false; // Don't auto-resume to respect autoplay policies
+          this.currentTime = state.currentTime || 0;
+          this.duration = state.duration || 0;
+          this.volume = state.volume || 80;
+          this.playlist = state.playlist || [];
+          this.currentIndex = state.currentIndex || 0;
+          
+          console.log('Playback state restored:', state.currentTrack?.title);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to restore playback state:', error);
+    }
+  }
+
+  private setupWebBackgroundPlayback() {
+    // Enable background audio context
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+
+    // Handle page visibility changes
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        console.log('App backgrounded - maintaining playback');
+      } else {
+        console.log('App foregrounded - syncing state');
+        if (this.currentTrack) {
+          this.updateWebMediaSession(this.currentTrack, this.isPlaying, this.currentTime, this.duration);
+        }
+      }
+    });
+
+    // Handle beforeunload to save state
+    window.addEventListener('beforeunload', () => {
+      this.savePlaybackState();
+    });
+
+    // Setup wake lock for mobile devices
+    this.setupWakeLock();
+  }
+
+  private async setupWakeLock() {
+    if ('wakeLock' in navigator) {
+      try {
+        // Request wake lock when playing
+        document.addEventListener('visibilitychange', async () => {
+          if (!document.hidden && this.isPlaying) {
+            try {
+              await (navigator as any).wakeLock.request('screen');
+            } catch (err) {
+              console.log('Wake lock failed:', err);
+            }
+          }
+        });
+      } catch (err) {
+        console.log('Wake lock not supported');
+      }
+    }
+  }
+
+  getPlaybackState() {
+    return {
+      currentTrack: this.currentTrack,
+      isPlaying: this.isPlaying,
+      currentTime: this.currentTime,
+      duration: this.duration,
+      volume: this.volume,
+      playlist: this.playlist,
+      currentIndex: this.currentIndex
+    };
+  }
+
+  setVolume(volume: number) {
+    this.volume = volume;
+    this.savePlaybackState();
+  }
+
   async destroy() {
+    this.savePlaybackState();
     if (!Capacitor.isNativePlatform()) return;
     console.log('Mobile audio service would be destroyed for native platform');
     this.isInitialized = false;
