@@ -84,10 +84,11 @@ class MobileAudioService {
 
   private updateWebMediaSession(track: Track, isPlaying: boolean, currentTime: number, duration: number) {
     if ('mediaSession' in navigator) {
+      // Update metadata
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
         artist: track.channelTitle,
-        album: 'YouTube Music',
+        album: 'Vibe Scape Harmony',
         artwork: [
           { src: track.thumbnail, sizes: '96x96', type: 'image/jpeg' },
           { src: track.thumbnail, sizes: '128x128', type: 'image/jpeg' },
@@ -98,23 +99,120 @@ class MobileAudioService {
         ]
       });
 
-      navigator.mediaSession.setPositionState({
-        duration: duration,
-        playbackRate: 1,
-        position: currentTime
-      });
+      // Update position state for scrubbing
+      if (duration > 0) {
+        try {
+          navigator.mediaSession.setPositionState({
+            duration: duration,
+            playbackRate: 1,
+            position: Math.min(currentTime, duration)
+          });
+        } catch (error) {
+          console.warn('Position state not supported:', error);
+        }
+      }
 
-      // Set action handlers
-      navigator.mediaSession.setActionHandler('play', () => this.onTogglePlay?.());
-      navigator.mediaSession.setActionHandler('pause', () => this.onTogglePlay?.());
-      navigator.mediaSession.setActionHandler('previoustrack', () => this.onPrevious?.());
-      navigator.mediaSession.setActionHandler('nexttrack', () => this.onNext?.());
+      // Update playback state
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+
+      // Set action handlers with error handling
+      this.setupMediaSessionHandlers();
     }
 
-    // Update document title
+    // Update document title for better UX
     document.title = isPlaying 
-      ? `▶ ${track.title} - ${track.channelTitle}` 
-      : `⏸ ${track.title} - ${track.channelTitle}`;
+      ? `♪ ${track.title} - ${track.channelTitle} | Vibe Scape` 
+      : `⏸ ${track.title} - ${track.channelTitle} | Vibe Scape`;
+
+    // Update favicon to show playing state
+    this.updateFavicon(isPlaying);
+  }
+
+  private setupMediaSessionHandlers() {
+    if ('mediaSession' in navigator) {
+      // Set up action handlers
+      navigator.mediaSession.setActionHandler('play', () => {
+        console.log('Media session: play');
+        this.onTogglePlay?.();
+      });
+      
+      navigator.mediaSession.setActionHandler('pause', () => {
+        console.log('Media session: pause');
+        this.onTogglePlay?.();
+      });
+      
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        console.log('Media session: previous');
+        this.onPrevious?.();
+      });
+      
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        console.log('Media session: next');
+        this.onNext?.();
+      });
+
+      // Enhanced seek handling
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        console.log('Media session: seek to', details.seekTime);
+        if (details.seekTime !== undefined && this.onSeek) {
+          this.onSeek(details.seekTime);
+        }
+      });
+
+      // Additional controls for better mobile support
+      navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+        const skipTime = details.seekOffset || 10;
+        const newTime = Math.max(0, this.currentTime - skipTime);
+        if (this.onSeek) {
+          this.onSeek(newTime);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('seekforward', (details) => {
+        const skipTime = details.seekOffset || 10;
+        const newTime = Math.min(this.duration, this.currentTime + skipTime);
+        if (this.onSeek) {
+          this.onSeek(newTime);
+        }
+      });
+    }
+  }
+
+  private updateFavicon(isPlaying: boolean) {
+    try {
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      
+      // Create canvas for dynamic favicon
+      const canvas = document.createElement('canvas');
+      canvas.width = 32;
+      canvas.height = 32;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        // Draw base favicon (music note)
+        ctx.fillStyle = isPlaying ? '#10b981' : '#6b7280';
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('♪', 16, 24);
+        
+        // Add play/pause indicator
+        if (isPlaying) {
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.arc(24, 8, 4, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+        
+        link.href = canvas.toDataURL();
+      }
+    } catch (error) {
+      console.warn('Favicon update failed:', error);
+    }
   }
 
   async enableBackgroundMode() {
@@ -243,6 +341,7 @@ class MobileAudioService {
   onTogglePlay?: () => void;
   onNext?: () => void;
   onPrevious?: () => void;
+  onSeek?: (time: number) => void;
 }
 
 export default MobileAudioService;

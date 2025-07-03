@@ -28,6 +28,9 @@ class YouTubePlayerManager {
   }
 
   private initializeAPI() {
+    // Restore previous state if available
+    this.restoreState();
+
     if (window.YT && window.YT.Player) {
       this.isApiReady = true;
       this.createPlayer();
@@ -46,6 +49,9 @@ class YouTubePlayerManager {
       this.isApiReady = true;
       this.createPlayer();
     };
+
+    // Setup background playback support
+    this.setupBackgroundPlayback();
   }
 
   private createPlayer() {
@@ -324,7 +330,83 @@ class YouTubePlayerManager {
     return this.hasError;
   }
 
+  private restoreState() {
+    try {
+      const savedState = localStorage.getItem('youtube_player_state');
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        // Only restore if state is recent (within 1 hour)
+        if (Date.now() - state.timestamp < 60 * 60 * 1000) {
+          this.currentTrack = state.currentTrack;
+          this.currentTime = state.currentTime || 0;
+          this.duration = state.duration || 0;
+          console.log('YouTube player state restored');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to restore YouTube player state:', error);
+    }
+  }
+
+  private saveState() {
+    try {
+      const state = {
+        currentTrack: this.currentTrack,
+        currentTime: this.currentTime,
+        duration: this.duration,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('youtube_player_state', JSON.stringify(state));
+    } catch (error) {
+      console.error('Failed to save YouTube player state:', error);
+    }
+  }
+
+  private setupBackgroundPlayback() {
+    // Handle page visibility changes
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        console.log('Page hidden - maintaining YouTube playback');
+        this.saveState();
+      } else {
+        console.log('Page visible - syncing YouTube state');
+        // Force a time update when page becomes visible
+        if (this.player && this.player.getCurrentTime) {
+          this.currentTime = this.player.getCurrentTime();
+          this.notifyListeners();
+        }
+      }
+    });
+
+    // Save state before page unload
+    window.addEventListener('beforeunload', () => {
+      this.saveState();
+    });
+
+    // Prevent audio context suspension on mobile
+    if ('AudioContext' in window) {
+      const handleUserInteraction = () => {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContext) {
+          const audioContext = new AudioContext();
+          if (audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+              console.log('Audio context resumed for background playback');
+            });
+          }
+        }
+        // Remove listener after first interaction
+        document.removeEventListener('touchstart', handleUserInteraction);
+        document.removeEventListener('click', handleUserInteraction);
+      };
+
+      document.addEventListener('touchstart', handleUserInteraction, { once: true });
+      document.addEventListener('click', handleUserInteraction, { once: true });
+    }
+  }
+
   destroy() {
+    this.saveState();
     if (this.timeUpdateInterval) {
       clearInterval(this.timeUpdateInterval);
     }

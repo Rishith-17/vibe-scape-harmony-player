@@ -14,7 +14,8 @@ export const useMobileAudio = () => {
     currentIndex,
     togglePlayPause, 
     skipNext, 
-    skipPrevious 
+    skipPrevious,
+    seekTo
   } = useMusicPlayer();
 
   const mobileAudioService = MobileAudioService.getInstance();
@@ -27,11 +28,12 @@ export const useMobileAudio = () => {
     mobileAudioService.onTogglePlay = togglePlayPause;
     mobileAudioService.onNext = skipNext;
     mobileAudioService.onPrevious = skipPrevious;
+    mobileAudioService.onSeek = seekTo;
 
     return () => {
       mobileAudioService.destroy();
     };
-  }, [togglePlayPause, skipNext, skipPrevious]);
+  }, [togglePlayPause, skipNext, skipPrevious, seekTo]);
 
   useEffect(() => {
     // Update now playing info whenever track or state changes
