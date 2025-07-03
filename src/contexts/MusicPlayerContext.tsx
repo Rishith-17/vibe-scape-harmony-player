@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Rea
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import YouTubePlayerManager from '@/lib/youtubePlayerManager';
-import { useBackgroundPlayback } from '@/hooks/useBackgroundPlayback';
 
 interface Track {
   id: string;
@@ -94,9 +93,6 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   // Get YouTube player manager instance
   const playerManager = YouTubePlayerManager.getInstance();
 
-  // Initialize background playback
-  useBackgroundPlayback();
-
   const skipNext = useCallback(() => {
     if (currentIndex < playlist.length - 1) {
       const nextIndex = currentIndex + 1;
@@ -181,6 +177,102 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const setVolume = useCallback((volume: number) => {
     playerManager.setVolume(volume);
   }, [playerManager]);
+
+  // Setup background playback and media session
+  useEffect(() => {
+    if ('mediaSession' in navigator && currentTrack) {
+      // Set up action handlers with proper error handling
+      navigator.mediaSession.setActionHandler('play', () => {
+        try {
+          if (!playerState.isPlaying) {
+            togglePlayPause();
+          }
+        } catch (error) {
+          console.error('Media session play error:', error);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        try {
+          if (playerState.isPlaying) {
+            togglePlayPause();
+          }
+        } catch (error) {
+          console.error('Media session pause error:', error);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        try {
+          skipNext();
+        } catch (error) {
+          console.error('Media session next error:', error);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        try {
+          skipPrevious();
+        } catch (error) {
+          console.error('Media session previous error:', error);
+        }
+      });
+
+      // Handle seek if supported
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        try {
+          if (details.seekTime !== undefined) {
+            seekTo(details.seekTime);
+          }
+        } catch (error) {
+          console.error('Media session seek error:', error);
+        }
+      });
+
+      // Update position state for better scrubbing support
+      if (playerState.duration > 0) {
+        navigator.mediaSession.setPositionState({
+          duration: playerState.duration,
+          playbackRate: 1.0,
+          position: Math.min(playerState.currentTime, playerState.duration)
+        });
+      }
+    }
+  }, [currentTrack, playerState.isPlaying, playerState.currentTime, playerState.duration, togglePlayPause, skipNext, skipPrevious, seekTo]);
+
+  // Handle page visibility changes for background playback
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('App backgrounded - maintaining playback');
+      } else {
+        console.log('App foregrounded - syncing state');
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      // Save playback state before page unload for persistence
+      if (currentTrack) {
+        localStorage.setItem('vibescape_playback_state', JSON.stringify({
+          currentTrack,
+          isPlaying: playerState.isPlaying,
+          currentTime: playerState.currentTime,
+          duration: playerState.duration,
+          playlist,
+          currentIndex,
+          timestamp: Date.now()
+        }));
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [currentTrack, playerState, playlist, currentIndex]);
 
   const refreshPlaylists = useCallback(async () => {
     try {
