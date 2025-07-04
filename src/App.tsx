@@ -1,4 +1,5 @@
 
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
 import { useMobileAudio } from "@/hooks/useMobileAudio";
 import BackgroundAudioManager from "@/services/BackgroundAudioManager";
+import PWAInstallPrompt from "@/services/PWAInstallPrompt";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import BottomNavigation from "@/components/BottomNavigation";
 import MiniPlayer from "@/components/MiniPlayer";
@@ -23,6 +25,20 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   useMobileAudio(); // Initialize mobile audio service
+  
+  // Initialize PWA install prompt
+  React.useEffect(() => {
+    const pwaPrompt = PWAInstallPrompt.getInstance();
+    
+    // Show background playback tip after 30 seconds if not installed
+    const tipTimer = setTimeout(() => {
+      if (!pwaPrompt.isAppInstalled()) {
+        pwaPrompt.showBackgroundPlaybackTip();
+      }
+    }, 30000);
+    
+    return () => clearTimeout(tipTimer);
+  }, []);
   
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">

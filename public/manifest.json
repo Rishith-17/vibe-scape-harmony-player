@@ -4,11 +4,17 @@
   "short_name": "VibeScape",
   "description": "Cross-platform music streaming app with background playback",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "theme_color": "#1f2937",
-  "background_color": "#ffffff",
-  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "orientation": "portrait-primary",
   "categories": ["music", "entertainment"],
+  "lang": "en",
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
   "icons": [
     {
       "src": "/favicon.ico",

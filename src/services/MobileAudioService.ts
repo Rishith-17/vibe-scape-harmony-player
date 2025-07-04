@@ -84,18 +84,18 @@ class MobileAudioService {
 
   private updateWebMediaSession(track: Track, isPlaying: boolean, currentTime: number, duration: number) {
     if ('mediaSession' in navigator) {
-      // Update metadata
+      // Update metadata with high-quality artwork
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
         artist: track.channelTitle,
         album: 'Vibe Scape Harmony',
         artwork: [
-          { src: track.thumbnail, sizes: '96x96', type: 'image/jpeg' },
-          { src: track.thumbnail, sizes: '128x128', type: 'image/jpeg' },
-          { src: track.thumbnail, sizes: '192x192', type: 'image/jpeg' },
-          { src: track.thumbnail, sizes: '256x256', type: 'image/jpeg' },
-          { src: track.thumbnail, sizes: '384x384', type: 'image/jpeg' },
-          { src: track.thumbnail, sizes: '512x512', type: 'image/jpeg' },
+          { src: track.thumbnail.replace('mqdefault', 'maxresdefault'), sizes: '96x96', type: 'image/jpeg' },
+          { src: track.thumbnail.replace('mqdefault', 'hqdefault'), sizes: '128x128', type: 'image/jpeg' },
+          { src: track.thumbnail.replace('mqdefault', 'sddefault'), sizes: '192x192', type: 'image/jpeg' },
+          { src: track.thumbnail.replace('mqdefault', 'hqdefault'), sizes: '256x256', type: 'image/jpeg' },
+          { src: track.thumbnail.replace('mqdefault', 'maxresdefault'), sizes: '384x384', type: 'image/jpeg' },
+          { src: track.thumbnail.replace('mqdefault', 'maxresdefault'), sizes: '512x512', type: 'image/jpeg' },
         ]
       });
 
@@ -268,30 +268,46 @@ class MobileAudioService {
   }
 
   private setupWebBackgroundPlayback() {
-    // Enable background audio context
+    // Enhanced service worker communication
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(console.error);
+      navigator.serviceWorker.register('/sw.js').then(registration => {
+        console.log('Service Worker registered for background audio');
+        
+        // Listen for messages from service worker
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data?.type === 'SW_AUDIO_CONTROL') {
+            this.handleServiceWorkerControl(event.data.action);
+          }
+        });
+      }).catch(console.error);
     }
 
-    // Handle page visibility changes
+    // Handle page visibility changes with enhanced state sync
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
-        console.log('App backgrounded - maintaining playback');
+        console.log('App backgrounded - optimizing for background playback');
+        this.savePlaybackState();
+        this.notifyServiceWorkerAudioState();
+        this.enableBackgroundOptimizations();
       } else {
-        console.log('App foregrounded - syncing state');
+        console.log('App foregrounded - restoring active state');
+        this.disableBackgroundOptimizations();
+        this.syncStateFromBackground();
         if (this.currentTrack) {
           this.updateWebMediaSession(this.currentTrack, this.isPlaying, this.currentTime, this.duration);
         }
       }
     });
 
-    // Handle beforeunload to save state
+    // Enhanced beforeunload handling
     window.addEventListener('beforeunload', () => {
       this.savePlaybackState();
+      this.notifyServiceWorkerAudioState();
     });
 
-    // Setup wake lock for mobile devices
-    this.setupWakeLock();
+    // Enhanced wake lock and audio context management
+    this.setupEnhancedWakeLock();
+    this.setupAudioContextManagement();
   }
 
   private async setupWakeLock() {
@@ -330,8 +346,139 @@ class MobileAudioService {
     this.savePlaybackState();
   }
 
+  private handleServiceWorkerControl(action: string) {
+    switch (action) {
+      case 'play':
+      case 'pause':
+        this.onTogglePlay?.();
+        break;
+      case 'next':
+        this.onNext?.();
+        break;
+      case 'previous':
+        this.onPrevious?.();
+        break;
+    }
+  }
+
+  private notifyServiceWorkerAudioState() {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'AUDIO_STATE_UPDATE',
+        data: {
+          isPlaying: this.isPlaying,
+          currentTrack: this.currentTrack,
+          currentTime: this.currentTime,
+          duration: this.duration
+        }
+      });
+    }
+  }
+
+  private enableBackgroundOptimizations() {
+    // Reduce update frequency when backgrounded
+    this.updateInterval = 2000; // Update every 2 seconds instead of 500ms
+  }
+
+  private disableBackgroundOptimizations() {
+    // Restore normal update frequency
+    this.updateInterval = 500;
+  }
+
+  private syncStateFromBackground() {
+    // Request current state from service worker
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = (event) => {
+        if (event.data?.type === 'KEEP_ALIVE_RESPONSE') {
+          const { audioState } = event.data;
+          if (audioState && audioState.currentTrack) {
+            this.currentTrack = audioState.currentTrack;
+            this.isPlaying = audioState.isAudioPlaying;
+            this.currentTime = audioState.playbackPosition;
+          }
+        }
+      };
+      
+      navigator.serviceWorker.controller.postMessage({
+        type: 'KEEP_ALIVE'
+      }, [channel.port2]);
+    }
+  }
+
+  private setupEnhancedWakeLock() {
+    if ('wakeLock' in navigator) {
+      let wakeLock: any = null;
+      
+      const requestWakeLock = async () => {
+        try {
+          if (this.isPlaying && !wakeLock) {
+            wakeLock = await (navigator as any).wakeLock.request('screen');
+            console.log('Screen wake lock acquired for background playback');
+            
+            wakeLock.addEventListener('release', () => {
+              console.log('Wake lock released');
+              wakeLock = null;
+            });
+          }
+        } catch (err) {
+          console.log('Wake lock request failed:', err);
+        }
+      };
+
+      const releaseWakeLock = async () => {
+        if (wakeLock) {
+          await wakeLock.release();
+          wakeLock = null;
+        }
+      };
+
+      // Request wake lock when playing starts
+      document.addEventListener('visibilitychange', () => {
+        if (this.isPlaying) {
+          if (document.hidden) {
+            requestWakeLock();
+          } else {
+            releaseWakeLock();
+          }
+        }
+      });
+    }
+  }
+
+  private setupAudioContextManagement() {
+    // Enhanced audio context management for better background playback
+    if ('AudioContext' in window) {
+      const handleUserInteraction = async () => {
+        try {
+          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+          const audioContext = new AudioContext();
+          
+          if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+            console.log('Audio context resumed for optimal background playback');
+          }
+          
+          // Store reference for future use
+          (window as any).vibeScapeAudioContext = audioContext;
+        } catch (err) {
+          console.log('Audio context setup failed:', err);
+        }
+      };
+
+      // Setup on first user interaction
+      const events = ['touchstart', 'touchend', 'mousedown', 'keydown'];
+      events.forEach(event => {
+        document.addEventListener(event, handleUserInteraction, { once: true });
+      });
+    }
+  }
+
+  private updateInterval = 500;
+
   async destroy() {
     this.savePlaybackState();
+    this.notifyServiceWorkerAudioState();
     if (!Capacitor.isNativePlatform()) return;
     console.log('Mobile audio service would be destroyed for native platform');
     this.isInitialized = false;

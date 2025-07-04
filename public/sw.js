@@ -1,11 +1,15 @@
 
-const CACHE_NAME = 'music-player-v1';
+const CACHE_NAME = 'vibescape-music-v2';
 const urlsToCache = [
   '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/manifest.json'
+  '/manifest.json',
+  '/favicon.ico'
 ];
+
+// Background audio state
+let isAudioPlaying = false;
+let currentTrack = null;
+let playbackPosition = 0;
 
 // Install service worker
 self.addEventListener('install', (event) => {
@@ -93,14 +97,41 @@ self.addEventListener('notificationclick', (event) => {
 
 // Enhanced message handling for audio controls and state persistence
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'AUDIO_CONTROL') {
-    // Handle audio control messages from main thread
-    console.log('Audio control message:', event.data);
-  } else if (event.data && event.data.type === 'KEEP_ALIVE') {
-    // Keep service worker alive for background playback
-    console.log('Keep alive signal received');
-  } else if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+  const { type, data } = event.data || {};
+  
+  switch (type) {
+    case 'AUDIO_STATE_UPDATE':
+      isAudioPlaying = data.isPlaying;
+      currentTrack = data.currentTrack;
+      playbackPosition = data.currentTime;
+      console.log('Audio state updated:', { isAudioPlaying, track: currentTrack?.title });
+      break;
+      
+    case 'KEEP_ALIVE':
+      console.log('Keep alive signal received');
+      // Respond with current audio state
+      event.ports[0]?.postMessage({
+        type: 'KEEP_ALIVE_RESPONSE',
+        audioState: { isAudioPlaying, currentTrack, playbackPosition }
+      });
+      break;
+      
+    case 'SKIP_WAITING':
+      self.skipWaiting();
+      break;
+      
+    case 'AUDIO_CONTROL':
+      console.log('Audio control message:', data);
+      // Forward to all clients
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+        clientList.forEach(client => {
+          client.postMessage({
+            type: 'SW_AUDIO_CONTROL',
+            action: data.action
+          });
+        });
+      });
+      break;
   }
 });
 
