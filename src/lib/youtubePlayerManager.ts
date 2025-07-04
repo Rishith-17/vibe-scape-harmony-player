@@ -45,8 +45,9 @@ class YouTubePlayerManager {
     }
 
     window.onYouTubeIframeAPIReady = () => {
-      console.log('YouTube API ready');
+      console.log('YouTube API ready for Chrome background playback');
       this.isApiReady = true;
+      this.setupChromeAudioContext();
       this.createPlayer();
     };
 
@@ -359,6 +360,40 @@ class YouTubePlayerManager {
       localStorage.setItem('youtube_player_state', JSON.stringify(state));
     } catch (error) {
       console.error('Failed to save YouTube player state:', error);
+    }
+  }
+
+  private setupChromeAudioContext() {
+    // Chrome-specific: Ensure audio context is ready for background playback
+    if ('AudioContext' in window || 'webkitAudioContext' in window) {
+      const handleFirstInteraction = () => {
+        try {
+          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+          if (!((window as any).vibeScapeAudioContext)) {
+            const audioContext = new AudioContext();
+            (window as any).vibeScapeAudioContext = audioContext;
+            
+            // Resume if suspended
+            if (audioContext.state === 'suspended') {
+              audioContext.resume().then(() => {
+                console.log('Chrome AudioContext resumed for background playback');
+              });
+            }
+          }
+        } catch (error) {
+          console.log('AudioContext setup failed:', error);
+        }
+        
+        // Remove listeners after first interaction
+        ['click', 'touchstart', 'keydown'].forEach(event => {
+          document.removeEventListener(event, handleFirstInteraction);
+        });
+      };
+
+      // Setup listeners for first user interaction
+      ['click', 'touchstart', 'keydown'].forEach(event => {
+        document.addEventListener(event, handleFirstInteraction, { once: true });
+      });
     }
   }
 

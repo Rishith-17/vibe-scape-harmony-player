@@ -113,10 +113,10 @@ class PWAInstallPrompt {
     banner.innerHTML = `
       <div style="flex: 1;">
         <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
-          🎵 Install Vibe Scape for Better Background Playback
+          🎵 Install for Spotify-like Background Playback
         </div>
         <div style="font-size: 12px; opacity: 0.8;">
-          Get seamless music playback even when your screen is locked
+          Chrome optimized: Music continues when minimized, locked, or switched tabs
         </div>
       </div>
       <button id="pwa-install-btn" style="

@@ -26,16 +26,26 @@ const queryClient = new QueryClient();
 const AppContent = () => {
   useMobileAudio(); // Initialize mobile audio service
   
-  // Initialize PWA install prompt
+  // Initialize PWA install prompt and Chrome optimizations
   React.useEffect(() => {
     const pwaPrompt = PWAInstallPrompt.getInstance();
     
-    // Show background playback tip after 30 seconds if not installed
+    // Chrome-specific: Show install prompt earlier for better background playback
+    const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+    const tipDelay = isChrome ? 15000 : 30000; // Show earlier on Chrome
+    
     const tipTimer = setTimeout(() => {
       if (!pwaPrompt.isAppInstalled()) {
         pwaPrompt.showBackgroundPlaybackTip();
       }
-    }, 30000);
+    }, tipDelay);
+    
+    // Chrome-specific: Initialize background audio manager earlier
+    if (isChrome) {
+      setTimeout(() => {
+        BackgroundAudioManager.getInstance();
+      }, 1000);
+    }
     
     return () => clearTimeout(tipTimer);
   }, []);

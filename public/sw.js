@@ -1,15 +1,19 @@
 
-const CACHE_NAME = 'vibescape-music-v2';
+const CACHE_NAME = 'vibescape-music-v3';
 const urlsToCache = [
   '/',
   '/manifest.json',
-  '/favicon.ico'
+  '/favicon.ico',
+  '/src/main.tsx'
 ];
 
-// Background audio state
+// Enhanced background audio state for Chrome optimization
 let isAudioPlaying = false;
 let currentTrack = null;
 let playbackPosition = 0;
+let audioContextState = 'suspended';
+let lastHeartbeat = Date.now();
+let clientConnections = new Set();
 
 // Install service worker
 self.addEventListener('install', (event) => {
@@ -95,24 +99,49 @@ self.addEventListener('notificationclick', (event) => {
   }
 });
 
-// Enhanced message handling for audio controls and state persistence
+// Enhanced message handling for Chrome-optimized audio controls
 self.addEventListener('message', (event) => {
-  const { type, data } = event.data || {};
+  const { type, data, source } = event.data || {};
+  
+  // Track client connections for Chrome optimization
+  if (source) {
+    clientConnections.add(source);
+  }
   
   switch (type) {
     case 'AUDIO_STATE_UPDATE':
       isAudioPlaying = data.isPlaying;
       currentTrack = data.currentTrack;
       playbackPosition = data.currentTime;
-      console.log('Audio state updated:', { isAudioPlaying, track: currentTrack?.title });
+      audioContextState = data.audioContextState || 'suspended';
+      lastHeartbeat = Date.now();
+      
+      // Chrome-specific: Maintain SW alive during playback
+      if (isAudioPlaying) {
+        maintainServiceWorkerAlive();
+      }
+      
+      console.log('Chrome audio state updated:', { 
+        isAudioPlaying, 
+        track: currentTrack?.title,
+        audioContextState 
+      });
       break;
       
     case 'KEEP_ALIVE':
-      console.log('Keep alive signal received');
-      // Respond with current audio state
+      lastHeartbeat = Date.now();
+      console.log('Keep alive signal received - Chrome optimized');
+      
+      // Respond with comprehensive audio state for Chrome
       event.ports[0]?.postMessage({
         type: 'KEEP_ALIVE_RESPONSE',
-        audioState: { isAudioPlaying, currentTrack, playbackPosition }
+        audioState: { 
+          isAudioPlaying, 
+          currentTrack, 
+          playbackPosition,
+          audioContextState,
+          lastHeartbeat 
+        }
       });
       break;
       
@@ -121,19 +150,74 @@ self.addEventListener('message', (event) => {
       break;
       
     case 'AUDIO_CONTROL':
-      console.log('Audio control message:', data);
-      // Forward to all clients
-      clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      console.log('Chrome audio control message:', data);
+      
+      // Optimized message forwarding for Chrome
+      clients.matchAll({ 
+        type: 'window', 
+        includeUncontrolled: true 
+      }).then(clientList => {
         clientList.forEach(client => {
           client.postMessage({
             type: 'SW_AUDIO_CONTROL',
-            action: data.action
+            action: data.action,
+            timestamp: Date.now()
           });
         });
       });
       break;
+      
+    case 'CLIENT_DISCONNECT':
+      if (source) {
+        clientConnections.delete(source);
+      }
+      break;
   }
 });
+
+// Chrome-specific: Maintain service worker alive during audio playback
+function maintainServiceWorkerAlive() {
+  if (isAudioPlaying) {
+    // Send periodic heartbeats to prevent Chrome from killing SW
+    setTimeout(() => {
+      clients.matchAll({ type: 'window' }).then(clientList => {
+        if (clientList.length > 0 && isAudioPlaying) {
+          clientList[0].postMessage({
+            type: 'SW_HEARTBEAT',
+            timestamp: Date.now()
+          });
+          maintainServiceWorkerAlive(); // Continue heartbeat
+        }
+      });
+    }, 15000); // Every 15 seconds for Chrome stability
+  }
+}
+
+// Chrome optimization: Enhanced background sync
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'background-audio-chrome') {
+    event.waitUntil(handleChromeBackgroundAudio());
+  }
+});
+
+function handleChromeBackgroundAudio() {
+  console.log('Chrome background audio sync triggered');
+  
+  // Restore audio context state if needed
+  return clients.matchAll({ type: 'window' }).then(clientList => {
+    if (clientList.length > 0 && isAudioPlaying) {
+      clientList[0].postMessage({
+        type: 'RESTORE_AUDIO_CONTEXT',
+        audioState: {
+          isAudioPlaying,
+          currentTrack,
+          playbackPosition,
+          audioContextState
+        }
+      });
+    }
+  });
+}
 
 // Keep service worker active during audio playback
 self.addEventListener('activate', (event) => {

@@ -268,17 +268,38 @@ class MobileAudioService {
   }
 
   private setupWebBackgroundPlayback() {
-    // Enhanced service worker communication
+    // Chrome-optimized service worker communication
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').then(registration => {
-        console.log('Service Worker registered for background audio');
+        console.log('Service Worker registered for Chrome background audio');
         
-        // Listen for messages from service worker
+        // Enhanced message handling for Chrome
         navigator.serviceWorker.addEventListener('message', (event) => {
-          if (event.data?.type === 'SW_AUDIO_CONTROL') {
-            this.handleServiceWorkerControl(event.data.action);
+          const { type, action, timestamp } = event.data || {};
+          
+          switch (type) {
+            case 'SW_AUDIO_CONTROL':
+              this.handleServiceWorkerControl(action);
+              break;
+            case 'SW_HEARTBEAT':
+              // Respond to Chrome heartbeat to maintain connection
+              this.handleHeartbeat();
+              break;
+            case 'RESTORE_AUDIO_CONTEXT':
+              // Chrome-specific: Restore audio context after suspension
+              this.handleAudioContextRestore(event.data.audioState);
+              break;
           }
         });
+        
+        // Register for Chrome background sync
+        try {
+          if ('sync' in registration) {
+            (registration as any).sync?.register('background-audio-chrome');
+          }
+        } catch (error) {
+          console.log('Background sync not available:', error);
+        }
       }).catch(console.error);
     }
 
@@ -361,15 +382,19 @@ class MobileAudioService {
     }
   }
 
-  private notifyServiceWorkerAudioState() {
+  private notifyServiceWorkerAudioState(audioContextState?: string) {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      const currentAudioContextState = audioContextState || 
+        (window as any).vibeScapeAudioContext?.state || 'suspended';
+        
       navigator.serviceWorker.controller.postMessage({
         type: 'AUDIO_STATE_UPDATE',
         data: {
           isPlaying: this.isPlaying,
           currentTrack: this.currentTrack,
           currentTime: this.currentTime,
-          duration: this.duration
+          duration: this.duration,
+          audioContextState: currentAudioContextState
         }
       });
     }
@@ -475,6 +500,36 @@ class MobileAudioService {
   }
 
   private updateInterval = 500;
+
+  private handleHeartbeat() {
+    // Chrome-specific: Respond to service worker heartbeat
+    console.log('Responding to Chrome SW heartbeat');
+    this.notifyServiceWorkerAudioState();
+  }
+
+  private handleAudioContextRestore(audioState: any) {
+    // Chrome-specific: Restore audio context state from service worker
+    if (audioState) {
+      console.log('Restoring audio context from Chrome SW:', audioState);
+      
+      // Restore playback state
+      if (audioState.currentTrack) {
+        this.currentTrack = audioState.currentTrack;
+        this.isPlaying = audioState.isAudioPlaying || false;
+        this.currentTime = audioState.playbackPosition || 0;
+      }
+      
+      // Resume audio context if needed
+      if ('AudioContext' in window && (window as any).vibeScapeAudioContext) {
+        const audioContext = (window as any).vibeScapeAudioContext;
+        if (audioContext.state === 'suspended') {
+          audioContext.resume().catch((err: any) => {
+            console.log('Failed to resume audio context:', err);
+          });
+        }
+      }
+    }
+  }
 
   async destroy() {
     this.savePlaybackState();
