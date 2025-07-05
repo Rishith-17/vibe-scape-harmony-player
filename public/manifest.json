@@ -1,17 +1,23 @@
 
 {
-  "name": "Vibe Scape Music Player",
+  "name": "Vibe Scape Harmony Player - Music Streaming with Background Playback",
   "short_name": "VibeScape",
-  "description": "Cross-platform music streaming app with background playback",
-  "start_url": "/",
+  "description": "Stream music seamlessly with background playback support. Works like Spotify in your browser with PWA capabilities for all devices.",
+  "start_url": "/?utm_source=pwa",
   "scope": "/",
+  "id": "/?utm_source=pwa",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "theme_color": "#1f2937",
   "background_color": "#0f172a",
   "orientation": "portrait-primary",
-  "categories": ["music", "entertainment"],
-  "lang": "en",
+  "categories": ["music", "entertainment", "multimedia"],
+  "lang": "en-US",
+  "dir": "ltr",
   "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "edge_side_panel": {
     "preferred_width": 400
   },

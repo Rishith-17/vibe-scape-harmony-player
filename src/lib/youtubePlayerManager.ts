@@ -364,79 +364,83 @@ class YouTubePlayerManager {
   }
 
   private setupChromeAudioContext() {
-    // Chrome-specific: Ensure audio context is ready for background playback
-    if ('AudioContext' in window || 'webkitAudioContext' in window) {
-      const handleFirstInteraction = () => {
-        try {
-          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-          if (!((window as any).vibeScapeAudioContext)) {
-            const audioContext = new AudioContext();
-            (window as any).vibeScapeAudioContext = audioContext;
-            
-            // Resume if suspended
-            if (audioContext.state === 'suspended') {
-              audioContext.resume().then(() => {
-                console.log('Chrome AudioContext resumed for background playback');
-              });
-            }
-          }
-        } catch (error) {
-          console.log('AudioContext setup failed:', error);
+    // Chrome-specific audio context handling for background playback
+    if (typeof AudioContext !== 'undefined') {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Resume audio context on user interaction (required for autoplay policy)
+      const resumeAudio = async () => {
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+          console.log('Audio context resumed for Chrome background playbook');
         }
-        
-        // Remove listeners after first interaction
-        ['click', 'touchstart', 'keydown'].forEach(event => {
-          document.removeEventListener(event, handleFirstInteraction);
-        });
       };
 
-      // Setup listeners for first user interaction
-      ['click', 'touchstart', 'keydown'].forEach(event => {
-        document.addEventListener(event, handleFirstInteraction, { once: true });
+      // Listen for user interactions to enable audio
+      const events = ['click', 'touchstart', 'keydown'];
+      events.forEach(event => {
+        document.addEventListener(event, resumeAudio, { once: true });
       });
+
+      // Store reference for background management
+      (this as any).audioContext = audioContext;
     }
   }
 
   private setupBackgroundPlayback() {
-    // Handle page visibility changes
+    // Enhanced background playback for Chrome and other browsers
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         console.log('Page hidden - maintaining YouTube playback');
-        this.saveState();
+        this.handleBackgroundMode(true);
       } else {
         console.log('Page visible - syncing YouTube state');
-        // Force a time update when page becomes visible
-        if (this.player && this.player.getCurrentTime) {
-          this.currentTime = this.player.getCurrentTime();
-          this.notifyListeners();
-        }
+        this.handleBackgroundMode(false);
       }
     });
 
-    // Save state before page unload
+    // Page lifecycle events for better background handling
     window.addEventListener('beforeunload', () => {
       this.saveState();
     });
 
-    // Prevent audio context suspension on mobile
-    if ('AudioContext' in window) {
-      const handleUserInteraction = () => {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioContext) {
-          const audioContext = new AudioContext();
-          if (audioContext.state === 'suspended') {
-            audioContext.resume().then(() => {
-              console.log('Audio context resumed for background playback');
-            });
-          }
-        }
-        // Remove listener after first interaction
-        document.removeEventListener('touchstart', handleUserInteraction);
-        document.removeEventListener('click', handleUserInteraction);
-      };
+    // Wake lock for longer playback sessions
+    if ('wakeLock' in navigator && this.isPlaying) {
+      this.requestWakeLock();
+    }
+  }
 
-      document.addEventListener('touchstart', handleUserInteraction, { once: true });
-      document.addEventListener('click', handleUserInteraction, { once: true });
+  private async requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator && this.isPlaying) {
+        const wakeLock = await (navigator as any).wakeLock.request('screen');
+        console.log('Wake lock acquired for background playback');
+      }
+    } catch (error) {
+      console.log('Wake lock not available:', error);
+    }
+  }
+
+  private handleBackgroundMode(isBackground: boolean) {
+    if (isBackground) {
+      // Background mode - keep audio playing
+      this.saveState();
+      
+      // Ensure player continues in background
+      if (this.player && this.isPlaying) {
+        // Force continue playback
+        setTimeout(() => {
+          if (this.player.getPlayerState() === 2) { // Paused
+            this.player.playVideo();
+          }
+        }, 100);
+      }
+    } else {
+      // Foreground mode - sync state
+      this.restoreState();
+      setTimeout(() => {
+        this.notifyListeners();
+      }, 100);
     }
   }
 

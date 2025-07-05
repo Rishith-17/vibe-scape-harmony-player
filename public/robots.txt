@@ -1,14 +1,28 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://5b247013-5705-4da4-a18e-0c5af1e2f706.lovableproject.com/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Allow all major search engines
 User-agent: Googlebot
 Allow: /
 
 User-agent: Bingbot
 Allow: /
 
-User-agent: Twitterbot
+User-agent: Slurp
 Allow: /
 
-User-agent: facebookexternalhit
+User-agent: DuckDuckBot
 Allow: /
 
-User-agent: *
-Allow: /
+# Block irrelevant crawlers
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
