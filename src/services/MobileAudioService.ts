@@ -44,7 +44,7 @@ class MobileAudioService {
 
       if (!Capacitor.isNativePlatform()) {
         console.log('Running in web mode - background playback enabled');
-        this.setupWebBackgroundPlayback();
+        this.setupWebBackgroundPlaybook();
         this.isInitialized = true;
         return;
       }
@@ -267,13 +267,13 @@ class MobileAudioService {
     }
   }
 
-  private setupWebBackgroundPlayback() {
-    // Chrome-optimized service worker communication
+  private setupWebBackgroundPlaybook() {
+    // Enhanced service worker setup for mobile browsers
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').then(registration => {
-        console.log('Service Worker registered for Chrome background audio');
+        console.log('Service Worker registered for mobile background audio');
         
-        // Enhanced message handling for Chrome
+        // Enhanced message handling for mobile browsers
         navigator.serviceWorker.addEventListener('message', (event) => {
           const { type, action, timestamp } = event.data || {};
           
@@ -282,38 +282,47 @@ class MobileAudioService {
               this.handleServiceWorkerControl(action);
               break;
             case 'SW_HEARTBEAT':
-              // Respond to Chrome heartbeat to maintain connection
               this.handleHeartbeat();
               break;
             case 'RESTORE_AUDIO_CONTEXT':
-              // Chrome-specific: Restore audio context after suspension
               this.handleAudioContextRestore(event.data.audioState);
+              break;
+            case 'MOBILE_BACKGROUND_SYNC':
+              this.handleMobileBackgroundSync();
               break;
           }
         });
         
-        // Register for Chrome background sync
+        // Register for mobile background sync
         try {
           if ('sync' in registration) {
-            (registration as any).sync?.register('background-audio-chrome');
+            (registration as any).sync?.register('mobile-background-audio');
           }
         } catch (error) {
           console.log('Background sync not available:', error);
         }
+        
+        // Mobile-specific: Request persistent notification permission
+        this.requestNotificationPermission();
       }).catch(console.error);
     }
 
-    // Handle page visibility changes with enhanced state sync
+    // Enhanced mobile page visibility handling
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
-        console.log('App backgrounded - optimizing for background playback');
+        console.log('Mobile app backgrounded - maintaining audio playback');
         this.savePlaybackState();
         this.notifyServiceWorkerAudioState();
-        this.enableBackgroundOptimizations();
+        this.enableMobileBackgroundMode();
+        
+        // Mobile-specific: Keep audio context alive
+        this.maintainMobileAudioContext();
       } else {
-        console.log('App foregrounded - restoring active state');
-        this.disableBackgroundOptimizations();
+        console.log('Mobile app foregrounded - syncing state');
+        this.disableMobileBackgroundMode();
         this.syncStateFromBackground();
+        this.resumeMobileAudioContext();
+        
         if (this.currentTrack) {
           this.updateWebMediaSession(this.currentTrack, this.isPlaying, this.currentTime, this.duration);
         }
@@ -326,9 +335,10 @@ class MobileAudioService {
       this.notifyServiceWorkerAudioState();
     });
 
-    // Enhanced wake lock and audio context management
-    this.setupEnhancedWakeLock();
-    this.setupAudioContextManagement();
+    // Mobile-optimized wake lock and audio context
+    this.setupMobileWakeLock();
+    this.setupMobileAudioContextManagement();
+    this.setupMobileBackgroundPlayback();
   }
 
   private async setupWakeLock() {
@@ -431,7 +441,7 @@ class MobileAudioService {
     }
   }
 
-  private setupEnhancedWakeLock() {
+  private setupMobileWakeLock() {
     if ('wakeLock' in navigator) {
       let wakeLock: any = null;
       
@@ -439,103 +449,214 @@ class MobileAudioService {
         try {
           if (this.isPlaying && !wakeLock) {
             wakeLock = await (navigator as any).wakeLock.request('screen');
-            console.log('Screen wake lock acquired for background playback');
+            console.log('Mobile wake lock acquired');
             
             wakeLock.addEventListener('release', () => {
-              console.log('Wake lock released');
+              console.log('Mobile wake lock released');
               wakeLock = null;
             });
           }
         } catch (err) {
-          console.log('Wake lock request failed:', err);
+          console.log('Mobile wake lock failed:', err);
         }
       };
 
-      const releaseWakeLock = async () => {
+      this.enableMobileWakeLock = requestWakeLock;
+      this.disableMobileWakeLock = async () => {
         if (wakeLock) {
           await wakeLock.release();
           wakeLock = null;
         }
       };
-
-      // Request wake lock when playing starts
-      document.addEventListener('visibilitychange', () => {
-        if (this.isPlaying) {
-          if (document.hidden) {
-            requestWakeLock();
-          } else {
-            releaseWakeLock();
-          }
-        }
-      });
     }
   }
 
-  private setupAudioContextManagement() {
-    // Enhanced audio context management for better background playback
+  private enableMobileWakeLock?: () => Promise<void>;
+  private disableMobileWakeLock?: () => Promise<void>;
+
+  private setupMobileAudioContextManagement() {
     if ('AudioContext' in window) {
-      const handleUserInteraction = async () => {
+      const handleMobileUserInteraction = async () => {
         try {
-          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-          const audioContext = new AudioContext();
+          this.createMobileAudioContext();
           
-          if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-            console.log('Audio context resumed for optimal background playback');
+          if (this.mobileAudioContext?.state === 'suspended') {
+            await this.mobileAudioContext.resume();
+            console.log('Mobile audio context resumed');
           }
-          
-          // Store reference for future use
-          (window as any).vibeScapeAudioContext = audioContext;
         } catch (err) {
-          console.log('Audio context setup failed:', err);
+          console.log('Mobile audio context setup failed:', err);
         }
       };
 
-      // Setup on first user interaction
-      const events = ['touchstart', 'touchend', 'mousedown', 'keydown'];
-      events.forEach(event => {
-        document.addEventListener(event, handleUserInteraction, { once: true });
+      // Mobile-specific interaction events
+      const mobileEvents = ['touchstart', 'touchend', 'touchmove', 'click', 'tap'];
+      mobileEvents.forEach(event => {
+        document.addEventListener(event, handleMobileUserInteraction, { once: true, passive: true });
       });
     }
   }
 
   private updateInterval = 500;
+  private mobileAudioContext: AudioContext | null = null;
+  private backgroundAudioElement: HTMLAudioElement | null = null;
 
   private handleHeartbeat() {
-    // Chrome-specific: Respond to service worker heartbeat
-    console.log('Responding to Chrome SW heartbeat');
+    console.log('Responding to mobile SW heartbeat');
     this.notifyServiceWorkerAudioState();
   }
 
   private handleAudioContextRestore(audioState: any) {
-    // Chrome-specific: Restore audio context state from service worker
     if (audioState) {
-      console.log('Restoring audio context from Chrome SW:', audioState);
+      console.log('Restoring mobile audio context:', audioState);
       
-      // Restore playback state
       if (audioState.currentTrack) {
         this.currentTrack = audioState.currentTrack;
         this.isPlaying = audioState.isAudioPlaying || false;
         this.currentTime = audioState.playbackPosition || 0;
       }
       
-      // Resume audio context if needed
-      if ('AudioContext' in window && (window as any).vibeScapeAudioContext) {
-        const audioContext = (window as any).vibeScapeAudioContext;
-        if (audioContext.state === 'suspended') {
-          audioContext.resume().catch((err: any) => {
-            console.log('Failed to resume audio context:', err);
-          });
-        }
+      this.resumeMobileAudioContext();
+    }
+  }
+
+  private handleMobileBackgroundSync() {
+    console.log('Mobile background sync triggered');
+    this.maintainMobileAudioContext();
+    this.keepMobileAudioAlive();
+  }
+
+  private setupMobileBackgroundPlayback() {
+    // Mobile-specific background audio setup
+    this.createMobileAudioContext();
+    this.setupMobileAudioInterception();
+    this.enableMobileMediaControls();
+  }
+
+  private createMobileAudioContext() {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContext) {
+        this.mobileAudioContext = new AudioContext();
+        (window as any).vibeScapeMobileAudioContext = this.mobileAudioContext;
+        
+        // Unlock audio on mobile
+        const unlockAudio = async () => {
+          if (this.mobileAudioContext?.state === 'suspended') {
+            await this.mobileAudioContext.resume();
+            console.log('Mobile audio context unlocked');
+          }
+        };
+        
+        // Setup unlock triggers
+        const events = ['touchstart', 'touchend', 'mousedown', 'keydown'];
+        events.forEach(event => {
+          document.addEventListener(event, unlockAudio, { once: true });
+        });
       }
+    } catch (error) {
+      console.error('Failed to create mobile audio context:', error);
+    }
+  }
+
+  private maintainMobileAudioContext() {
+    if (this.mobileAudioContext && this.isPlaying) {
+      // Keep audio context alive during background
+      const oscillator = this.mobileAudioContext.createOscillator();
+      const gainNode = this.mobileAudioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(this.mobileAudioContext.destination);
+      gainNode.gain.value = 0; // Silent
+      
+      oscillator.frequency.value = 440;
+      oscillator.start();
+      oscillator.stop(this.mobileAudioContext.currentTime + 0.001);
+    }
+  }
+
+  private resumeMobileAudioContext() {
+    if (this.mobileAudioContext?.state === 'suspended') {
+      this.mobileAudioContext.resume().catch(console.error);
+    }
+  }
+
+  private enableMobileBackgroundMode() {
+    // Mobile background optimizations
+    this.keepMobileAudioAlive();
+    this.enableMobileWakeLock();
+  }
+
+  private disableMobileBackgroundMode() {
+    // Restore normal mobile mode
+    this.disableMobileWakeLock();
+  }
+
+  private keepMobileAudioAlive() {
+    // Create silent audio to maintain mobile background playback
+    if (!this.backgroundAudioElement && this.isPlaying) {
+      this.backgroundAudioElement = document.createElement('audio');
+      this.backgroundAudioElement.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2OBjQDfW1YdROfTFp0GQVWUlG9jQzm8lJ5pnULcdnGOvxElWWfSrQH9+4j8V1OPGfWWvvCJSUIflgcV8cWYwWtPNg0cMQPGIFJJvzSFBFILKxUeOZTKq1R/Tc0Dk0P4Ps9r8CmI7AgKRYKs=';
+      this.backgroundAudioElement.loop = true;
+      this.backgroundAudioElement.volume = 0;
+      this.backgroundAudioElement.play().catch(console.error);
+    }
+  }
+
+  private requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        console.log('Notification permission:', permission);
+      });
+    }
+  }
+
+  private setupMobileAudioInterception() {
+    // Intercept native audio events for mobile
+    const audioElements = document.querySelectorAll('audio, video');
+    audioElements.forEach(element => {
+      element.addEventListener('play', () => {
+        if (this.isPlaying) {
+          this.maintainMobileAudioContext();
+        }
+      });
+    });
+  }
+
+  private enableMobileMediaControls() {
+    // Enhanced mobile media controls
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.setActionHandler('stop', () => {
+        this.onTogglePlay?.();
+        if (this.backgroundAudioElement) {
+          this.backgroundAudioElement.pause();
+          this.backgroundAudioElement.remove();
+          this.backgroundAudioElement = null;
+        }
+      });
     }
   }
 
   async destroy() {
     this.savePlaybackState();
     this.notifyServiceWorkerAudioState();
+    
+    // Clean up mobile audio resources
+    if (this.backgroundAudioElement) {
+      this.backgroundAudioElement.pause();
+      this.backgroundAudioElement.remove();
+      this.backgroundAudioElement = null;
+    }
+    
+    if (this.mobileAudioContext) {
+      await this.mobileAudioContext.close();
+      this.mobileAudioContext = null;
+    }
+    
+    await this.disableMobileWakeLock?.();
+    
     if (!Capacitor.isNativePlatform()) return;
-    console.log('Mobile audio service would be destroyed for native platform');
+    console.log('Mobile audio service destroyed');
     this.isInitialized = false;
   }
 

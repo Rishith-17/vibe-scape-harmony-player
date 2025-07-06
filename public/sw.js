@@ -40,12 +40,30 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('sync', (event) => {
   if (event.tag === 'background-audio') {
     event.waitUntil(handleBackgroundAudio());
+  } else if (event.tag === 'mobile-background-audio') {
+    event.waitUntil(handleMobileBackgroundAudio());
+  } else if (event.tag === 'background-audio-chrome') {
+    event.waitUntil(handleChromeBackgroundAudio());
   }
 });
 
 function handleBackgroundAudio() {
   // Handle background audio tasks and state persistence
   console.log('Background audio sync triggered');
+}
+
+function handleMobileBackgroundAudio() {
+  // Mobile-specific background audio handling
+  console.log('Mobile background audio sync triggered');
+  
+  return clients.matchAll({ type: 'window' }).then(clientList => {
+    if (clientList.length > 0 && isAudioPlaying) {
+      clientList[0].postMessage({
+        type: 'MOBILE_BACKGROUND_SYNC',
+        timestamp: Date.now()
+      });
+    }
+  });
 }
 
 // Handle push notifications for media controls
@@ -197,6 +215,8 @@ function maintainServiceWorkerAlive() {
 self.addEventListener('sync', (event) => {
   if (event.tag === 'background-audio-chrome') {
     event.waitUntil(handleChromeBackgroundAudio());
+  } else if (event.tag === 'mobile-background-audio') {
+    event.waitUntil(handleMobileBackgroundAudio());
   }
 });
 
