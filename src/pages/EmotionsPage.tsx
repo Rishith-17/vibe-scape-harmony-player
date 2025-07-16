@@ -114,50 +114,69 @@ const EmotionDetector = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 relative overflow-hidden">
       {/* Enhanced 3D Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-20 -right-20 sm:-top-40 sm:-right-40 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-pink-500 to-violet-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse transform-gpu"></div>
-        <div className="absolute -bottom-20 -left-20 sm:-bottom-40 sm:-left-40 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-yellow-400 to-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000 transform-gpu"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-pulse delay-500 transform-gpu"></div>
+        <div className="absolute -top-20 -right-20 sm:-top-40 sm:-right-40 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-primary to-accent rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse transform-gpu animate-[pulse_3s_ease-in-out_infinite]"></div>
+        <div className="absolute -bottom-20 -left-20 sm:-bottom-40 sm:-left-40 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-secondary to-primary rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse delay-1000 transform-gpu animate-[pulse_4s_ease-in-out_infinite]"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-accent to-muted rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-pulse delay-500 transform-gpu animate-[pulse_5s_ease-in-out_infinite]"></div>
         
-        {/* Additional floating 3D spheres */}
-        <div className="absolute top-20 left-20 w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full opacity-30 animate-bounce transform-gpu" style={{ animationDuration: '3s' }}></div>
-        <div className="absolute bottom-32 right-32 w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-orange-400 to-red-500 rounded-full opacity-40 animate-bounce delay-700 transform-gpu" style={{ animationDuration: '4s' }}></div>
-        <div className="absolute top-1/3 right-20 w-12 h-12 sm:w-20 sm:h-20 bg-gradient-to-br from-violet-400 to-purple-500 rounded-full opacity-50 animate-bounce delay-300 transform-gpu" style={{ animationDuration: '2.5s' }}></div>
+        {/* Additional floating 3D spheres with enhanced animations */}
+        <div className="absolute top-20 left-20 w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-primary to-accent/80 rounded-full opacity-30 animate-bounce transform-gpu shadow-2xl hover:scale-110 transition-transform duration-300" style={{ animationDuration: '3s', filter: 'drop-shadow(0 0 20px hsla(var(--primary), 0.5))' }}></div>
+        <div className="absolute bottom-32 right-32 w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-secondary to-primary/80 rounded-full opacity-40 animate-bounce delay-700 transform-gpu shadow-2xl hover:scale-110 transition-transform duration-300" style={{ animationDuration: '4s', filter: 'drop-shadow(0 0 15px hsla(var(--secondary), 0.5))' }}></div>
+        <div className="absolute top-1/3 right-20 w-12 h-12 sm:w-20 sm:h-20 bg-gradient-to-br from-accent to-muted/80 rounded-full opacity-50 animate-bounce delay-300 transform-gpu shadow-2xl hover:scale-110 transition-transform duration-300" style={{ animationDuration: '2.5s', filter: 'drop-shadow(0 0 10px hsla(var(--accent), 0.5))' }}></div>
+        
+        {/* Rotating gradient orbs */}
+        <div className="absolute top-16 right-1/4 w-8 h-8 sm:w-16 sm:h-16 bg-gradient-conic from-primary via-secondary to-accent rounded-full opacity-60 animate-spin" style={{ animationDuration: '8s' }}></div>
+        <div className="absolute bottom-16 left-1/4 w-6 h-6 sm:w-12 sm:h-12 bg-gradient-conic from-accent via-primary to-secondary rounded-full opacity-40 animate-spin" style={{ animationDuration: '6s', animationDirection: 'reverse' }}></div>
       </div>
 
-      {/* Enhanced Floating Particles with 3D effect */}
+      {/* Enhanced Floating Particles with 3D effect and gradient colors */}
       <div className="absolute inset-0">
-        {[...Array(20)].map((_, i) => (
+        {[...Array(30)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-2 h-2 bg-white rounded-full opacity-20 animate-ping transform-gpu"
+            className={`absolute w-2 h-2 ${i % 3 === 0 ? 'bg-primary' : i % 3 === 1 ? 'bg-secondary' : 'bg-accent'} rounded-full opacity-20 animate-ping transform-gpu shadow-lg`}
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               animationDelay: `${Math.random() * 2}s`,
               animationDuration: `${2 + Math.random() * 2}s`,
-              transform: `perspective(1000px) rotateX(${Math.random() * 360}deg) rotateY(${Math.random() * 360}deg)`
+              transform: `perspective(1000px) rotateX(${Math.random() * 360}deg) rotateY(${Math.random() * 360}deg) translateZ(${Math.random() * 50}px)`,
+              filter: `drop-shadow(0 0 ${2 + Math.random() * 4}px currentColor)`
             }}
           ></div>
         ))}
       </div>
 
-      {/* Animated Neural Network Lines */}
-      <div className="absolute inset-0 opacity-10">
+      {/* Animated Neural Network Lines with gradient strokes */}
+      <div className="absolute inset-0 opacity-15">
         <svg className="w-full h-full">
-          {[...Array(8)].map((_, i) => (
+          <defs>
+            <linearGradient id="neuralGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="hsla(var(--primary), 0.8)" />
+              <stop offset="100%" stopColor="hsla(var(--accent), 0.8)" />
+            </linearGradient>
+            <linearGradient id="neuralGradient2" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="hsla(var(--secondary), 0.8)" />
+              <stop offset="100%" stopColor="hsla(var(--primary), 0.8)" />
+            </linearGradient>
+          </defs>
+          {[...Array(12)].map((_, i) => (
             <line
               key={i}
               x1={`${Math.random() * 100}%`}
               y1={`${Math.random() * 100}%`}
               x2={`${Math.random() * 100}%`}
               y2={`${Math.random() * 100}%`}
-              stroke="white"
-              strokeWidth="1"
+              stroke={i % 2 === 0 ? "url(#neuralGradient1)" : "url(#neuralGradient2)"}
+              strokeWidth="2"
               className="animate-pulse"
-              style={{ animationDelay: `${i * 0.3}s` }}
+              style={{ 
+                animationDelay: `${i * 0.3}s`,
+                animationDuration: `${3 + Math.random() * 2}s`,
+                filter: 'drop-shadow(0 0 3px currentColor)'
+              }}
             />
           ))}
         </svg>
@@ -204,13 +223,13 @@ const EmotionDetector = () => {
         <div className="max-w-6xl mx-auto space-y-6 lg:space-y-0 lg:grid lg:gap-8 lg:grid-cols-2">
           {/* Upload Section */}
           <div className="order-1">
-            <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl border border-white/20 hover:shadow-pink-500/25 transition-all duration-500">
+            <Card className="border-0 shadow-2xl bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/30 hover:shadow-primary/25 transition-all duration-500 hover:scale-[1.02] hover:border-primary/50">
               <CardContent className="p-4 sm:p-6 lg:p-8">
                 <div className="flex items-center gap-3 mb-6 sm:mb-8">
                   <div className="p-2 sm:p-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg">
                     <Upload className="w-4 h-4 sm:w-6 sm:h-6" />
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-white">Upload Image</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">Upload Image</h2>
                 </div>
                 
                 <ImageUploader
@@ -278,13 +297,13 @@ const EmotionDetector = () => {
 
           {/* Results Section */}
           <div className="order-2">
-            <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl border border-white/20 hover:shadow-cyan-500/25 transition-all duration-500">
+            <Card className="border-0 shadow-2xl bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/30 hover:shadow-accent/25 transition-all duration-500 hover:scale-[1.02] hover:border-accent/50">
               <CardContent className="p-4 sm:p-6 lg:p-8">
                 <div className="flex items-center gap-3 mb-6 sm:mb-8">
                   <div className="p-2 sm:p-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg animate-pulse">
                     <Brain className="w-4 h-4 sm:w-6 sm:h-6" />
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-white">AI Results</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">AI Results</h2>
                 </div>
 
                 {emotionResult ? (

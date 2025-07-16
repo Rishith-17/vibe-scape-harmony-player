@@ -309,10 +309,20 @@ const EnhancedHomePage = () => {
                 onClick={handleRefresh}
                 variant="outline"
                 size="sm"
-                className="text-xs"
+                className="relative text-xs bg-gradient-to-r from-primary to-accent text-primary-foreground border-0 shadow-lg hover:shadow-xl hover:scale-110 transform transition-all duration-300 animate-pulse hover:animate-none group overflow-hidden"
                 disabled={isLoading}
+                style={{
+                  background: 'linear-gradient(135deg, hsla(var(--primary), 1), hsla(var(--accent), 1))',
+                  boxShadow: '0 0 20px hsla(var(--primary), 0.5), inset 0 1px 0 hsla(var(--accent), 0.8)',
+                  filter: 'drop-shadow(0 4px 8px hsla(var(--primary), 0.3))',
+                  transform: 'perspective(500px) rotateX(5deg) rotateY(-5deg)',
+                }}
               >
-                {isLoading ? 'Refreshing...' : 'Refresh'}
+                <div className="absolute inset-0 bg-gradient-to-r from-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="relative z-10 flex items-center gap-1">
+                  <div className={`w-3 h-3 rounded-full ${isLoading ? 'animate-spin border-2 border-current border-t-transparent' : 'bg-current animate-pulse'}`}></div>
+                  {isLoading ? 'Refreshing...' : 'Refresh'}
+                </div>
               </Button>
             </div>
           )}
