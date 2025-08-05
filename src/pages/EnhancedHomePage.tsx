@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react';
+import aiMusicLogo from '@/assets/ai-music-logo.png';
 import { Shuffle, Globe, Map, Languages, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -40,10 +41,10 @@ const EnhancedHomePage = () => {
   const [recommendations, setRecommendations] = useState<RecommendationData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(() => {
-    return localStorage.getItem('moodtunes_selected_country') || 'USA';
+    return localStorage.getItem('auratune_selected_country') || 'USA';
   });
   const [selectedLanguage, setSelectedLanguage] = useState(() => {
-    return localStorage.getItem('moodtunes_selected_language') || 'English';
+    return localStorage.getItem('auratune_selected_language') || 'English';
   });
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const { toast } = useToast();
@@ -65,7 +66,7 @@ const EnhancedHomePage = () => {
   // Cache management
   const getCachedData = (): CachedData | null => {
     try {
-      const cached = localStorage.getItem('moodtunes_recommendations_cache');
+      const cached = localStorage.getItem('auratune_recommendations_cache');
       if (cached) {
         const parsedCache: CachedData = JSON.parse(cached);
         // Check if cache is less than 1 hour old
@@ -92,7 +93,7 @@ const EnhancedHomePage = () => {
         language: selectedLanguage,
         timestamp: Date.now()
       };
-      localStorage.setItem('moodtunes_recommendations_cache', JSON.stringify(cacheData));
+      localStorage.setItem('auratune_recommendations_cache', JSON.stringify(cacheData));
     } catch (error) {
       console.error('Error setting cache:', error);
     }
@@ -100,8 +101,8 @@ const EnhancedHomePage = () => {
 
   useEffect(() => {
     // Save selected filters to localStorage
-    localStorage.setItem('moodtunes_selected_country', selectedCountry);
-    localStorage.setItem('moodtunes_selected_language', selectedLanguage);
+    localStorage.setItem('auratune_selected_country', selectedCountry);
+    localStorage.setItem('auratune_selected_language', selectedLanguage);
 
     // Load recommendations on mount or when filters change
     if (!hasInitialized.current) {
@@ -266,7 +267,7 @@ const EnhancedHomePage = () => {
 
   const handleRefresh = () => {
     // Clear cache and force reload
-    localStorage.removeItem('moodtunes_recommendations_cache');
+    localStorage.removeItem('auratune_recommendations_cache');
     loadRecommendations();
   };
 
@@ -295,9 +296,21 @@ const EnhancedHomePage = () => {
       {/* Header Section */}
       <div className="relative z-10 pt-8 px-6">
         <div className="text-center mb-8 animate-fade-in">
-          <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-scale-in">
-            MoodTunes
-          </h1>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <img 
+              src={aiMusicLogo} 
+              alt="AuraTune AI Logo" 
+              className="w-16 h-16 filter brightness-125 drop-shadow-[0_0_15px_rgba(59,130,246,0.6)] animate-pulse"
+            />
+            <h1 className="text-6xl font-bold bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-scale-in tracking-wide" 
+                style={{ 
+                  fontFamily: 'ui-monospace, "Cascadia Code", "Roboto Mono", monospace',
+                  filter: 'drop-shadow(0 0 20px rgba(139, 92, 246, 0.4))',
+                  textShadow: '0 0 30px rgba(59, 130, 246, 0.3), 0 0 60px rgba(147, 51, 234, 0.2)'
+                }}>
+              AuraTune
+            </h1>
+          </div>
           <p className="text-gray-300 text-lg mb-2">Discover the World's Trending Music Videos</p>
           {lastUpdated && (
             <div className="flex items-center justify-center gap-4">
