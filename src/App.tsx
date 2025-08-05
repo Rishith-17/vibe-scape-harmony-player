@@ -54,6 +54,7 @@ const AppContent = () => {
     <div className="min-h-screen bg-background overflow-x-hidden">
       <Routes>
         <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/index" element={<Navigate to="/home" replace />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route
           path="/home"
