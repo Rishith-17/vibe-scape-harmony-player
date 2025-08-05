@@ -114,7 +114,7 @@ const EmotionDetector = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white pb-32 relative overflow-hidden">
       {/* Enhanced 3D Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-20 -right-20 sm:-top-40 sm:-right-40 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-primary to-accent rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse transform-gpu animate-[pulse_3s_ease-in-out_infinite]"></div>
