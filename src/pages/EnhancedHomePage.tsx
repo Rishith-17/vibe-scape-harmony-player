@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import aiMusicLogo from '@/assets/ai-music-logo.png';
 import { Shuffle, Globe, Map, Languages, Calendar } from 'lucide-react';
+import { processLogoBackground } from '@/lib/backgroundRemover';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +41,7 @@ interface CachedData {
 const EnhancedHomePage = () => {
   const [recommendations, setRecommendations] = useState<RecommendationData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [processedLogo, setProcessedLogo] = useState<string>(aiMusicLogo);
   const [selectedCountry, setSelectedCountry] = useState(() => {
     return localStorage.getItem('auratune_selected_country') || 'USA';
   });
@@ -98,6 +100,21 @@ const EnhancedHomePage = () => {
       console.error('Error setting cache:', error);
     }
   };
+
+  useEffect(() => {
+    // Process logo background on component mount
+    const processLogo = async () => {
+      try {
+        const transparentLogo = await processLogoBackground(aiMusicLogo);
+        setProcessedLogo(transparentLogo);
+      } catch (error) {
+        console.error('Failed to process logo:', error);
+        // Keep original logo if processing fails
+      }
+    };
+
+    processLogo();
+  }, []);
 
   useEffect(() => {
     // Save selected filters to localStorage
@@ -298,7 +315,7 @@ const EnhancedHomePage = () => {
         <div className="text-center mb-8 animate-fade-in">
           <div className="flex flex-col items-center justify-center mb-4 max-w-full">
             <img 
-              src={aiMusicLogo} 
+              src={processedLogo} 
               alt="AuraTune AI Logo" 
               className="w-12 h-12 mb-2 filter brightness-125 drop-shadow-[0_0_15px_rgba(59,130,246,0.6)] animate-pulse"
             />
