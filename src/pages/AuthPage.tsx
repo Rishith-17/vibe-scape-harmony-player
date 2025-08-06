@@ -41,7 +41,7 @@ const AuthPage = () => {
         {/* Logo/Brand */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 to-teal-400 bg-clip-text text-transparent mb-2">
-            MoodTunes
+            Aura Wave
           </h1>
           <p className="text-gray-300">
             AI-Powered Mood-Based Music Player

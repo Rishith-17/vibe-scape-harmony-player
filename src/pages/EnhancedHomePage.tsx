@@ -316,7 +316,7 @@ const EnhancedHomePage = () => {
           <div className="flex flex-col items-center justify-center mb-4 max-w-full">
             <img 
               src={processedLogo} 
-              alt="AuraTune AI Logo" 
+              alt="Aura Wave AI Logo" 
               className="w-12 h-12 mb-2 filter brightness-125 drop-shadow-[0_0_15px_rgba(59,130,246,0.6)] animate-pulse"
             />
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-scale-in tracking-wide max-w-full" 
@@ -325,7 +325,7 @@ const EnhancedHomePage = () => {
                   filter: 'drop-shadow(0 0 20px rgba(139, 92, 246, 0.4))',
                   textShadow: '0 0 30px rgba(59, 130, 246, 0.3), 0 0 60px rgba(147, 51, 234, 0.2)'
                 }}>
-              AuraTune
+              Aura Wave
             </h1>
           </div>
           <p className="text-gray-300 text-lg mb-2">Discover the World's Trending Music Videos</p>
