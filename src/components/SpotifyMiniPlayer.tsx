@@ -53,7 +53,7 @@ const SpotifyMiniPlayer = () => {
   return (
     <>
       {/* Spotify-Style Mini Player */}
-      <div className="fixed bottom-16 left-0 right-0 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 backdrop-blur-xl border-t border-gray-700/50 z-50 shadow-2xl">
+      <div className="fixed bottom-20 left-0 right-0 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 backdrop-blur-xl border-t border-gray-700/50 z-40 shadow-2xl">
         {/* Interactive Progress Bar */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gray-700 group cursor-pointer">
           <div 
