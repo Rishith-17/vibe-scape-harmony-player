@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
+import { GestureControlsProvider } from "@/components/GestureControlsProvider";
 import { useMobileAudio } from "@/hooks/useMobileAudio";
 import BackgroundAudioManager from "@/services/BackgroundAudioManager";
 import PWAInstallPrompt from "@/services/PWAInstallPrompt";
@@ -112,9 +113,11 @@ function App() {
       <TooltipProvider>
         <AuthProvider>
           <MusicPlayerProvider>
-            <Toaster />
-            <Sonner />
-            <AppContent />
+            <GestureControlsProvider>
+              <Toaster />
+              <Sonner />
+              <AppContent />
+            </GestureControlsProvider>
           </MusicPlayerProvider>
         </AuthProvider>
       </TooltipProvider>

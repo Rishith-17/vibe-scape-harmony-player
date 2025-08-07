@@ -1,15 +1,17 @@
 
-import { Camera, Settings, Bell, Moon, HelpCircle, Info, LogOut, Edit } from 'lucide-react';
-import { useState } from 'react';
+import { Camera, Settings, Bell, Moon, HelpCircle, Info, LogOut, Edit, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import CameraAvatarDialog from '@/components/CameraAvatarDialog';
 import EditProfileDialog from '@/components/EditProfileDialog';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const ProfilePage = () => {
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
+  const [gestureControls, setGestureControls] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -35,9 +37,75 @@ const ProfilePage = () => {
     window.location.reload();
   };
 
+  // Fetch user's gesture controls preference
+  useEffect(() => {
+    const fetchGesturePreference = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('gesture_controls')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching gesture controls preference:', error);
+        } else {
+          setGestureControls((data as any)?.gesture_controls ?? true);
+        }
+      } catch (error) {
+        console.error('Unexpected error fetching gesture preference:', error);
+      }
+    };
+
+    fetchGesturePreference();
+  }, [user]);
+
+  // Handle gesture controls toggle
+  const handleGestureControlsToggle = async (enabled: boolean) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ gesture_controls: enabled } as any)
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Error updating gesture controls:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update gesture controls setting",
+          variant: "destructive",
+        });
+      } else {
+        setGestureControls(enabled);
+        toast({
+          title: "Settings Updated",
+          description: `Gesture controls ${enabled ? 'enabled' : 'disabled'}`,
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error updating gesture controls:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update gesture controls setting",
+        variant: "destructive",
+      });
+    }
+  };
+
   const settingsItems = [
     { icon: Bell, label: 'Notifications', toggle: notifications, onToggle: setNotifications },
     { icon: Moon, label: 'Dark Mode', toggle: darkMode, onToggle: setDarkMode },
+    { 
+      icon: Zap, 
+      label: 'Gesture Controls', 
+      toggle: gestureControls, 
+      onToggle: handleGestureControlsToggle,
+      description: 'Control music with hand gestures'
+    },
   ];
 
   const supportItems = [
@@ -105,7 +173,7 @@ const ProfilePage = () => {
         <div className="mb-8">
           <h3 className="text-xl font-semibold mb-4">Settings</h3>
           <div className="space-y-3">
-            {settingsItems.map(({ icon: Icon, label, toggle, onToggle }) => (
+            {settingsItems.map(({ icon: Icon, label, toggle, onToggle, description }) => (
               <div
                 key={label}
                 className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm flex items-center justify-between"
@@ -114,7 +182,12 @@ const ProfilePage = () => {
                   <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center mr-4">
                     <Icon size={20} className="text-gray-300" />
                   </div>
-                  <span className="text-white font-medium">{label}</span>
+                  <div className="flex flex-col">
+                    <span className="text-white font-medium">{label}</span>
+                    {description && (
+                      <span className="text-gray-400 text-sm">{description}</span>
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={() => onToggle(!toggle)}
