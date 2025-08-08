@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useGestureDetection } from '@/hooks/useGestureDetection';
+import { useMediaPipeGestures } from '@/hooks/useMediaPipeGestures';
+import { GestureStatusIndicator } from './GestureStatusIndicator';
 
 interface GestureControlsProviderProps {
   children: React.ReactNode;
@@ -42,23 +43,36 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     fetchGesturePreference();
   }, [user]);
 
-  // Initialize gesture detection with user preferences
-  const gestureDetection = useGestureDetection({
+  // Initialize MediaPipe gesture detection with user preferences
+  const gestureDetection = useMediaPipeGestures({
     enabled: gestureControlsEnabled && !isLoading,
-    detectionInterval: 1000, // Check every second
-    confidenceThreshold: 0.6 // 60% confidence threshold
+    detectionInterval: 100, // Process frames every 100ms
+    confidenceThreshold: 0.7 // 70% confidence threshold
   });
 
   // Add logging to see status
   useEffect(() => {
-    console.log('🤖 Gesture Controls Status:', {
+    console.log('🤚 MediaPipe Gesture Controls Status:', {
       enabled: gestureControlsEnabled,
       loading: isLoading,
       user: !!user,
       initialized: gestureDetection.isInitialized,
-      detecting: gestureDetection.isDetecting
+      detecting: gestureDetection.isDetecting,
+      lastGesture: gestureDetection.lastGesture
     });
-  }, [gestureControlsEnabled, isLoading, user, gestureDetection.isInitialized, gestureDetection.isDetecting]);
+  }, [gestureControlsEnabled, isLoading, user, gestureDetection.isInitialized, gestureDetection.isDetecting, gestureDetection.lastGesture]);
+
+  // Show initialization status
+  useEffect(() => {
+    if (gestureControlsEnabled && gestureDetection.isInitialized) {
+      console.log('✅ Gesture detection is active - try these gestures:');
+      console.log('🖐️ Open Palm → Play/Pause');
+      console.log('✌️ Peace Sign → Next Song');
+      console.log('✊ Fist → Previous Song'); 
+      console.log('👍 Thumbs Up → Volume Up');
+      console.log('👎 Thumbs Down → Volume Down');
+    }
+  }, [gestureControlsEnabled, gestureDetection.isInitialized]);
 
   // Listen for real-time updates to gesture controls preference
   useEffect(() => {
@@ -87,5 +101,15 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     };
   }, [user]);
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <GestureStatusIndicator
+        isEnabled={gestureControlsEnabled && !isLoading}
+        isInitialized={gestureDetection.isInitialized}
+        isDetecting={gestureDetection.isDetecting}
+        lastGesture={gestureDetection.lastGesture}
+      />
+    </>
+  );
 };
