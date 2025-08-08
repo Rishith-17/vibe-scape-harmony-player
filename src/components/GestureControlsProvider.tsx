@@ -49,6 +49,17 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     confidenceThreshold: 0.6 // 60% confidence threshold
   });
 
+  // Add logging to see status
+  useEffect(() => {
+    console.log('🤖 Gesture Controls Status:', {
+      enabled: gestureControlsEnabled,
+      loading: isLoading,
+      user: !!user,
+      initialized: gestureDetection.isInitialized,
+      detecting: gestureDetection.isDetecting
+    });
+  }, [gestureControlsEnabled, isLoading, user, gestureDetection.isInitialized, gestureDetection.isDetecting]);
+
   // Listen for real-time updates to gesture controls preference
   useEffect(() => {
     if (!user) return;

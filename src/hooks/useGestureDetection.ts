@@ -37,7 +37,9 @@ export const useGestureDetection = (options: GestureDetectionOptions) => {
 
   const initializeCamera = useCallback(async () => {
     try {
-      console.log('Initializing camera for gesture detection...');
+      console.log('🎥 Initializing camera for gesture detection...');
+      console.log('User present:', !!user);
+      console.log('Options enabled:', options.enabled);
       
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
