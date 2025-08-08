@@ -13,10 +13,12 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   const [gestureControlsEnabled, setGestureControlsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch user's gesture controls preference
+  // Fetch user's gesture controls preference (default to true if no user)
   useEffect(() => {
     const fetchGesturePreference = async () => {
       if (!user) {
+        // Enable by default when no user (for testing)
+        setGestureControlsEnabled(true);
         setIsLoading(false);
         return;
       }
@@ -30,11 +32,14 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
 
         if (error) {
           console.error('Error fetching gesture controls preference:', error);
+          // Default to true if error
+          setGestureControlsEnabled(true);
         } else {
           setGestureControlsEnabled((data as any)?.gesture_controls ?? true);
         }
       } catch (error) {
         console.error('Unexpected error fetching gesture preference:', error);
+        setGestureControlsEnabled(true);
       } finally {
         setIsLoading(false);
       }
@@ -43,11 +48,11 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     fetchGesturePreference();
   }, [user]);
 
-  // Initialize MediaPipe gesture detection with user preferences
+  // Initialize MediaPipe gesture detection - enable by default for testing
   const gestureDetection = useMediaPipeGestures({
-    enabled: gestureControlsEnabled && !isLoading,
-    detectionInterval: 100, // Process frames every 100ms
-    confidenceThreshold: 0.7 // 70% confidence threshold
+    enabled: gestureControlsEnabled || !user, // Enable even without user for testing
+    detectionInterval: 2000, // Check every 2 seconds as requested
+    confidenceThreshold: 0.5 // Lower threshold for better detection
   });
 
   // Add logging to see status
@@ -62,15 +67,18 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     });
   }, [gestureControlsEnabled, isLoading, user, gestureDetection.isInitialized, gestureDetection.isDetecting, gestureDetection.lastGesture]);
 
-  // Show initialization status
+  // Show initialization status and instructions
   useEffect(() => {
     if (gestureControlsEnabled && gestureDetection.isInitialized) {
-      console.log('✅ Gesture detection is active - try these gestures:');
+      console.log('✅ Gesture detection is ACTIVE - Camera permission granted!');
+      console.log('🤚 Try these gestures every 2 seconds:');
       console.log('🖐️ Open Palm → Play/Pause');
       console.log('✌️ Peace Sign → Next Song');
       console.log('✊ Fist → Previous Song'); 
       console.log('👍 Thumbs Up → Volume Up');
       console.log('👎 Thumbs Down → Volume Down');
+    } else if (gestureControlsEnabled && !gestureDetection.isInitialized) {
+      console.log('🔄 Initializing gesture detection... Please allow camera access when prompted.');
     }
   }, [gestureControlsEnabled, gestureDetection.isInitialized]);
 

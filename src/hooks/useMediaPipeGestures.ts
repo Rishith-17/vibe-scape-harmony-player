@@ -178,6 +178,7 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
   const initializeMediaPipe = useCallback(async () => {
     try {
       console.log('🤚 Initializing MediaPipe hands...');
+      console.log('🔧 Detection will run every', options.detectionInterval, 'ms');
       
       // Create hidden video element
       if (!videoRef.current) {
@@ -185,6 +186,7 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
         videoRef.current.style.display = 'none';
         videoRef.current.autoplay = true;
         videoRef.current.playsInline = true;
+        videoRef.current.muted = true; // Add muted for autoplay
         document.body.appendChild(videoRef.current);
       }
 
@@ -204,10 +206,14 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
 
       handsRef.current.onResults(onResults);
 
-      // Initialize camera
+      // Initialize camera with throttled detection
+      let lastProcessTime = 0;
+      
       cameraRef.current = new Camera(videoRef.current, {
         onFrame: async () => {
-          if (handsRef.current && videoRef.current) {
+          const now = Date.now();
+          if (handsRef.current && videoRef.current && (now - lastProcessTime) >= options.detectionInterval) {
+            lastProcessTime = now;
             await handsRef.current.send({ image: videoRef.current });
           }
         },
@@ -254,14 +260,16 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
     setIsInitialized(false);
   }, []);
 
-  // Initialize when enabled
+  // Initialize when enabled (allow even without user for testing)
   useEffect(() => {
-    if (options.enabled && user && !isInitialized) {
+    if (options.enabled && !isInitialized) {
+      console.log('🚀 Starting gesture detection...');
       initializeMediaPipe();
     } else if (!options.enabled && isInitialized) {
+      console.log('🛑 Stopping gesture detection...');
       cleanup();
     }
-  }, [options.enabled, user, isInitialized, initializeMediaPipe, cleanup]);
+  }, [options.enabled, isInitialized, initializeMediaPipe, cleanup]);
 
   // Cleanup on unmount
   useEffect(() => {
