@@ -24,21 +24,20 @@ serve(async (req) => {
 
     console.log('Processing gesture detection request...')
 
-    // Call Hugging Face model for hand gesture detection
+    // Convert base64 to binary for the API
+    const base64Data = imageData.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+    const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+
+    // Call Hugging Face model for image classification with hand gesture detection
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/lewiswatson/yolov8x-tuned-hand-gestures',
+      'https://api-inference.huggingface.co/models/abhi1nandy2/hand-gesture-recognition-v1',
       {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${hfToken}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/octet-stream',
         },
-        body: JSON.stringify({
-          inputs: imageData,
-          parameters: {
-            threshold: 0.5 // Confidence threshold for detections
-          }
-        })
+        body: binaryData
       }
     )
 
@@ -51,7 +50,7 @@ serve(async (req) => {
     const result = await response.json()
     console.log('Raw HF response:', result)
 
-    // Parse the detection results and map to gesture types
+    // Parse the classification results and map to gesture types
     let detectedGesture = null
     let confidence = 0
 
@@ -64,25 +63,27 @@ serve(async (req) => {
       confidence = bestDetection.score
       const label = bestDetection.label.toLowerCase()
 
-      // Map model labels to our gesture types
+      // Map model labels to our gesture types based on the classification model
       const gestureMap: Record<string, string> = {
-        'open_palm': 'open_palm',
         'palm': 'open_palm',
         'open': 'open_palm',
+        'stop': 'open_palm',
         'fist': 'fist',
-        'closed_fist': 'fist',
+        'closed': 'fist',
+        'punch': 'fist',
         'point': 'point',
-        'pointing': 'point',
-        'one': 'point',
+        'finger': 'point',
+        'index': 'point',
+        'peace': 'peace_sign',
+        'victory': 'peace_sign',
+        'two': 'peace_sign',
+        'v': 'peace_sign',
+        'rock': 'rock_sign',
+        'metal': 'rock_sign',
+        'horn': 'rock_sign',
         'five': 'five_fingers',
         'spread': 'five_fingers',
-        'open_hand': 'five_fingers',
-        'peace': 'peace_sign',
-        'two': 'peace_sign',
-        'victory': 'peace_sign',
-        'rock': 'rock_sign',
-        'horn': 'rock_sign',
-        'metal': 'rock_sign'
+        'hand': 'five_fingers'
       }
 
       // Find matching gesture
@@ -90,6 +91,19 @@ serve(async (req) => {
         if (label.includes(key)) {
           detectedGesture = gesture
           break
+        }
+      }
+
+      // If no specific match found, use simple gesture detection based on common patterns
+      if (!detectedGesture) {
+        if (label.includes('0') || label.includes('zero')) {
+          detectedGesture = 'fist'
+        } else if (label.includes('1') || label.includes('one')) {
+          detectedGesture = 'point'
+        } else if (label.includes('2') || label.includes('two')) {
+          detectedGesture = 'peace_sign'
+        } else if (label.includes('5') || label.includes('five')) {
+          detectedGesture = 'five_fingers'
         }
       }
 
