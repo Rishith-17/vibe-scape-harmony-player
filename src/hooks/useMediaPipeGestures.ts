@@ -180,15 +180,36 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
       console.log('🤚 Initializing MediaPipe hands...');
       console.log('🔧 Detection will run every', options.detectionInterval, 'ms');
       
+      // Request camera permission first
+      console.log('📹 Requesting camera permission...');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        } 
+      });
+      
       // Create hidden video element
       if (!videoRef.current) {
         videoRef.current = document.createElement('video');
         videoRef.current.style.display = 'none';
         videoRef.current.autoplay = true;
         videoRef.current.playsInline = true;
-        videoRef.current.muted = true; // Add muted for autoplay
+        videoRef.current.muted = true;
+        videoRef.current.srcObject = stream;
         document.body.appendChild(videoRef.current);
+        
+        // Wait for video to be ready
+        await new Promise((resolve) => {
+          videoRef.current!.onloadedmetadata = () => {
+            videoRef.current!.play();
+            resolve(void 0);
+          };
+        });
       }
+
+      console.log('📹 Camera permission granted, initializing MediaPipe...');
 
       // Initialize MediaPipe Hands
       handsRef.current = new Hands({
@@ -199,9 +220,9 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
 
       handsRef.current.setOptions({
         maxNumHands: 1,
-        modelComplexity: 1,
+        modelComplexity: 0, // Faster detection
         minDetectionConfidence: options.confidenceThreshold,
-        minTrackingConfidence: 0.5,
+        minTrackingConfidence: 0.3, // Lower for better tracking
       });
 
       handsRef.current.onResults(onResults);
@@ -214,6 +235,7 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
           const now = Date.now();
           if (handsRef.current && videoRef.current && (now - lastProcessTime) >= options.detectionInterval) {
             lastProcessTime = now;
+            setIsDetecting(true);
             await handsRef.current.send({ image: videoRef.current });
           }
         },
@@ -224,18 +246,39 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
 
       await cameraRef.current.start();
       setIsInitialized(true);
-      setIsDetecting(true);
       
       console.log('✅ MediaPipe hands initialized successfully');
+      console.log('🎯 Gesture detection is now running every', options.detectionInterval, 'ms');
+      
+      toast({
+        title: "Gesture Detection Active",
+        description: "Camera initialized successfully",
+      });
+      
     } catch (error) {
       console.error('❌ Failed to initialize MediaPipe:', error);
+      
+      let errorMessage = "Failed to initialize gesture detection";
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage = "Camera permission denied. Please allow camera access.";
+        } else if (error.name === 'NotFoundError') {
+          errorMessage = "No camera found on this device.";
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage = "Camera not supported on this device.";
+        }
+      }
+      
       toast({
         title: "Camera Error",
-        description: "Failed to initialize gesture detection",
+        description: errorMessage,
         variant: "destructive",
       });
+      
+      setIsInitialized(false);
+      setIsDetecting(false);
     }
-  }, [options.confidenceThreshold, onResults, toast]);
+  }, [options.confidenceThreshold, options.detectionInterval, onResults, toast]);
 
   const cleanup = useCallback(() => {
     console.log('🧹 Cleaning up MediaPipe resources...');
