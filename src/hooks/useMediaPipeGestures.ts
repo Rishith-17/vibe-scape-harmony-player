@@ -11,39 +11,101 @@ interface MediaPipeGestureOptions {
   confidenceThreshold: number;
 }
 
-// Enhanced gesture detection functions with better accuracy
+// Enhanced gesture detection functions for music control
 const isOpenPalm = (landmarks: any[]): boolean => {
   try {
-    // Check if all fingers are extended with more tolerance
+    // ✋ Open palm → Play/Pause - All five fingers extended
     const fingerTips = [8, 12, 16, 20]; // Index, middle, ring, pinky tips
     const fingerMcps = [5, 9, 13, 17]; // MCP joints (base of fingers)
     
     // Count extended fingers
     const extendedFingers = fingerTips.filter((tip, i) => {
       const mcp = fingerMcps[i];
-      return landmarks[tip].y < landmarks[mcp].y - 0.02; // Add tolerance
+      return landmarks[tip].y < landmarks[mcp].y - 0.02;
     }).length;
     
     // Thumb check (different logic for thumb)
     const thumbExtended = landmarks[4].x > landmarks[3].x + 0.02;
     
-    console.log(`🖐️ Open palm check: ${extendedFingers}/4 fingers extended, thumb: ${thumbExtended}`);
-    return extendedFingers >= 3 && thumbExtended; // Allow some tolerance
+    console.log(`✋ Open palm check: ${extendedFingers}/4 fingers extended, thumb: ${thumbExtended}`);
+    return extendedFingers >= 4 && thumbExtended; // All fingers must be extended
   } catch (error) {
     console.error('Error in isOpenPalm:', error);
     return false;
   }
 };
 
+const isFist = (landmarks: any[]): boolean => {
+  try {
+    // ✊ Fist → Stop/Pause - All fingers curled down
+    const fingerTips = [8, 12, 16, 20];
+    const fingerMcps = [5, 9, 13, 17];
+    
+    const curledFingers = fingerTips.filter((tip, i) => {
+      const mcp = fingerMcps[i];
+      return landmarks[tip].y > landmarks[mcp].y + 0.02;
+    }).length;
+    
+    // Thumb curled check
+    const thumbCurled = landmarks[4].x < landmarks[3].x + 0.02;
+    
+    console.log(`✊ Fist check: ${curledFingers}/4 fingers curled, thumb curled: ${thumbCurled}`);
+    return curledFingers >= 3 && thumbCurled;
+  } catch (error) {
+    console.error('Error in isFist:', error);
+    return false;
+  }
+};
+
+const isPointingGesture = (landmarks: any[]): boolean => {
+  try {
+    // 👉 Point → Next song - Only index finger extended
+    const indexUp = landmarks[8].y < landmarks[5].y - 0.03;
+    const middleDown = landmarks[12].y > landmarks[9].y + 0.02;
+    const ringDown = landmarks[16].y > landmarks[13].y + 0.02;
+    const pinkyDown = landmarks[20].y > landmarks[17].y + 0.02;
+    const thumbDown = landmarks[4].x < landmarks[3].x + 0.02;
+    
+    console.log(`👉 Point check: index=${indexUp}, others down: middle=${middleDown}, ring=${ringDown}, pinky=${pinkyDown}, thumb=${thumbDown}`);
+    return indexUp && middleDown && ringDown && pinkyDown;
+  } catch (error) {
+    console.error('Error in isPointingGesture:', error);
+    return false;
+  }
+};
+
+const isFiveFingers = (landmarks: any[]): boolean => {
+  try {
+    // 🖐️ Five fingers → Previous song - All fingers spread wide
+    const fingerTips = [4, 8, 12, 16, 20]; // Include thumb
+    const fingerMcps = [2, 5, 9, 13, 17]; // MCP joints
+    
+    const extendedFingers = fingerTips.filter((tip, i) => {
+      const mcp = fingerMcps[i];
+      if (i === 0) { // Thumb special case
+        return landmarks[tip].x > landmarks[mcp].x + 0.03;
+      }
+      return landmarks[tip].y < landmarks[mcp].y - 0.02;
+    }).length;
+    
+    console.log(`🖐️ Five fingers check: ${extendedFingers}/5 fingers extended`);
+    return extendedFingers >= 4; // Allow some tolerance
+  } catch (error) {
+    console.error('Error in isFiveFingers:', error);
+    return false;
+  }
+};
+
 const isPeaceSign = (landmarks: any[]): boolean => {
   try {
-    // Index and middle finger up, others down
+    // ✌️ Peace sign → Volume up - Index and middle finger up, others down
     const indexUp = landmarks[8].y < landmarks[5].y - 0.03;
     const middleUp = landmarks[12].y < landmarks[9].y - 0.03;
     const ringDown = landmarks[16].y > landmarks[13].y + 0.02;
     const pinkyDown = landmarks[20].y > landmarks[17].y + 0.02;
+    const thumbDown = landmarks[4].x < landmarks[3].x + 0.02;
     
-    console.log(`✌️ Peace sign check: index=${indexUp}, middle=${middleUp}, ring=${!ringDown}, pinky=${!pinkyDown}`);
+    console.log(`✌️ Peace sign check: index=${indexUp}, middle=${middleUp}, ring=${!ringDown}, pinky=${!pinkyDown}, thumb=${!thumbDown}`);
     return indexUp && middleUp && ringDown && pinkyDown;
   } catch (error) {
     console.error('Error in isPeaceSign:', error);
@@ -51,58 +113,19 @@ const isPeaceSign = (landmarks: any[]): boolean => {
   }
 };
 
-const isFist = (landmarks: any[]): boolean => {
+const isRockSign = (landmarks: any[]): boolean => {
   try {
-    // All fingers curled down
-    const fingerTips = [8, 12, 16, 20];
-    const fingerMcps = [5, 9, 13, 17];
+    // 🤟 Rock sign → Volume down - Index and pinky up, middle and ring down
+    const indexUp = landmarks[8].y < landmarks[5].y - 0.03;
+    const middleDown = landmarks[12].y > landmarks[9].y + 0.02;
+    const ringDown = landmarks[16].y > landmarks[13].y + 0.02;
+    const pinkyUp = landmarks[20].y < landmarks[17].y - 0.03;
+    const thumbUp = landmarks[4].x > landmarks[3].x + 0.02;
     
-    const curledFingers = fingerTips.filter((tip, i) => {
-      const mcp = fingerMcps[i];
-      return landmarks[tip].y > landmarks[mcp].y + 0.02; // Tip below MCP = curled
-    }).length;
-    
-    // Thumb curled check
-    const thumbCurled = landmarks[4].x < landmarks[3].x + 0.02;
-    
-    console.log(`✊ Fist check: ${curledFingers}/4 fingers curled, thumb curled: ${thumbCurled}`);
-    return curledFingers >= 3; // Allow some tolerance
+    console.log(`🤟 Rock sign check: index=${indexUp}, pinky=${pinkyUp}, middle=${!middleDown}, ring=${!ringDown}, thumb=${thumbUp}`);
+    return indexUp && pinkyUp && middleDown && ringDown;
   } catch (error) {
-    console.error('Error in isFist:', error);
-    return false;
-  }
-};
-
-const isThumbsUp = (landmarks: any[]): boolean => {
-  try {
-    // Thumb up, other fingers down
-    const thumbUp = landmarks[4].y < landmarks[3].y - 0.03;
-    const fingersDown = [8, 12, 16, 20].filter((tip, i) => {
-      const mcp = [5, 9, 13, 17][i];
-      return landmarks[tip].y > landmarks[mcp].y + 0.02;
-    }).length;
-    
-    console.log(`👍 Thumbs up check: thumb up=${thumbUp}, fingers down=${fingersDown}/4`);
-    return thumbUp && fingersDown >= 3;
-  } catch (error) {
-    console.error('Error in isThumbsUp:', error);
-    return false;
-  }
-};
-
-const isThumbsDown = (landmarks: any[]): boolean => {
-  try {
-    // Thumb down, other fingers curled
-    const thumbDown = landmarks[4].y > landmarks[3].y + 0.03;
-    const fingersDown = [8, 12, 16, 20].filter((tip, i) => {
-      const mcp = [5, 9, 13, 17][i];
-      return landmarks[tip].y > landmarks[mcp].y + 0.02;
-    }).length;
-    
-    console.log(`👎 Thumbs down check: thumb down=${thumbDown}, fingers down=${fingersDown}/4`);
-    return thumbDown && fingersDown >= 3;
-  } catch (error) {
-    console.error('Error in isThumbsDown:', error);
+    console.error('Error in isRockSign:', error);
     return false;
   }
 };
@@ -142,44 +165,52 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
       case 'open_palm':
         togglePlayPause();
         toast({
-          title: "Gesture Control",
-          description: "Play/Pause toggled",
-        });
-        break;
-        
-      case 'peace_sign':
-        skipNext();
-        toast({
-          title: "Gesture Control",
-          description: "Next song",
+          title: "🎵 Gesture Control",
+          description: "✋ Play/Pause toggled",
         });
         break;
         
       case 'fist':
-        skipPrevious();
+        togglePlayPause(); // Same as open palm for now
         toast({
-          title: "Gesture Control",
-          description: "Previous song",
+          title: "🎵 Gesture Control", 
+          description: "✊ Stop/Pause",
         });
         break;
         
-      case 'thumbs_up':
+      case 'pointing':
+        skipNext();
+        toast({
+          title: "🎵 Gesture Control",
+          description: "👉 Next song",
+        });
+        break;
+        
+      case 'five_fingers':
+        skipPrevious();
+        toast({
+          title: "🎵 Gesture Control",
+          description: "🖐️ Previous song",
+        });
+        break;
+        
+      case 'peace_sign':
         const newVolumeUp = Math.min(100, currentVolume + 10);
         setCurrentVolume(newVolumeUp);
         setVolume(newVolumeUp);
         toast({
-          title: "Gesture Control",
-          description: `Volume: ${newVolumeUp}%`,
+          title: "🎵 Gesture Control",
+          description: `✌️ Volume up: ${newVolumeUp}%`,
         });
         break;
         
-      case 'thumbs_down':
+      case 'rock_sign':
         const newVolumeDown = Math.max(0, currentVolume - 10);
         setCurrentVolume(newVolumeDown);
         setVolume(newVolumeDown);
         toast({
-          title: "Gesture Control",
-          description: `Volume: ${newVolumeDown}%`,
+          title: "🎵 Gesture Control",
+          description: `🤟 Volume down: ${newVolumeDown}%`,
         });
         break;
         
@@ -209,14 +240,16 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
     // Detect gestures with priority order (most specific first)
     let detectedGesture = null;
     
-    if (isPeaceSign(landmarks)) {
+    if (isRockSign(landmarks)) {
+      detectedGesture = 'rock_sign';
+    } else if (isPeaceSign(landmarks)) {
       detectedGesture = 'peace_sign';
-    } else if (isThumbsUp(landmarks)) {
-      detectedGesture = 'thumbs_up';
-    } else if (isThumbsDown(landmarks)) {
-      detectedGesture = 'thumbs_down';
+    } else if (isPointingGesture(landmarks)) {
+      detectedGesture = 'pointing';
     } else if (isFist(landmarks)) {
       detectedGesture = 'fist';
+    } else if (isFiveFingers(landmarks)) {
+      detectedGesture = 'five_fingers';
     } else if (isOpenPalm(landmarks)) {
       detectedGesture = 'open_palm';
     }
