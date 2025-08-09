@@ -11,59 +11,100 @@ interface MediaPipeGestureOptions {
   confidenceThreshold: number;
 }
 
-// Gesture detection functions
+// Enhanced gesture detection functions with better accuracy
 const isOpenPalm = (landmarks: any[]): boolean => {
-  // Check if all fingers are extended
-  const fingerTips = [8, 12, 16, 20]; // Index, middle, ring, pinky tips
-  const fingerPips = [6, 10, 14, 18]; // PIP joints
-  
-  return fingerTips.every((tip, i) => {
-    const pip = fingerPips[i];
-    return landmarks[tip].y < landmarks[pip].y; // Tip above PIP = extended
-  }) && landmarks[4].x > landmarks[3].x; // Thumb extended
+  try {
+    // Check if all fingers are extended with more tolerance
+    const fingerTips = [8, 12, 16, 20]; // Index, middle, ring, pinky tips
+    const fingerMcps = [5, 9, 13, 17]; // MCP joints (base of fingers)
+    
+    // Count extended fingers
+    const extendedFingers = fingerTips.filter((tip, i) => {
+      const mcp = fingerMcps[i];
+      return landmarks[tip].y < landmarks[mcp].y - 0.02; // Add tolerance
+    }).length;
+    
+    // Thumb check (different logic for thumb)
+    const thumbExtended = landmarks[4].x > landmarks[3].x + 0.02;
+    
+    console.log(`🖐️ Open palm check: ${extendedFingers}/4 fingers extended, thumb: ${thumbExtended}`);
+    return extendedFingers >= 3 && thumbExtended; // Allow some tolerance
+  } catch (error) {
+    console.error('Error in isOpenPalm:', error);
+    return false;
+  }
 };
 
 const isPeaceSign = (landmarks: any[]): boolean => {
-  // Index and middle finger up, others down
-  const indexUp = landmarks[8].y < landmarks[6].y;
-  const middleUp = landmarks[12].y < landmarks[10].y;
-  const ringDown = landmarks[16].y > landmarks[14].y;
-  const pinkyDown = landmarks[20].y > landmarks[18].y;
-  
-  return indexUp && middleUp && ringDown && pinkyDown;
+  try {
+    // Index and middle finger up, others down
+    const indexUp = landmarks[8].y < landmarks[5].y - 0.03;
+    const middleUp = landmarks[12].y < landmarks[9].y - 0.03;
+    const ringDown = landmarks[16].y > landmarks[13].y + 0.02;
+    const pinkyDown = landmarks[20].y > landmarks[17].y + 0.02;
+    
+    console.log(`✌️ Peace sign check: index=${indexUp}, middle=${middleUp}, ring=${!ringDown}, pinky=${!pinkyDown}`);
+    return indexUp && middleUp && ringDown && pinkyDown;
+  } catch (error) {
+    console.error('Error in isPeaceSign:', error);
+    return false;
+  }
 };
 
 const isFist = (landmarks: any[]): boolean => {
-  // All fingers curled down
-  const fingerTips = [8, 12, 16, 20];
-  const fingerPips = [6, 10, 14, 18];
-  
-  return fingerTips.every((tip, i) => {
-    const pip = fingerPips[i];
-    return landmarks[tip].y > landmarks[pip].y; // Tip below PIP = curled
-  });
+  try {
+    // All fingers curled down
+    const fingerTips = [8, 12, 16, 20];
+    const fingerMcps = [5, 9, 13, 17];
+    
+    const curledFingers = fingerTips.filter((tip, i) => {
+      const mcp = fingerMcps[i];
+      return landmarks[tip].y > landmarks[mcp].y + 0.02; // Tip below MCP = curled
+    }).length;
+    
+    // Thumb curled check
+    const thumbCurled = landmarks[4].x < landmarks[3].x + 0.02;
+    
+    console.log(`✊ Fist check: ${curledFingers}/4 fingers curled, thumb curled: ${thumbCurled}`);
+    return curledFingers >= 3; // Allow some tolerance
+  } catch (error) {
+    console.error('Error in isFist:', error);
+    return false;
+  }
 };
 
 const isThumbsUp = (landmarks: any[]): boolean => {
-  // Thumb up, other fingers down
-  const thumbUp = landmarks[4].y < landmarks[3].y;
-  const fingersDown = [8, 12, 16, 20].every((tip, i) => {
-    const pip = [6, 10, 14, 18][i];
-    return landmarks[tip].y > landmarks[pip].y;
-  });
-  
-  return thumbUp && fingersDown;
+  try {
+    // Thumb up, other fingers down
+    const thumbUp = landmarks[4].y < landmarks[3].y - 0.03;
+    const fingersDown = [8, 12, 16, 20].filter((tip, i) => {
+      const mcp = [5, 9, 13, 17][i];
+      return landmarks[tip].y > landmarks[mcp].y + 0.02;
+    }).length;
+    
+    console.log(`👍 Thumbs up check: thumb up=${thumbUp}, fingers down=${fingersDown}/4`);
+    return thumbUp && fingersDown >= 3;
+  } catch (error) {
+    console.error('Error in isThumbsUp:', error);
+    return false;
+  }
 };
 
 const isThumbsDown = (landmarks: any[]): boolean => {
-  // Thumb down, other fingers curled
-  const thumbDown = landmarks[4].y > landmarks[3].y;
-  const fingersDown = [8, 12, 16, 20].every((tip, i) => {
-    const pip = [6, 10, 14, 18][i];
-    return landmarks[tip].y > landmarks[pip].y;
-  });
-  
-  return thumbDown && fingersDown;
+  try {
+    // Thumb down, other fingers curled
+    const thumbDown = landmarks[4].y > landmarks[3].y + 0.03;
+    const fingersDown = [8, 12, 16, 20].filter((tip, i) => {
+      const mcp = [5, 9, 13, 17][i];
+      return landmarks[tip].y > landmarks[mcp].y + 0.02;
+    }).length;
+    
+    console.log(`👎 Thumbs down check: thumb down=${thumbDown}, fingers down=${fingersDown}/4`);
+    return thumbDown && fingersDown >= 3;
+  } catch (error) {
+    console.error('Error in isThumbsDown:', error);
+    return false;
+  }
 };
 
 export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
@@ -149,29 +190,42 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
 
   const onResults = useCallback((results: Results) => {
     if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+      console.log('👀 No hands detected in frame');
       return;
     }
 
+    console.log(`🤚 Hand detected! Processing ${results.multiHandLandmarks.length} hand(s)`);
+    
     // Use the first detected hand
     const landmarks = results.multiHandLandmarks[0];
     
-    // Detect gestures
+    if (!landmarks || landmarks.length < 21) {
+      console.log('❌ Invalid hand landmarks');
+      return;
+    }
+    
+    console.log('🔍 Analyzing hand landmarks for gestures...');
+    
+    // Detect gestures with priority order (most specific first)
     let detectedGesture = null;
     
-    if (isOpenPalm(landmarks)) {
-      detectedGesture = 'open_palm';
-    } else if (isPeaceSign(landmarks)) {
+    if (isPeaceSign(landmarks)) {
       detectedGesture = 'peace_sign';
-    } else if (isFist(landmarks)) {
-      detectedGesture = 'fist';
     } else if (isThumbsUp(landmarks)) {
       detectedGesture = 'thumbs_up';
     } else if (isThumbsDown(landmarks)) {
       detectedGesture = 'thumbs_down';
+    } else if (isFist(landmarks)) {
+      detectedGesture = 'fist';
+    } else if (isOpenPalm(landmarks)) {
+      detectedGesture = 'open_palm';
     }
 
     if (detectedGesture) {
+      console.log(`🎯 Gesture detected: ${detectedGesture}`);
       executeGestureAction(detectedGesture);
+    } else {
+      console.log('🤷 No recognized gesture found');
     }
   }, [executeGestureAction]);
 
@@ -220,9 +274,9 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
 
       handsRef.current.setOptions({
         maxNumHands: 1,
-        modelComplexity: 0, // Faster detection
-        minDetectionConfidence: options.confidenceThreshold,
-        minTrackingConfidence: 0.3, // Lower for better tracking
+        modelComplexity: 1, // Better accuracy
+        minDetectionConfidence: 0.3, // Lower threshold for better detection
+        minTrackingConfidence: 0.2, // Very low for continuous tracking
       });
 
       handsRef.current.onResults(onResults);
