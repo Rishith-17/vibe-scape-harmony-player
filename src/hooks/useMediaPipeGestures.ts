@@ -231,6 +231,11 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
   }, [executeGestureAction]);
 
   const initializeMediaPipe = useCallback(async () => {
+    if (!options.enabled) {
+      console.log('🚫 Gesture detection disabled');
+      return;
+    }
+
     try {
       console.log('🤚 Initializing MediaPipe hands...');
       console.log('🔧 Detection will run every', options.detectionInterval, 'ms');
@@ -240,63 +245,30 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
         throw new Error('Camera not supported on this device');
       }
 
-      // Stop any existing resources first
-      if (videoRef.current) {
-        if (videoRef.current.srcObject) {
-          const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-          tracks.forEach(track => track.stop());
-        }
-        if (videoRef.current.parentNode) {
-          videoRef.current.parentNode.removeChild(videoRef.current);
-        }
-        videoRef.current = null;
-      }
+      // Clean up existing resources
+      cleanup();
 
-      if (cameraRef.current) {
-        cameraRef.current.stop();
-        cameraRef.current = null;
-      }
-
-      if (handsRef.current) {
-        handsRef.current.close();
-        handsRef.current = null;
-      }
-      
       // Request camera permission with progressive fallback
       console.log('📹 Requesting camera permission...');
       let stream;
       try {
-        // Try with ideal constraints first
         stream = await navigator.mediaDevices.getUserMedia({ 
           video: { 
             facingMode: 'user',
-            width: { ideal: 640, min: 320, max: 1280 },
-            height: { ideal: 480, min: 240, max: 720 },
-            frameRate: { ideal: 30, min: 15 }
+            width: { ideal: 320, max: 640 },
+            height: { ideal: 240, max: 480 },
+            frameRate: { ideal: 15, max: 30 }
           } 
         });
       } catch (error) {
-        console.log('📹 Fallback to basic constraints...');
-        try {
-          // Fallback to basic video constraints
-          stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'user' }
-          });
-        } catch (error2) {
-          console.log('📹 Final fallback to any video...');
-          // Final fallback to any available video
-          stream = await navigator.mediaDevices.getUserMedia({ 
-            video: true 
-          });
-        }
+        console.log('📹 Fallback to basic video...');
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
       }
       
-      // Create and setup video element
+      // Create hidden video element
       videoRef.current = document.createElement('video');
-      videoRef.current.style.display = 'none';
-      videoRef.current.style.position = 'fixed';
+      videoRef.current.style.position = 'absolute';
       videoRef.current.style.top = '-9999px';
-      videoRef.current.style.left = '-9999px';
       videoRef.current.style.width = '1px';
       videoRef.current.style.height = '1px';
       videoRef.current.autoplay = true;
@@ -466,18 +438,22 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
       handsRef.current = null;
     }
     
-    if (videoRef.current) {
-      document.body.removeChild(videoRef.current);
+    if (videoRef.current && videoRef.current.parentNode) {
+      if (videoRef.current.srcObject) {
+        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+        tracks.forEach(track => track.stop());
+      }
+      videoRef.current.parentNode.removeChild(videoRef.current);
       videoRef.current = null;
     }
     
     setIsInitialized(false);
   }, []);
 
-  // Initialize when enabled (allow even without user for testing)
+  // Initialize when enabled and music is playing
   useEffect(() => {
     if (options.enabled && !isInitialized) {
-      console.log('🚀 Starting gesture detection...');
+      console.log('🚀 Starting gesture detection for music control...');
       initializeMediaPipe();
     } else if (!options.enabled && isInitialized) {
       console.log('🛑 Stopping gesture detection...');
