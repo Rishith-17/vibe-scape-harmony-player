@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Hands, Results } from '@mediapipe/hands';
 import { Camera } from '@mediapipe/camera_utils';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -111,7 +110,7 @@ const isRockSign = (landmarks: any[]): boolean => {
 
 export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const handsRef = useRef<Hands | null>(null);
+  const handsRef = useRef<any | null>(null);
   const cameraRef = useRef<Camera | null>(null);
   const lastGestureRef = useRef<string | null>(null);
   const lastGestureTimeRef = useRef<number>(0);
@@ -190,7 +189,7 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
     }
   }, [togglePlayPause, skipNext, skipPrevious, setVolume, currentVolume, toast]);
 
-  const onResults = useCallback((results: Results) => {
+  const onResults = useCallback((results: any) => {
     if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
       console.log('👀 No hands detected in frame');
       return;
@@ -347,6 +346,7 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
       console.log('📹 Camera ready, initializing MediaPipe Hands...');
 
       // Initialize MediaPipe Hands with optimized settings
+      const { Hands } = await import('@mediapipe/hands');
       handsRef.current = new Hands({
         locateFile: (file) => {
           return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
