@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useMediaPipeGestures } from '@/hooks/useMediaPipeGestures';
 import { GestureStatusIndicator } from './GestureStatusIndicator';
@@ -48,9 +49,11 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     fetchGesturePreference();
   }, [user]);
 
-  // Initialize MediaPipe gesture detection - enable by default for testing
+  // Only enable gesture detection when music is playing
+  const { isPlaying } = useMusicPlayer();
+  
   const gestureDetection = useMediaPipeGestures({
-    enabled: gestureControlsEnabled || !user, // Enable even without user for testing
+    enabled: gestureControlsEnabled && isPlaying, // Only when music is playing
     detectionInterval: 2000, // Check every 2 seconds as requested
     confidenceThreshold: 0.5 // Lower threshold for better detection
   });
@@ -61,26 +64,29 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
       enabled: gestureControlsEnabled,
       loading: isLoading,
       user: !!user,
+      musicPlaying: isPlaying,
       initialized: gestureDetection.isInitialized,
       detecting: gestureDetection.isDetecting,
       lastGesture: gestureDetection.lastGesture
     });
-  }, [gestureControlsEnabled, isLoading, user, gestureDetection.isInitialized, gestureDetection.isDetecting, gestureDetection.lastGesture]);
+  }, [gestureControlsEnabled, isLoading, user, isPlaying, gestureDetection.isInitialized, gestureDetection.isDetecting, gestureDetection.lastGesture]);
 
   // Show initialization status and instructions
   useEffect(() => {
-    if (gestureControlsEnabled && gestureDetection.isInitialized) {
+    if (gestureControlsEnabled && isPlaying && gestureDetection.isInitialized) {
       console.log('✅ Gesture detection is ACTIVE - Camera permission granted!');
       console.log('🤚 Try these gestures every 2 seconds:');
-      console.log('🖐️ Open Palm → Play/Pause');
-      console.log('✌️ Peace Sign → Next Song');
-      console.log('✊ Fist → Previous Song'); 
-      console.log('👍 Thumbs Up → Volume Up');
-      console.log('👎 Thumbs Down → Volume Down');
-    } else if (gestureControlsEnabled && !gestureDetection.isInitialized) {
+      console.log('✊ Fist → Play/Pause');
+      console.log('🤙 Call Me → Next Song');
+      console.log('🖐️ Five Fingers → Previous Song'); 
+      console.log('✌️ Peace Sign → Volume Up');
+      console.log('🤟 Rock Sign → Volume Down');
+    } else if (gestureControlsEnabled && isPlaying && !gestureDetection.isInitialized) {
       console.log('🔄 Initializing gesture detection... Please allow camera access when prompted.');
+    } else if (gestureControlsEnabled && !isPlaying) {
+      console.log('🎵 Play music to activate gesture controls');
     }
-  }, [gestureControlsEnabled, gestureDetection.isInitialized]);
+  }, [gestureControlsEnabled, isPlaying, gestureDetection.isInitialized]);
 
   // Listen for real-time updates to gesture controls preference
   useEffect(() => {
@@ -113,7 +119,7 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     <>
       {children}
       <GestureStatusIndicator
-        isEnabled={gestureControlsEnabled && !isLoading}
+        isEnabled={gestureControlsEnabled && !isLoading && isPlaying}
         isInitialized={gestureDetection.isInitialized}
         isDetecting={gestureDetection.isDetecting}
         lastGesture={gestureDetection.lastGesture}
