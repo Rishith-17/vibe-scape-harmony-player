@@ -240,59 +240,113 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera not supported on this device');
       }
+
+      // Stop any existing resources first
+      if (videoRef.current) {
+        if (videoRef.current.srcObject) {
+          const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+          tracks.forEach(track => track.stop());
+        }
+        if (videoRef.current.parentNode) {
+          videoRef.current.parentNode.removeChild(videoRef.current);
+        }
+        videoRef.current = null;
+      }
+
+      if (cameraRef.current) {
+        cameraRef.current.stop();
+        cameraRef.current = null;
+      }
+
+      if (handsRef.current) {
+        handsRef.current.close();
+        handsRef.current = null;
+      }
       
-      // Request camera permission first with fallback constraints
+      // Request camera permission with progressive fallback
       console.log('📹 Requesting camera permission...');
       let stream;
       try {
+        // Try with ideal constraints first
         stream = await navigator.mediaDevices.getUserMedia({ 
           video: { 
             facingMode: 'user',
-            width: { ideal: 640, min: 320 },
-            height: { ideal: 480, min: 240 }
+            width: { ideal: 640, min: 320, max: 1280 },
+            height: { ideal: 480, min: 240, max: 720 },
+            frameRate: { ideal: 30, min: 15 }
           } 
         });
       } catch (error) {
-        // Fallback to basic video constraints
-        console.log('📹 Fallback to basic camera constraints...');
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: true 
-        });
+        console.log('📹 Fallback to basic constraints...');
+        try {
+          // Fallback to basic video constraints
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'user' }
+          });
+        } catch (error2) {
+          console.log('📹 Final fallback to any video...');
+          // Final fallback to any available video
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: true 
+          });
+        }
       }
       
-      // Create hidden video element
-      if (!videoRef.current) {
-        videoRef.current = document.createElement('video');
-        videoRef.current.style.display = 'none';
-        videoRef.current.style.position = 'absolute';
-        videoRef.current.style.top = '-9999px';
-        videoRef.current.autoplay = true;
-        videoRef.current.playsInline = true;
-        videoRef.current.muted = true;
-        videoRef.current.srcObject = stream;
-        document.body.appendChild(videoRef.current);
+      // Create and setup video element
+      videoRef.current = document.createElement('video');
+      videoRef.current.style.display = 'none';
+      videoRef.current.style.position = 'fixed';
+      videoRef.current.style.top = '-9999px';
+      videoRef.current.style.left = '-9999px';
+      videoRef.current.style.width = '1px';
+      videoRef.current.style.height = '1px';
+      videoRef.current.autoplay = true;
+      videoRef.current.playsInline = true;
+      videoRef.current.muted = true;
+      videoRef.current.srcObject = stream;
+      document.body.appendChild(videoRef.current);
+      
+      // Wait for video to be ready with proper error handling
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Video initialization timeout'));
+        }, 15000);
         
-        // Wait for video to be ready with timeout
-        await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            reject(new Error('Video load timeout'));
-          }, 10000);
+        const onLoadedMetadata = () => {
+          clearTimeout(timeout);
+          videoRef.current!.removeEventListener('loadedmetadata', onLoadedMetadata);
+          videoRef.current!.removeEventListener('error', onError);
           
-          videoRef.current!.onloadedmetadata = () => {
-            clearTimeout(timeout);
-            videoRef.current!.play().then(resolve).catch(reject);
-          };
-          
-          videoRef.current!.onerror = () => {
-            clearTimeout(timeout);
-            reject(new Error('Video load error'));
-          };
-        });
-      }
+          videoRef.current!.play()
+            .then(() => {
+              console.log('📹 Video element ready for MediaPipe');
+              resolve();
+            })
+            .catch((playError) => {
+              console.error('Video play failed:', playError);
+              reject(playError);
+            });
+        };
+        
+        const onError = (error: Event) => {
+          clearTimeout(timeout);
+          videoRef.current!.removeEventListener('loadedmetadata', onLoadedMetadata);
+          videoRef.current!.removeEventListener('error', onError);
+          reject(new Error('Video element error'));
+        };
+        
+        videoRef.current!.addEventListener('loadedmetadata', onLoadedMetadata);
+        videoRef.current!.addEventListener('error', onError);
+        
+        // If already loaded
+        if (videoRef.current!.readyState >= 2) {
+          onLoadedMetadata();
+        }
+      });
 
-      console.log('📹 Camera permission granted, initializing MediaPipe...');
+      console.log('📹 Camera ready, initializing MediaPipe Hands...');
 
-      // Initialize MediaPipe Hands
+      // Initialize MediaPipe Hands with optimized settings
       handsRef.current = new Hands({
         locateFile: (file) => {
           return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
@@ -301,23 +355,37 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
 
       handsRef.current.setOptions({
         maxNumHands: 1,
-        modelComplexity: 0, // Use lighter model for better performance
-        minDetectionConfidence: 0.5, // Balanced confidence
-        minTrackingConfidence: 0.3, // Lower for continuous tracking
+        modelComplexity: 0, // Fastest model for real-time
+        minDetectionConfidence: 0.7, // Higher confidence for better accuracy
+        minTrackingConfidence: 0.5, // Balanced tracking
       });
 
       handsRef.current.onResults(onResults);
 
-      // Initialize camera with throttled detection
+      // Initialize camera with optimized frame processing
       let lastProcessTime = 0;
+      let isProcessing = false;
       
       cameraRef.current = new Camera(videoRef.current, {
         onFrame: async () => {
           const now = Date.now();
-          if (handsRef.current && videoRef.current && (now - lastProcessTime) >= options.detectionInterval) {
+          if (handsRef.current && 
+              videoRef.current && 
+              !isProcessing &&
+              (now - lastProcessTime) >= options.detectionInterval) {
+            
             lastProcessTime = now;
+            isProcessing = true;
             setIsDetecting(true);
-            await handsRef.current.send({ image: videoRef.current });
+            
+            try {
+              await handsRef.current.send({ image: videoRef.current });
+            } catch (error) {
+              console.error('MediaPipe processing error:', error);
+            } finally {
+              isProcessing = false;
+              setTimeout(() => setIsDetecting(false), 500);
+            }
           }
         },
         width: 640,
@@ -329,35 +397,57 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
       setIsInitialized(true);
       
       console.log('✅ MediaPipe hands initialized successfully');
-      console.log('🎯 Gesture detection is now running every', options.detectionInterval, 'ms');
+      console.log('🎯 Gesture detection is now active every', options.detectionInterval, 'ms');
       
       toast({
-        title: "Gesture Detection Active",
-        description: "Camera initialized successfully",
+        title: "🤚 Gesture Detection Active",
+        description: "Camera ready - Show gestures to control music!",
       });
       
     } catch (error) {
-      console.error('❌ Failed to initialize MediaPipe:', error);
+      console.error('❌ Failed to initialize gesture detection:', error);
       
       let errorMessage = "Failed to initialize gesture detection";
+      let errorTitle = "Camera Error";
+      
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          errorMessage = "Camera permission denied. Please allow camera access.";
+          errorMessage = "Camera permission denied. Please allow camera access and try again.";
+          errorTitle = "Camera Permission Required";
         } else if (error.name === 'NotFoundError') {
           errorMessage = "No camera found on this device.";
+          errorTitle = "No Camera Found";
         } else if (error.name === 'NotSupportedError') {
           errorMessage = "Camera not supported on this device.";
+          errorTitle = "Camera Not Supported";
+        } else if (error.message.includes('timeout')) {
+          errorMessage = "Camera initialization timeout. Please refresh and try again.";
+          errorTitle = "Initialization Timeout";
+        } else {
+          errorMessage = `Initialization failed: ${error.message}`;
         }
       }
       
       toast({
-        title: "Camera Error",
+        title: errorTitle,
         description: errorMessage,
         variant: "destructive",
       });
       
+      // Clean up on error
       setIsInitialized(false);
       setIsDetecting(false);
+      
+      if (videoRef.current) {
+        if (videoRef.current.srcObject) {
+          const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+          tracks.forEach(track => track.stop());
+        }
+        if (videoRef.current.parentNode) {
+          videoRef.current.parentNode.removeChild(videoRef.current);
+        }
+        videoRef.current = null;
+      }
     }
   }, [options.confidenceThreshold, options.detectionInterval, onResults, toast]);
 
