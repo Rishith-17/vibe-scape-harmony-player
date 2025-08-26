@@ -1,73 +1,44 @@
-# Welcome to your Lovable project
+🎵 Emotion-Based Music Streaming App
 
-## Project info
+This is a music streaming web app with built-in emotion detection. The app detects a user’s emotion from their face and automatically plays songs that match the mood (e.g., happy, sad, angry, neutral, etc.).
 
-**URL**: https://lovable.dev/projects/5b247013-5705-4da4-a18e-0c5af1e2f706
+🚀 Features
 
-## How can I edit this code?
+🎶 Stream music with an interactive player
 
-There are several ways of editing your application.
+😊 Emotion Detection using AI (camera input or uploaded photo)
 
-**Use Lovable**
+🎧 Auto-play songs according to detected emotion
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/5b247013-5705-4da4-a18e-0c5af1e2f706) and start prompting.
+📂 Emotion-based playlists (Happy, Sad, Angry, Relax, etc.)
 
-Changes made via Lovable will be committed automatically to this repo.
+🔍 Search & browse music manually
 
-**Use your preferred IDE**
+📱 Responsive UI for web & mobile
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+🧠 Tech Stack
 
-Follow these steps:
+Frontend: React / Next.js (or mention the framework you used)
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Backend: Node.js / Flask / FastAPI (depending on your setup)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Database: Supabase / Firebase / MongoDB (update with your DB)
 
-# Step 3: Install the necessary dependencies.
-npm i
+AI Model: DeepFace / Hugging Face (dima806/facial_emotions_image_detection)
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+Music API / Storage: Spotify API / Custom DB
 
-**Edit a file directly in GitHub**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+📸 How It Works
 
-**Use GitHub Codespaces**
+1. User opens the app and enables camera (or uploads an image).
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
+2. AI model analyzes facial expression and detects emotion.
 
-This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+3. The system selects a matching playlist from the database.
 
-## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/5b247013-5705-4da4-a18e-0c5af1e2f706) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+4. Songs auto-play based
