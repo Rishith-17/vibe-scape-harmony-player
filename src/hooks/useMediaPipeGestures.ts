@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Camera } from '@mediapipe/camera_utils';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -111,7 +110,8 @@ const isRockSign = (landmarks: any[]): boolean => {
 export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const handsRef = useRef<any | null>(null);
-  const cameraRef = useRef<Camera | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const lastGestureRef = useRef<string | null>(null);
   const lastGestureTimeRef = useRef<number>(0);
   
@@ -230,236 +230,187 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
     }
   }, [executeGestureAction]);
 
-  const initializeMediaPipe = useCallback(async () => {
+  const cleanup = useCallback(() => {
+    console.log('🧹 Cleaning up gesture detection...');
+    
+    setIsDetecting(false);
+    setIsInitialized(false);
+    
+    // Stop detection loop
+    if (animationFrameRef.current) {
+      clearTimeout(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
+    // Close MediaPipe hands
+    if (handsRef.current) {
+      try {
+        handsRef.current.close();
+      } catch (error) {
+        console.error('Error closing MediaPipe:', error);
+      }
+      handsRef.current = null;
+    }
+    
+    // Stop camera stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    
+    // Remove video element
+    if (videoRef.current) {
+      if (videoRef.current.parentNode) {
+        videoRef.current.parentNode.removeChild(videoRef.current);
+      }
+      videoRef.current = null;
+    }
+  }, []);
+
+  const startGestureDetection = useCallback(async () => {
     if (!options.enabled) {
       console.log('🚫 Gesture detection disabled');
       return;
     }
 
     try {
-      console.log('🤚 Initializing MediaPipe hands...');
-      console.log('🔧 Detection will run every', options.detectionInterval, 'ms');
+      console.log('🤚 Starting gesture detection for music control...');
       
-      // Check if getUserMedia is supported
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera not supported on this device');
-      }
-
       // Clean up existing resources
       cleanup();
 
-      // Request camera permission with progressive fallback
-      console.log('📹 Requesting camera permission...');
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: 'user',
-            width: { ideal: 320, max: 640 },
-            height: { ideal: 240, max: 480 },
-            frameRate: { ideal: 15, max: 30 }
-          } 
-        });
-      } catch (error) {
-        console.log('📹 Fallback to basic video...');
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      }
-      
-      // Create hidden video element
+      // Request camera permission
+      console.log('📹 Requesting camera access...');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 320 },
+          height: { ideal: 240 },
+          frameRate: { ideal: 15 }
+        }
+      });
+
+      streamRef.current = stream;
+
+      // Create invisible video element for processing
       videoRef.current = document.createElement('video');
-      videoRef.current.style.position = 'absolute';
-      videoRef.current.style.top = '-9999px';
-      videoRef.current.style.width = '1px';
-      videoRef.current.style.height = '1px';
+      videoRef.current.style.cssText = 'position:fixed;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
       videoRef.current.autoplay = true;
       videoRef.current.playsInline = true;
       videoRef.current.muted = true;
       videoRef.current.srcObject = stream;
       document.body.appendChild(videoRef.current);
-      
-      // Wait for video to be ready with proper error handling
+
+      // Wait for video to load
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Video initialization timeout'));
-        }, 15000);
+        const timeout = setTimeout(() => reject(new Error('Video load timeout')), 10000);
         
-        const onLoadedMetadata = () => {
+        videoRef.current!.onloadedmetadata = () => {
           clearTimeout(timeout);
-          videoRef.current!.removeEventListener('loadedmetadata', onLoadedMetadata);
-          videoRef.current!.removeEventListener('error', onError);
-          
-          videoRef.current!.play()
-            .then(() => {
-              console.log('📹 Video element ready for MediaPipe');
-              resolve();
-            })
-            .catch((playError) => {
-              console.error('Video play failed:', playError);
-              reject(playError);
-            });
+          videoRef.current!.play().then(resolve).catch(reject);
         };
+      });
+
+      console.log('📹 Camera stream ready, loading MediaPipe...');
+
+      // Load MediaPipe Hands model
+      try {
+        // Use CDN version with proper loading
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js';
+        document.head.appendChild(script);
+
+        await new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Failed to load MediaPipe script'));
+        });
+
+        // @ts-ignore - MediaPipe global
+        const { Hands } = window;
         
-        const onError = (error: Event) => {
-          clearTimeout(timeout);
-          videoRef.current!.removeEventListener('loadedmetadata', onLoadedMetadata);
-          videoRef.current!.removeEventListener('error', onError);
-          reject(new Error('Video element error'));
-        };
-        
-        videoRef.current!.addEventListener('loadedmetadata', onLoadedMetadata);
-        videoRef.current!.addEventListener('error', onError);
-        
-        // If already loaded
-        if (videoRef.current!.readyState >= 2) {
-          onLoadedMetadata();
+        if (!Hands) {
+          throw new Error('MediaPipe Hands not available');
         }
-      });
 
-      console.log('📹 Camera ready, initializing MediaPipe Hands...');
+        handsRef.current = new Hands({
+          locateFile: (file: string) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`;
+          }
+        });
 
-      // Initialize MediaPipe Hands with optimized settings
-      const { Hands } = await import('@mediapipe/hands');
-      handsRef.current = new Hands({
-        locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-        }
-      });
+        handsRef.current.setOptions({
+          maxNumHands: 1,
+          modelComplexity: 0,
+          minDetectionConfidence: 0.7,
+          minTrackingConfidence: 0.5,
+        });
 
-      handsRef.current.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 0, // Fastest model for real-time
-        minDetectionConfidence: 0.7, // Higher confidence for better accuracy
-        minTrackingConfidence: 0.5, // Balanced tracking
-      });
+        handsRef.current.onResults(onResults);
 
-      handsRef.current.onResults(onResults);
+        console.log('✅ MediaPipe Hands loaded successfully');
+        setIsInitialized(true);
 
-      // Initialize camera with optimized frame processing
-      let lastProcessTime = 0;
-      let isProcessing = false;
-      
-      cameraRef.current = new Camera(videoRef.current, {
-        onFrame: async () => {
-          const now = Date.now();
-          if (handsRef.current && 
-              videoRef.current && 
-              !isProcessing &&
-              (now - lastProcessTime) >= options.detectionInterval) {
-            
-            lastProcessTime = now;
-            isProcessing = true;
-            setIsDetecting(true);
-            
+        // Start detection loop
+        const detectGestures = async () => {
+          if (handsRef.current && videoRef.current && streamRef.current) {
             try {
+              setIsDetecting(true);
               await handsRef.current.send({ image: videoRef.current });
+              setTimeout(() => setIsDetecting(false), 300);
             } catch (error) {
-              console.error('MediaPipe processing error:', error);
-            } finally {
-              isProcessing = false;
-              setTimeout(() => setIsDetecting(false), 500);
+              console.error('Detection error:', error);
             }
           }
-        },
-        width: 640,
-        height: 480,
-        facingMode: 'user'
-      });
 
-      await cameraRef.current.start();
-      setIsInitialized(true);
-      
-      console.log('✅ MediaPipe hands initialized successfully');
-      console.log('🎯 Gesture detection is now active every', options.detectionInterval, 'ms');
-      
-      toast({
-        title: "🤚 Gesture Detection Active",
-        description: "Camera ready - Show gestures to control music!",
-      });
-      
+          if (streamRef.current) {
+            animationFrameRef.current = window.setTimeout(detectGestures, options.detectionInterval);
+          }
+        };
+
+        detectGestures();
+
+        toast({
+          title: "🤚 Gesture Control Active",
+          description: "Show hand gestures to control music!",
+        });
+
+      } catch (scriptError) {
+        console.error('MediaPipe loading error:', scriptError);
+        throw new Error('Failed to load MediaPipe library');
+      }
+
     } catch (error) {
-      console.error('❌ Failed to initialize gesture detection:', error);
+      console.error('❌ Gesture detection initialization failed:', error);
       
-      let errorMessage = "Failed to initialize gesture detection";
-      let errorTitle = "Camera Error";
-      
+      let errorMessage = "Failed to start gesture detection";
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          errorMessage = "Camera permission denied. Please allow camera access and try again.";
-          errorTitle = "Camera Permission Required";
+          errorMessage = "Camera permission required for gesture control";
         } else if (error.name === 'NotFoundError') {
-          errorMessage = "No camera found on this device.";
-          errorTitle = "No Camera Found";
-        } else if (error.name === 'NotSupportedError') {
-          errorMessage = "Camera not supported on this device.";
-          errorTitle = "Camera Not Supported";
-        } else if (error.message.includes('timeout')) {
-          errorMessage = "Camera initialization timeout. Please refresh and try again.";
-          errorTitle = "Initialization Timeout";
+          errorMessage = "No camera found on this device";
         } else {
-          errorMessage = `Initialization failed: ${error.message}`;
+          errorMessage = error.message;
         }
       }
-      
+
       toast({
-        title: errorTitle,
+        title: "Camera Error",
         description: errorMessage,
         variant: "destructive",
       });
-      
-      // Clean up on error
-      setIsInitialized(false);
-      setIsDetecting(false);
-      
-      if (videoRef.current) {
-        if (videoRef.current.srcObject) {
-          const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-          tracks.forEach(track => track.stop());
-        }
-        if (videoRef.current.parentNode) {
-          videoRef.current.parentNode.removeChild(videoRef.current);
-        }
-        videoRef.current = null;
-      }
-    }
-  }, [options.confidenceThreshold, options.detectionInterval, onResults, toast]);
 
-  const cleanup = useCallback(() => {
-    console.log('🧹 Cleaning up MediaPipe resources...');
-    
-    setIsDetecting(false);
-    
-    if (cameraRef.current) {
-      cameraRef.current.stop();
-      cameraRef.current = null;
-    }
-    
-    if (handsRef.current) {
-      handsRef.current.close();
-      handsRef.current = null;
-    }
-    
-    if (videoRef.current && videoRef.current.parentNode) {
-      if (videoRef.current.srcObject) {
-        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-        tracks.forEach(track => track.stop());
-      }
-      videoRef.current.parentNode.removeChild(videoRef.current);
-      videoRef.current = null;
-    }
-    
-    setIsInitialized(false);
-  }, []);
-
-  // Initialize when enabled and music is playing
-  useEffect(() => {
-    if (options.enabled && !isInitialized) {
-      console.log('🚀 Starting gesture detection for music control...');
-      initializeMediaPipe();
-    } else if (!options.enabled && isInitialized) {
-      console.log('🛑 Stopping gesture detection...');
       cleanup();
     }
-  }, [options.enabled, isInitialized, initializeMediaPipe, cleanup]);
+  }, [options, onResults, toast, cleanup]);
+
+  // Initialize when enabled
+  useEffect(() => {
+    if (options.enabled && !isInitialized) {
+      startGestureDetection();
+    } else if (!options.enabled && isInitialized) {
+      cleanup();
+    }
+  }, [options.enabled, isInitialized, startGestureDetection, cleanup]);
 
   // Cleanup on unmount
   useEffect(() => {

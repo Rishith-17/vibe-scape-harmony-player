@@ -4,6 +4,7 @@ import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useMediaPipeGestures } from '@/hooks/useMediaPipeGestures';
 import { GestureStatusIndicator } from './GestureStatusIndicator';
+import { GestureTutorial } from './GestureTutorial';
 
 interface GestureControlsProviderProps {
   children: React.ReactNode;
@@ -13,6 +14,7 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   const { user } = useAuth();
   const [gestureControlsEnabled, setGestureControlsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   // Fetch user's gesture controls preference (default to true if no user)
   useEffect(() => {
@@ -71,10 +73,18 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     });
   }, [gestureControlsEnabled, isLoading, user, isPlaying, gestureDetection.isInitialized, gestureDetection.isDetecting, gestureDetection.lastGesture]);
 
-  // Show initialization status and instructions
+  // Show tutorial when gesture detection is first enabled and initialized
   useEffect(() => {
     if (gestureControlsEnabled && isPlaying && gestureDetection.isInitialized) {
       console.log('✅ Gesture detection is ACTIVE - Camera permission granted!');
+      
+      // Show tutorial on first activation (check localStorage)
+      const hasSeenTutorial = localStorage.getItem('vibescape_gesture_tutorial_seen');
+      if (!hasSeenTutorial) {
+        setShowTutorial(true);
+        localStorage.setItem('vibescape_gesture_tutorial_seen', 'true');
+      }
+      
       console.log('🤚 Try these gestures every 2 seconds:');
       console.log('✊ Fist → Play/Pause');
       console.log('🤙 Call Me → Next Song');
@@ -123,6 +133,10 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
         isInitialized={gestureDetection.isInitialized}
         isDetecting={gestureDetection.isDetecting}
         lastGesture={gestureDetection.lastGesture}
+      />
+      <GestureTutorial
+        isOpen={showTutorial}
+        onClose={() => setShowTutorial(false)}
       />
     </>
   );
