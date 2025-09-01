@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Hand, Zap } from 'lucide-react';
+import { Camera, Hand, Zap, Loader2, AlertCircle } from 'lucide-react';
 
 interface GestureStatusIndicatorProps {
   isEnabled: boolean;
@@ -19,32 +19,50 @@ export const GestureStatusIndicator: React.FC<GestureStatusIndicatorProps> = ({
   const getStatusColor = () => {
     if (isDetecting) return 'text-green-400';
     if (isInitialized) return 'text-yellow-400';
-    return 'text-red-400';
+    return 'text-blue-400'; // Initializing
   };
 
   const getStatusText = () => {
-    if (isDetecting) return 'Active';
+    if (isDetecting) return 'Detecting';
     if (isInitialized) return 'Ready';
-    return 'Initializing...';
+    return 'Starting...';
+  };
+
+  const getStatusIcon = () => {
+    if (isDetecting) return <Zap size={16} className={getStatusColor()} />;
+    if (isInitialized) return <Camera size={16} className={getStatusColor()} />;
+    return <Loader2 size={16} className="text-blue-400 animate-spin" />;
   };
 
   return (
-    <div className="fixed top-4 right-4 z-50 bg-black/80 backdrop-blur-sm rounded-lg p-3 flex items-center gap-2 text-sm">
+    <div className="fixed top-4 right-4 z-50 bg-black/80 backdrop-blur-sm rounded-lg p-2 flex flex-col gap-2 text-sm max-w-xs min-w-max">
       <div className="flex items-center gap-2">
-        <Camera size={16} className={getStatusColor()} />
-        <span className="text-white">Gesture Detection:</span>
+        {getStatusIcon()}
+        <span className="text-white font-medium">Gestures:</span>
         <span className={getStatusColor()}>{getStatusText()}</span>
       </div>
       
-      {lastGesture && (
-        <div className="flex items-center gap-1 ml-2 border-l border-gray-600 pl-2">
-          <Hand size={14} className="text-blue-400" />
-          <span className="text-blue-400 text-xs">{lastGesture.replace('_', ' ')}</span>
+      {lastGesture && isInitialized && (
+        <div className="flex items-center gap-2 bg-green-900/30 px-2 py-1 rounded">
+          <Hand size={12} className="text-green-400" />
+          <span className="text-green-400 text-xs font-bold">
+            {lastGesture.replace('_', ' ').toUpperCase()}
+          </span>
         </div>
       )}
       
-      {isDetecting && (
-        <Zap size={12} className="text-green-400 animate-pulse" />
+      {!isInitialized && isEnabled && (
+        <div className="bg-blue-900/30 px-2 py-1 rounded">
+          <span className="text-blue-400 text-xs">
+            {isDetecting ? 'Loading AI model...' : 'Requesting camera...'}
+          </span>
+        </div>
+      )}
+      
+      {isInitialized && !isDetecting && (
+        <div className="text-gray-400 text-xs text-center">
+          Show hand gestures to control music
+        </div>
       )}
     </div>
   );

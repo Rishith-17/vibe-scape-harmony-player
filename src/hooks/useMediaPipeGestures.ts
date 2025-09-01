@@ -9,101 +9,50 @@ interface MediaPipeGestureOptions {
   confidenceThreshold: number;
 }
 
-// Enhanced gesture detection functions for music control
-const isCallMeGesture = (landmarks: any[]): boolean => {
+// Simplified gesture detection functions for better reliability
+const detectGesture = (landmarks: any[]): string | null => {
   try {
-    // 🤙 Call me gesture → Next song - Thumb and pinky extended, others curled
-    const thumbExtended = landmarks[4].x > landmarks[3].x + 0.03;
-    const indexCurled = landmarks[8].y > landmarks[5].y + 0.02;
-    const middleCurled = landmarks[12].y > landmarks[9].y + 0.02;
-    const ringCurled = landmarks[16].y > landmarks[13].y + 0.02;
-    const pinkyExtended = landmarks[20].y < landmarks[17].y - 0.03;
+    // Extract finger tip and joint positions for gesture recognition
+    const fingerTips = [4, 8, 12, 16, 20]; // thumb, index, middle, ring, pinky tips
+    const fingerPIPs = [3, 6, 10, 14, 18]; // finger joints for comparison
     
-    console.log(`🤙 Call me gesture check: thumb=${thumbExtended}, pinky=${pinkyExtended}, others curled: index=${indexCurled}, middle=${middleCurled}, ring=${ringCurled}`);
-    return thumbExtended && pinkyExtended && indexCurled && middleCurled && ringCurled;
+    // Check which fingers are extended (up)
+    const fingersUp = [];
+    
+    // Thumb (horizontal check)
+    fingersUp.push(landmarks[4].x > landmarks[3].x ? 1 : 0);
+    
+    // Other fingers (vertical check)
+    for (let i = 1; i < 5; i++) {
+      fingersUp.push(landmarks[fingerTips[i]].y < landmarks[fingerPIPs[i]].y ? 1 : 0);
+    }
+    
+    const totalFingers = fingersUp.reduce((a, b) => a + b, 0);
+    
+    console.log(`🤚 Finger states: [${fingersUp.join(', ')}], Total up: ${totalFingers}`);
+    
+    // Gesture classification based on finger patterns
+    if (totalFingers === 0) {
+      console.log('✊ Detected: Fist (Play/Pause)');
+      return 'fist';
+    } else if (totalFingers === 5) {
+      console.log('🖐️ Detected: Five fingers (Previous Song)');
+      return 'five_fingers';
+    } else if (totalFingers === 2 && fingersUp[1] === 1 && fingersUp[2] === 1) {
+      console.log('✌️ Detected: Peace sign (Volume Up)');
+      return 'peace_sign';  
+    } else if (totalFingers === 2 && fingersUp[0] === 1 && fingersUp[4] === 1) {
+      console.log('🤙 Detected: Call me (Next Song)');
+      return 'call_me';
+    } else if (totalFingers === 2 && fingersUp[1] === 1 && fingersUp[4] === 1) {
+      console.log('🤟 Detected: Rock sign (Volume Down)');
+      return 'rock_sign';
+    }
+    
+    return null;
   } catch (error) {
-    console.error('Error in isCallMeGesture:', error);
-    return false;
-  }
-};
-
-const isFist = (landmarks: any[]): boolean => {
-  try {
-    // ✊ Fist → Play/Pause - All fingers curled down
-    const fingerTips = [8, 12, 16, 20];
-    const fingerMcps = [5, 9, 13, 17];
-    
-    const curledFingers = fingerTips.filter((tip, i) => {
-      const mcp = fingerMcps[i];
-      return landmarks[tip].y > landmarks[mcp].y + 0.02;
-    }).length;
-    
-    // Thumb curled check
-    const thumbCurled = landmarks[4].x < landmarks[3].x + 0.02;
-    
-    console.log(`✊ Fist check: ${curledFingers}/4 fingers curled, thumb curled: ${thumbCurled}`);
-    return curledFingers >= 3 && thumbCurled;
-  } catch (error) {
-    console.error('Error in isFist:', error);
-    return false;
-  }
-};
-
-// Removed pointing gesture - replaced with call me gesture
-
-const isFiveFingers = (landmarks: any[]): boolean => {
-  try {
-    // 🖐️ Five fingers → Previous song - All fingers spread wide
-    const fingerTips = [4, 8, 12, 16, 20]; // Include thumb
-    const fingerMcps = [2, 5, 9, 13, 17]; // MCP joints
-    
-    const extendedFingers = fingerTips.filter((tip, i) => {
-      const mcp = fingerMcps[i];
-      if (i === 0) { // Thumb special case
-        return landmarks[tip].x > landmarks[mcp].x + 0.03;
-      }
-      return landmarks[tip].y < landmarks[mcp].y - 0.02;
-    }).length;
-    
-    console.log(`🖐️ Five fingers check: ${extendedFingers}/5 fingers extended`);
-    return extendedFingers >= 4; // Allow some tolerance
-  } catch (error) {
-    console.error('Error in isFiveFingers:', error);
-    return false;
-  }
-};
-
-const isPeaceSign = (landmarks: any[]): boolean => {
-  try {
-    // ✌️ Peace sign → Volume up - Index and middle finger up, others down
-    const indexUp = landmarks[8].y < landmarks[5].y - 0.03;
-    const middleUp = landmarks[12].y < landmarks[9].y - 0.03;
-    const ringDown = landmarks[16].y > landmarks[13].y + 0.02;
-    const pinkyDown = landmarks[20].y > landmarks[17].y + 0.02;
-    const thumbDown = landmarks[4].x < landmarks[3].x + 0.02;
-    
-    console.log(`✌️ Peace sign check: index=${indexUp}, middle=${middleUp}, ring=${!ringDown}, pinky=${!pinkyDown}, thumb=${!thumbDown}`);
-    return indexUp && middleUp && ringDown && pinkyDown;
-  } catch (error) {
-    console.error('Error in isPeaceSign:', error);
-    return false;
-  }
-};
-
-const isRockSign = (landmarks: any[]): boolean => {
-  try {
-    // 🤟 Rock sign → Volume down - Index and pinky up, middle and ring down
-    const indexUp = landmarks[8].y < landmarks[5].y - 0.03;
-    const middleDown = landmarks[12].y > landmarks[9].y + 0.02;
-    const ringDown = landmarks[16].y > landmarks[13].y + 0.02;
-    const pinkyUp = landmarks[20].y < landmarks[17].y - 0.03;
-    const thumbUp = landmarks[4].x > landmarks[3].x + 0.02;
-    
-    console.log(`🤟 Rock sign check: index=${indexUp}, pinky=${pinkyUp}, middle=${!middleDown}, ring=${!ringDown}, thumb=${thumbUp}`);
-    return indexUp && pinkyUp && middleDown && ringDown;
-  } catch (error) {
-    console.error('Error in isRockSign:', error);
-    return false;
+    console.error('Error in gesture detection:', error);
+    return null;
   }
 };
 
@@ -191,42 +140,23 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
 
   const onResults = useCallback((results: any) => {
     if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-      console.log('👀 No hands detected in frame');
-      return;
+      return; // No hands detected - this is normal, don't spam logs
     }
-
-    console.log(`🤚 Hand detected! Processing ${results.multiHandLandmarks.length} hand(s)`);
     
     // Use the first detected hand
     const landmarks = results.multiHandLandmarks[0];
     
     if (!landmarks || landmarks.length < 21) {
-      console.log('❌ Invalid hand landmarks');
+      console.log('❌ Invalid hand landmarks received');
       return;
     }
     
-    console.log('🔍 Analyzing hand landmarks for gestures...');
-    
-    // Detect gestures with priority order (most specific first)
-    let detectedGesture = null;
-    
-    if (isRockSign(landmarks)) {
-      detectedGesture = 'rock_sign';
-    } else if (isPeaceSign(landmarks)) {
-      detectedGesture = 'peace_sign';
-    } else if (isCallMeGesture(landmarks)) {
-      detectedGesture = 'call_me';
-    } else if (isFist(landmarks)) {
-      detectedGesture = 'fist';
-    } else if (isFiveFingers(landmarks)) {
-      detectedGesture = 'five_fingers';
-    }
+    // Detect gesture using simplified approach
+    const detectedGesture = detectGesture(landmarks);
 
     if (detectedGesture) {
       console.log(`🎯 Gesture detected: ${detectedGesture}`);
       executeGestureAction(detectedGesture);
-    } else {
-      console.log('🤷 No recognized gesture found');
     }
   }, [executeGestureAction]);
 
@@ -284,9 +214,9 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user',
-          width: { ideal: 320 },
-          height: { ideal: 240 },
-          frameRate: { ideal: 15 }
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 30 }
         }
       });
 
@@ -303,81 +233,87 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
 
       // Wait for video to load
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Video load timeout')), 10000);
+        const timeout = setTimeout(() => reject(new Error('Video load timeout')), 15000);
         
-        videoRef.current!.onloadedmetadata = () => {
+        const onLoadedMetadata = () => {
           clearTimeout(timeout);
-          videoRef.current!.play().then(resolve).catch(reject);
+          videoRef.current!.removeEventListener('loadedmetadata', onLoadedMetadata);
+          videoRef.current!.removeEventListener('error', onError);
+          
+          videoRef.current!.play()
+            .then(() => {
+              console.log('📹 Video ready for MediaPipe processing');
+              resolve();
+            })
+            .catch(reject);
         };
+        
+        const onError = () => {
+          clearTimeout(timeout);
+          videoRef.current!.removeEventListener('loadedmetadata', onLoadedMetadata);
+          videoRef.current!.removeEventListener('error', onError);
+          reject(new Error('Video loading failed'));
+        };
+        
+        videoRef.current!.addEventListener('loadedmetadata', onLoadedMetadata);
+        videoRef.current!.addEventListener('error', onError);
+        
+        // If already loaded
+        if (videoRef.current!.readyState >= 2) {
+          onLoadedMetadata();
+        }
       });
 
-      console.log('📹 Camera stream ready, loading MediaPipe...');
+      console.log('📹 Camera stream ready, initializing MediaPipe Hands...');
 
-      // Load MediaPipe Hands model
-      try {
-        // Use CDN version with proper loading
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js';
-        document.head.appendChild(script);
+      // Use the already installed MediaPipe package
+      const { Hands } = await import('@mediapipe/hands');
+      
+      handsRef.current = new Hands({
+        locateFile: (file: string) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`;
+        }
+      });
 
-        await new Promise((resolve, reject) => {
-          script.onload = resolve;
-          script.onerror = () => reject(new Error('Failed to load MediaPipe script'));
-        });
+      handsRef.current.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 0, // Fastest model
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.5,
+      });
 
-        // @ts-ignore - MediaPipe global
-        const { Hands } = window;
-        
-        if (!Hands) {
-          throw new Error('MediaPipe Hands not available');
+      handsRef.current.onResults(onResults);
+
+      console.log('✅ MediaPipe Hands initialized successfully');
+      setIsInitialized(true);
+
+      // Start detection loop with proper frame processing
+      const detectGestures = async () => {
+        if (handsRef.current && videoRef.current && streamRef.current && videoRef.current.readyState >= 2) {
+          try {
+            setIsDetecting(true);
+            await handsRef.current.send({ image: videoRef.current });
+            setTimeout(() => setIsDetecting(false), 200);
+          } catch (error) {
+            console.error('🔴 Detection frame error:', error);
+          }
         }
 
-        handsRef.current = new Hands({
-          locateFile: (file: string) => {
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`;
-          }
-        });
+        // Continue detection loop if stream is active
+        if (streamRef.current) {
+          animationFrameRef.current = window.setTimeout(detectGestures, options.detectionInterval);
+        }
+      };
 
-        handsRef.current.setOptions({
-          maxNumHands: 1,
-          modelComplexity: 0,
-          minDetectionConfidence: 0.7,
-          minTrackingConfidence: 0.5,
-        });
+      // Start the detection loop
+      detectGestures();
 
-        handsRef.current.onResults(onResults);
-
-        console.log('✅ MediaPipe Hands loaded successfully');
-        setIsInitialized(true);
-
-        // Start detection loop
-        const detectGestures = async () => {
-          if (handsRef.current && videoRef.current && streamRef.current) {
-            try {
-              setIsDetecting(true);
-              await handsRef.current.send({ image: videoRef.current });
-              setTimeout(() => setIsDetecting(false), 300);
-            } catch (error) {
-              console.error('Detection error:', error);
-            }
-          }
-
-          if (streamRef.current) {
-            animationFrameRef.current = window.setTimeout(detectGestures, options.detectionInterval);
-          }
-        };
-
-        detectGestures();
-
-        toast({
-          title: "🤚 Gesture Control Active",
-          description: "Show hand gestures to control music!",
-        });
-
-      } catch (scriptError) {
-        console.error('MediaPipe loading error:', scriptError);
-        throw new Error('Failed to load MediaPipe library');
-      }
+      console.log('🎯 Gesture detection loop started');
+      
+      toast({
+        title: "🤚 Gesture Control Active",
+        description: "Camera ready - Show hand gestures to control music!",
+      });
 
     } catch (error) {
       console.error('❌ Gesture detection initialization failed:', error);
@@ -388,6 +324,8 @@ export const useMediaPipeGestures = (options: MediaPipeGestureOptions) => {
           errorMessage = "Camera permission required for gesture control";
         } else if (error.name === 'NotFoundError') {
           errorMessage = "No camera found on this device";
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage = "Camera not supported on this device";
         } else {
           errorMessage = error.message;
         }
