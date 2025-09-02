@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useWorkingGestureDetection } from '@/hooks/useWorkingGestureDetection';
+import { useSimpleGestureDetection } from '@/hooks/useSimpleGestureDetection';
 import { GestureStatusIndicator } from './GestureStatusIndicator';
 import { GestureTutorial } from './GestureTutorial';
 import { TestGestureController } from './TestGestureController';
@@ -55,14 +55,13 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   // Only enable gesture detection when music is playing
   const { isPlaying } = useMusicPlayer();
   
-  const gestureDetection = useWorkingGestureDetection({
+  const gestureDetection = useSimpleGestureDetection({
     enabled: gestureControlsEnabled && isPlaying, // Only when music is playing
-    detectionInterval: 100, // 10 FPS for responsive detection
   });
 
   // Add logging to see status
   useEffect(() => {
-    console.log('🤚 Working Gesture Controls Status:', {
+    console.log('🤚 Simple Gesture Controls Status:', {
       enabled: gestureControlsEnabled,
       loading: isLoading,
       user: !!user,
