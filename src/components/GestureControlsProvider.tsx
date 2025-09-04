@@ -52,11 +52,11 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     fetchGesturePreference();
   }, [user]);
 
-  // Only enable gesture detection when music is playing
+  // Enable gesture detection when enabled (works with or without music)
   const { isPlaying } = useMusicPlayer();
   
   const gestureDetection = useSimpleGestureDetection({
-    enabled: gestureControlsEnabled && isPlaying, // Only when music is playing
+    enabled: gestureControlsEnabled, // Always enabled when gesture controls are on
   });
 
   // Add logging to see status
@@ -74,7 +74,7 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
 
   // Show tutorial when gesture detection is first enabled and active
   useEffect(() => {
-    if (gestureControlsEnabled && isPlaying && gestureDetection.isActive) {
+    if (gestureControlsEnabled && gestureDetection.isActive) {
       console.log('✅ Gesture detection is ACTIVE - Camera permission granted!');
       
       // Show tutorial on first activation (check localStorage)
@@ -90,12 +90,10 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
       console.log('🖐️ Five Fingers → Previous Song'); 
       console.log('✌️ Peace Sign → Volume Up');
       console.log('🤟 Rock Sign → Volume Down');
-    } else if (gestureControlsEnabled && isPlaying && !gestureDetection.isActive) {
+    } else if (gestureControlsEnabled && !gestureDetection.isActive) {
       console.log('🔄 Initializing gesture detection... Please allow camera access when prompted.');
-    } else if (gestureControlsEnabled && !isPlaying) {
-      console.log('🎵 Play music to activate gesture controls');
     }
-  }, [gestureControlsEnabled, isPlaying, gestureDetection.isActive]);
+  }, [gestureControlsEnabled, gestureDetection.isActive]);
 
   // Listen for real-time updates to gesture controls preference
   useEffect(() => {
@@ -128,13 +126,13 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     <>
       {children}
       <GestureStatusIndicator
-        isEnabled={gestureControlsEnabled && !isLoading && isPlaying}
+        isEnabled={gestureControlsEnabled && !isLoading}
         status={gestureDetection.status}
         isActive={gestureDetection.isActive}
         lastGesture={gestureDetection.lastGesture}
       />
       <TestGestureController 
-        enabled={gestureControlsEnabled && !isLoading && isPlaying && !gestureDetection.isActive}
+        enabled={gestureControlsEnabled && !isLoading && !gestureDetection.isActive}
       />
       <GestureTutorial
         isOpen={showTutorial}
