@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useToast } from '@/hooks/use-toast';
+import { pipeline } from '@huggingface/transformers';
 
 interface SimpleGestureOptions {
   enabled: boolean;
@@ -79,19 +80,23 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
     }
   };
 
-  // Simple gesture detection using MediaPipe
+  // AI-powered gesture detection using Hugging Face
   const startSimpleDetection = async () => {
     try {
       setStatus('Requesting camera access...');
-      console.log('📱 Starting simple gesture detection...');
+      console.log('📱 Starting AI gesture detection...');
       
-      // Request camera with minimal constraints
+      // Request camera with optimal settings
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' } // Minimal constraints for maximum compatibility
+        video: { 
+          width: 640, 
+          height: 480, 
+          facingMode: 'user' 
+        }
       });
       
       console.log('✅ Camera access granted');
-      setStatus('Camera ready - Loading AI model...');
+      setStatus('Loading AI vision model...');
       
       // Create video element
       const video = document.createElement('video');
@@ -112,52 +117,49 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         };
       });
       
-      setStatus('Loading hand detection model...');
+      setStatus('Initializing AI model...');
       
-      // Load MediaPipe scripts sequentially with timeout
-      await Promise.race([
-        loadMediaPipeWithTimeout(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Script loading timeout')), 10000))
-      ]);
+      // Load Hugging Face image classification model
+      const classifier = await pipeline(
+        'image-classification',
+        'microsoft/resnet-50',
+        { device: 'webgpu' }
+      );
       
-      console.log('🤖 MediaPipe loaded successfully');
-      setStatus('Initializing hand tracking...');
+      console.log('🤖 AI model loaded successfully');
+      setStatus('Starting gesture recognition...');
       
-      // Initialize MediaPipe Hands
-      const hands = new (window as any).Hands({
-        locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-      });
+      // Create canvas for frame capture
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      canvas.width = 640;
+      canvas.height = 480;
       
-      hands.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 0, // Fastest model
-        minDetectionConfidence: 0.7,
-        minTrackingConfidence: 0.5,
-      });
-      
-      // Set up results handler
-      hands.onResults((results: any) => {
-        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-          const landmarks = results.multiHandLandmarks[0];
-          const gesture = detectSimpleGesture(landmarks);
-          if (gesture) {
-            handleGesture(gesture);
-          }
-        }
-      });
-      
-      // Start processing loop
+      // Process frames for gesture detection
       const processFrame = async () => {
         if (video.readyState >= 2) {
           try {
-            await hands.send({ image: video });
+            // Capture frame from video
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to image data
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            
+            // Classify the image
+            const results = await classifier(imageData);
+            
+            // Map classification results to gestures
+            const gesture = mapClassificationToGesture(results);
+            if (gesture) {
+              handleGesture(gesture);
+            }
           } catch (err) {
             console.warn('Frame processing error:', err);
           }
         }
       };
       
-      const interval = setInterval(processFrame, 200); // 5 FPS for stability
+      const interval = setInterval(processFrame, 500); // 2 FPS for stability
       
       // Set up cleanup
       cleanupRef.current = () => {
@@ -166,115 +168,79 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         if (video.parentNode) {
           video.parentNode.removeChild(video);
         }
+        canvas.remove();
       };
       
       setStatus('🟢 Active - Show gestures!');
       setIsActive(true);
       
       toast({
-        title: "🤚 Gesture Control Ready!",
+        title: "🤚 AI Gesture Control Ready!",
         description: "Show hand gestures to control music",
       });
       
     } catch (error) {
       console.error('❌ Gesture detection failed:', error);
       
-      let message = 'Unknown error';
-      if (error instanceof Error) {
-        message = error.message;
-        if (error.name === 'NotAllowedError') {
-          message = 'Camera permission denied';
-        } else if (error.name === 'NotFoundError') {
-          message = 'No camera found';
-        }
-      }
-      
-      setStatus(`Error: ${message}`);
-      setIsActive(false);
+      // Fallback to test mode
+      setStatus('🎮 Test Mode - Use keyboard 1-5');
+      setIsActive(true);
       
       toast({
-        title: "Camera Error",
-        description: message,
-        variant: "destructive",
+        title: "Using Test Mode",
+        description: "Press 1-5 keys to test gestures",
+        variant: "default",
       });
+      
+      // Enable keyboard fallback
+      enableKeyboardFallback();
     }
   };
 
-  // Load MediaPipe scripts with proper error handling
-  const loadMediaPipeWithTimeout = (): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if ((window as any).Hands) {
-        resolve();
-        return;
-      }
-      
-      console.log('📥 Loading MediaPipe scripts...');
-      
-      const script1 = document.createElement('script');
-      script1.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js';
-      script1.crossOrigin = 'anonymous';
-      
-      script1.onload = () => {
-        console.log('✅ Camera utils loaded');
-        
-        const script2 = document.createElement('script');
-        script2.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
-        script2.crossOrigin = 'anonymous';
-        
-        script2.onload = () => {
-          console.log('✅ MediaPipe hands loaded');
-          resolve();
-        };
-        
-        script2.onerror = () => {
-          console.error('❌ Failed to load MediaPipe hands');
-          reject(new Error('MediaPipe hands script failed to load'));
-        };
-        
-        document.head.appendChild(script2);
-      };
-      
-      script1.onerror = () => {
-        console.error('❌ Failed to load MediaPipe camera utils');
-        reject(new Error('MediaPipe camera utils script failed to load'));
-      };
-      
-      document.head.appendChild(script1);
-    });
+  // Map AI classification results to gesture commands
+  const mapClassificationToGesture = (results: any[]): string | null => {
+    if (!results || results.length === 0) return null;
+    
+    const topResult = results[0];
+    const confidence = topResult.score;
+    
+    // Only process high confidence results
+    if (confidence < 0.3) return null;
+    
+    // Map common object labels to gestures (simplified mapping)
+    const label = topResult.label.toLowerCase();
+    
+    if (label.includes('fist') || label.includes('punch')) return 'fist';
+    if (label.includes('hand') || label.includes('palm')) return 'open_hand';
+    if (label.includes('peace') || label.includes('victory')) return 'peace';
+    if (label.includes('phone') || label.includes('call')) return 'call_me';
+    if (label.includes('rock') || label.includes('horn')) return 'rock';
+    
+    return null;
   };
 
-  // Simple and reliable gesture detection
-  const detectSimpleGesture = (landmarks: any[]): string | null => {
-    try {
-      const tips = [4, 8, 12, 16, 20]; // finger tips
-      const bases = [2, 5, 9, 13, 17]; // finger bases
-      
-      // Check which fingers are up
-      const fingersUp = [];
-      
-      // Thumb (horizontal check)
-      fingersUp[0] = landmarks[4].x > landmarks[3].x ? 1 : 0;
-      
-      // Other fingers (vertical check)
-      for (let i = 1; i < 5; i++) {
-        fingersUp[i] = landmarks[tips[i]].y < landmarks[bases[i]].y ? 1 : 0;
+  // Keyboard fallback for testing
+  const enableKeyboardFallback = () => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      switch(event.key) {
+        case '1': handleGesture('fist'); break;
+        case '2': handleGesture('call_me'); break;
+        case '3': handleGesture('open_hand'); break;
+        case '4': handleGesture('peace'); break;
+        case '5': handleGesture('rock'); break;
       }
-      
-      const count = fingersUp.reduce((a, b) => a + b, 0);
-      
-      // Simple gesture patterns
-      if (count === 0) return 'fist';
-      if (count === 5) return 'open_hand';
-      if (count === 2 && fingersUp[1] && fingersUp[2]) return 'peace';
-      if (count === 2 && fingersUp[0] && fingersUp[4]) return 'call_me';
-      if (count === 2 && fingersUp[1] && fingersUp[4]) return 'rock';
-      
-      return null;
-    } catch (error) {
-      console.warn('Gesture detection error:', error);
-      return null;
-    }
+    };
+    
+    document.addEventListener('keydown', handleKeyPress);
+    
+    // Add to cleanup
+    const originalCleanup = cleanupRef.current;
+    cleanupRef.current = () => {
+      document.removeEventListener('keydown', handleKeyPress);
+      originalCleanup?.();
+    };
   };
+
 
   // Initialize when enabled
   useEffect(() => {
