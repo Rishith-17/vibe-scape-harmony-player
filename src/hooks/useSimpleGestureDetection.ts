@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useToast } from '@/hooks/use-toast';
-import { pipeline } from '@huggingface/transformers';
 
 interface SimpleGestureOptions {
   enabled: boolean;
@@ -80,23 +79,29 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
     }
   };
 
-  // AI-powered gesture detection using Hugging Face
+  // MediaPipe Hands gesture detection
   const startSimpleDetection = async () => {
     try {
       setStatus('Requesting camera access...');
-      console.log('📱 Starting AI gesture detection...');
+      console.log('📱 Starting MediaPipe hand gesture detection...');
       
-      // Request camera with optimal settings
+      // Request camera access
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           width: 640, 
           height: 480, 
-          facingMode: 'user' 
+          facingMode: 'user'
         }
       });
       
       console.log('✅ Camera access granted');
-      setStatus('Loading AI vision model...');
+      setStatus('Loading MediaPipe libraries...');
+      
+      // Load MediaPipe scripts
+      await loadMediaPipeScripts();
+      
+      console.log('📚 MediaPipe scripts loaded');
+      setStatus('Initializing hand detection...');
       
       // Create video element
       const video = document.createElement('video');
@@ -117,49 +122,62 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         };
       });
       
-      setStatus('Initializing AI model...');
-      
-      // Load Hugging Face image classification model
-      const classifier = await pipeline(
-        'image-classification',
-        'microsoft/resnet-50',
-        { device: 'webgpu' }
-      );
-      
-      console.log('🤖 AI model loaded successfully');
-      setStatus('Starting gesture recognition...');
-      
-      // Create canvas for frame capture
+      // Create canvas for processing
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d')!;
       canvas.width = 640;
       canvas.height = 480;
       
-      // Process frames for gesture detection
-      const processFrame = async () => {
-        if (video.readyState >= 2) {
-          try {
-            // Capture frame from video
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Convert to image data
-            const imageData = canvas.toDataURL('image/jpeg', 0.8);
-            
-            // Classify the image
-            const results = await classifier(imageData);
-            
-            // Map classification results to gestures
-            const gesture = mapClassificationToGesture(results);
-            if (gesture) {
-              handleGesture(gesture);
-            }
-          } catch (err) {
-            console.warn('Frame processing error:', err);
+      setStatus('Initializing hand tracker...');
+      
+      // Initialize MediaPipe Hands with lower confidence
+      const hands = new (window as any).Hands({
+        locateFile: (file: string) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }
+      });
+      
+      // Configure with lower thresholds for better detection
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.3, // Lower threshold
+        minTrackingConfidence: 0.3,  // Lower threshold
+      });
+      
+      console.log('🤖 MediaPipe Hands initialized with low confidence thresholds');
+      
+      let isProcessing = false;
+      
+      // Set up results handler
+      hands.onResults((results: any) => {
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+          const landmarks = results.multiHandLandmarks[0];
+          console.log('🖐️ Hand detected with', landmarks.length, 'landmarks');
+          
+          // Analyze gesture from landmarks
+          const gesture = analyzeGestureFromLandmarks(landmarks);
+          if (gesture) {
+            console.log('✨ Gesture detected:', gesture);
+            handleGesture(gesture);
           }
+        } else {
+          // Log when no hands are detected
+          console.log('👻 No hands detected in frame');
+        }
+        isProcessing = false;
+      });
+      
+      // Process frames at 5 FPS
+      const processFrame = async () => {
+        if (video.readyState >= 2 && !isProcessing) {
+          isProcessing = true;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          await hands.send({ image: canvas });
         }
       };
       
-      const interval = setInterval(processFrame, 500); // 2 FPS for stability
+      const interval = setInterval(processFrame, 200); // 5 FPS
       
       // Set up cleanup
       cleanupRef.current = () => {
@@ -169,18 +187,19 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
           video.parentNode.removeChild(video);
         }
         canvas.remove();
+        hands.close();
       };
       
-      setStatus('🟢 Active - Show gestures!');
+      setStatus('🟢 Active - Show hand gestures!');
       setIsActive(true);
       
       toast({
-        title: "🤚 AI Gesture Control Ready!",
-        description: "Show hand gestures to control music",
+        title: "🤚 Hand Gesture Control Ready!",
+        description: "Show clear hand gestures to control music",
       });
       
     } catch (error) {
-      console.error('❌ Gesture detection failed:', error);
+      console.error('❌ MediaPipe gesture detection failed:', error);
       
       // Fallback to test mode
       setStatus('🎮 Test Mode - Use keyboard 1-5');
@@ -197,27 +216,115 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
     }
   };
 
-  // Map AI classification results to gesture commands
-  const mapClassificationToGesture = (results: any[]): string | null => {
-    if (!results || results.length === 0) return null;
-    
-    const topResult = results[0];
-    const confidence = topResult.score;
-    
-    // Only process high confidence results
-    if (confidence < 0.3) return null;
-    
-    // Map common object labels to gestures (simplified mapping)
-    const label = topResult.label.toLowerCase();
-    
-    if (label.includes('fist') || label.includes('punch')) return 'fist';
-    if (label.includes('hand') || label.includes('palm')) return 'open_hand';
-    if (label.includes('peace') || label.includes('victory')) return 'peace';
-    if (label.includes('phone') || label.includes('call')) return 'call_me';
-    if (label.includes('rock') || label.includes('horn')) return 'rock';
-    
-    return null;
+  // Load MediaPipe scripts dynamically
+  const loadMediaPipeScripts = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const scripts = [
+        'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js',
+        'https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js',
+        'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js',
+        'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'
+      ];
+      
+      let loadedCount = 0;
+      const totalScripts = scripts.length;
+      
+      scripts.forEach((src) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => {
+          loadedCount++;
+          console.log(`📦 Loaded script ${loadedCount}/${totalScripts}: ${src}`);
+          if (loadedCount === totalScripts) {
+            setTimeout(resolve, 100); // Small delay to ensure all scripts are ready
+          }
+        };
+        script.onerror = () => {
+          console.error(`❌ Failed to load script: ${src}`);
+          reject(new Error(`Failed to load MediaPipe script: ${src}`));
+        };
+        document.head.appendChild(script);
+      });
+    });
   };
+
+  // Analyze gesture from hand landmarks with improved logic
+  const analyzeGestureFromLandmarks = (landmarks: any[]): string | null => {
+    if (!landmarks || landmarks.length < 21) {
+      console.log('⚠️ Insufficient landmarks for gesture analysis');
+      return null;
+    }
+    
+    try {
+      // Get key landmark positions
+      const thumb_tip = landmarks[4];
+      const thumb_ip = landmarks[3];
+      const index_tip = landmarks[8];
+      const index_pip = landmarks[6];
+      const middle_tip = landmarks[12];
+      const middle_pip = landmarks[10];
+      const ring_tip = landmarks[16];
+      const ring_pip = landmarks[14];
+      const pinky_tip = landmarks[20];
+      const pinky_pip = landmarks[18];
+      const wrist = landmarks[0];
+      
+      // Calculate finger states with tolerance
+      const tolerance = 0.02;
+      const thumb_up = thumb_tip.y < thumb_ip.y - tolerance;
+      const index_up = index_tip.y < index_pip.y - tolerance;
+      const middle_up = middle_tip.y < middle_pip.y - tolerance;
+      const ring_up = ring_tip.y < ring_pip.y - tolerance;
+      const pinky_up = pinky_tip.y < pinky_pip.y - tolerance;
+      
+      console.log('👆 Finger states:', {
+        thumb: thumb_up,
+        index: index_up,
+        middle: middle_up,
+        ring: ring_up,
+        pinky: pinky_up
+      });
+      
+      // Gesture recognition with improved logic
+      // Fist - all fingers down
+      if (!thumb_up && !index_up && !middle_up && !ring_up && !pinky_up) {
+        console.log('✊ Detected: FIST');
+        return 'fist';
+      }
+      
+      // Open hand - all fingers up
+      if (thumb_up && index_up && middle_up && ring_up && pinky_up) {
+        console.log('🖐️ Detected: OPEN HAND');
+        return 'open_hand';
+      }
+      
+      // Peace sign - index and middle up, others down
+      if (!thumb_up && index_up && middle_up && !ring_up && !pinky_up) {
+        console.log('✌️ Detected: PEACE');
+        return 'peace';
+      }
+      
+      // Rock/horns - index and pinky up, others down
+      if (!thumb_up && index_up && !middle_up && !ring_up && pinky_up) {
+        console.log('🤟 Detected: ROCK');
+        return 'rock';
+      }
+      
+      // Call me - thumb and pinky up, others down
+      if (thumb_up && !index_up && !middle_up && !ring_up && pinky_up) {
+        console.log('🤙 Detected: CALL ME');
+        return 'call_me';
+      }
+      
+      console.log('❓ No gesture pattern matched');
+      return null;
+      
+    } catch (error) {
+      console.error('❌ Error analyzing landmarks:', error);
+      return null;
+    }
+  };
+
 
   // Keyboard fallback for testing
   const enableKeyboardFallback = () => {
