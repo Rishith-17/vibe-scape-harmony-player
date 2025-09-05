@@ -199,20 +199,15 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       });
       
     } catch (error) {
-      console.error('❌ MediaPipe gesture detection failed:', error);
-      
-      // Fallback to test mode
-      setStatus('🎮 Test Mode - Use keyboard 1-5');
-      setIsActive(true);
+      console.error('❌ Hand gesture detection failed:', error);
+      setStatus('❌ Camera access denied or not supported');
+      setIsActive(false);
       
       toast({
-        title: "Using Test Mode",
-        description: "Press 1-5 keys to test gestures",
-        variant: "default",
+        title: "Gesture Control Unavailable",
+        description: "Please allow camera access for hand gestures",
+        variant: "destructive",
       });
-      
-      // Enable keyboard fallback
-      enableKeyboardFallback();
     }
   };
 
@@ -326,27 +321,6 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
   };
 
 
-  // Keyboard fallback for testing
-  const enableKeyboardFallback = () => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      switch(event.key) {
-        case '1': handleGesture('fist'); break;
-        case '2': handleGesture('call_me'); break;
-        case '3': handleGesture('open_hand'); break;
-        case '4': handleGesture('peace'); break;
-        case '5': handleGesture('rock'); break;
-      }
-    };
-    
-    document.addEventListener('keydown', handleKeyPress);
-    
-    // Add to cleanup
-    const originalCleanup = cleanupRef.current;
-    cleanupRef.current = () => {
-      document.removeEventListener('keydown', handleKeyPress);
-      originalCleanup?.();
-    };
-  };
 
 
   // Initialize when enabled
