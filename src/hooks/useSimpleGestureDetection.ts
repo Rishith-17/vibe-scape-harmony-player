@@ -22,8 +22,8 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
   const handleGesture = (gestureType: string) => {
     const now = Date.now();
     
-    // Debounce gestures (1.5 second cooldown)
-    if (now - lastGestureTimeRef.current < 1500) {
+    // Debounce gestures (1 second cooldown for better responsiveness)
+    if (now - lastGestureTimeRef.current < 1000) {
       return;
     }
     
@@ -58,7 +58,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         break;
         
       case 'peace':
-        const newVolumeUp = Math.min(100, currentVolume + 10);
+        const newVolumeUp = Math.min(100, currentVolume + 5);
         setCurrentVolume(newVolumeUp);
         setVolume(newVolumeUp);
         toast({
@@ -68,7 +68,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         break;
         
       case 'rock':
-        const newVolumeDown = Math.max(0, currentVolume - 10);
+        const newVolumeDown = Math.max(0, currentVolume - 5);
         setCurrentVolume(newVolumeDown);
         setVolume(newVolumeDown);
         toast({
@@ -137,12 +137,12 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         }
       });
       
-      // Configure with lower thresholds for better detection
+      // Configure with optimized thresholds for gesture accuracy
       hands.setOptions({
-        maxNumHands: 2,
+        maxNumHands: 1, // Focus on single hand for better accuracy
         modelComplexity: 1,
-        minDetectionConfidence: 0.3, // Lower threshold
-        minTrackingConfidence: 0.3,  // Lower threshold
+        minDetectionConfidence: 0.4, // Slightly higher for accuracy
+        minTrackingConfidence: 0.4,  // Slightly higher for accuracy
       });
       
       console.log('🤖 MediaPipe Hands initialized with low confidence thresholds');
@@ -243,7 +243,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
     });
   };
 
-  // Analyze gesture from hand landmarks with improved logic
+  // Analyze gesture from hand landmarks with enhanced accuracy
   const analyzeGestureFromLandmarks = (landmarks: any[]): string | null => {
     if (!landmarks || landmarks.length < 21) {
       console.log('⚠️ Insufficient landmarks for gesture analysis');
@@ -254,64 +254,89 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       // Get key landmark positions
       const thumb_tip = landmarks[4];
       const thumb_ip = landmarks[3];
+      const thumb_mcp = landmarks[2];
       const index_tip = landmarks[8];
       const index_pip = landmarks[6];
+      const index_mcp = landmarks[5];
       const middle_tip = landmarks[12];
       const middle_pip = landmarks[10];
+      const middle_mcp = landmarks[9];
       const ring_tip = landmarks[16];
       const ring_pip = landmarks[14];
+      const ring_mcp = landmarks[13];
       const pinky_tip = landmarks[20];
       const pinky_pip = landmarks[18];
+      const pinky_mcp = landmarks[17];
       const wrist = landmarks[0];
       
-      // Calculate finger states with tolerance
-      const tolerance = 0.02;
-      const thumb_up = thumb_tip.y < thumb_ip.y - tolerance;
-      const index_up = index_tip.y < index_pip.y - tolerance;
-      const middle_up = middle_tip.y < middle_pip.y - tolerance;
-      const ring_up = ring_tip.y < ring_pip.y - tolerance;
-      const pinky_up = pinky_tip.y < pinky_pip.y - tolerance;
+      // Enhanced finger state detection with multiple joint analysis
+      const fingerTolerance = 0.015; // Reduced for better accuracy
+      const thumbTolerance = 0.025; // Thumb needs different tolerance
       
-      console.log('👆 Finger states:', {
+      // For thumb, check if tip is higher than both IP and MCP joints
+      const thumb_up = thumb_tip.y < (thumb_ip.y - thumbTolerance) && thumb_tip.y < (thumb_mcp.y - thumbTolerance);
+      
+      // For other fingers, check tip vs PIP and MCP
+      const index_up = index_tip.y < (index_pip.y - fingerTolerance) && index_tip.y < (index_mcp.y - fingerTolerance);
+      const middle_up = middle_tip.y < (middle_pip.y - fingerTolerance) && middle_tip.y < (middle_mcp.y - fingerTolerance);
+      const ring_up = ring_tip.y < (ring_pip.y - fingerTolerance) && ring_tip.y < (ring_mcp.y - fingerTolerance);
+      const pinky_up = pinky_tip.y < (pinky_pip.y - fingerTolerance) && pinky_tip.y < (pinky_mcp.y - fingerTolerance);
+      
+      // Additional checks for gesture stability
+      const fingersUp = [thumb_up, index_up, middle_up, ring_up, pinky_up].filter(Boolean).length;
+      const fingersDown = [thumb_up, index_up, middle_up, ring_up, pinky_up].filter(f => !f).length;
+      
+      console.log('👆 Enhanced finger states:', {
         thumb: thumb_up,
         index: index_up,
         middle: middle_up,
         ring: ring_up,
-        pinky: pinky_up
+        pinky: pinky_up,
+        fingersUp,
+        fingersDown
       });
       
-      // Gesture recognition with improved logic
-      // Fist - all fingers down
-      if (!thumb_up && !index_up && !middle_up && !ring_up && !pinky_up) {
-        console.log('✊ Detected: FIST');
+      // Enhanced gesture recognition with stricter patterns
+      
+      // Fist - all fingers down (strictest check)
+      if (fingersDown === 5) {
+        console.log('✊ CONFIRMED: FIST (all fingers down)');
         return 'fist';
       }
       
-      // Open hand - all fingers up
-      if (thumb_up && index_up && middle_up && ring_up && pinky_up) {
-        console.log('🖐️ Detected: OPEN HAND');
+      // Open hand - all fingers up (strictest check)  
+      if (fingersUp === 5) {
+        console.log('🖐️ CONFIRMED: OPEN HAND (all fingers up)');
         return 'open_hand';
       }
       
-      // Peace sign - index and middle up, others down
-      if (!thumb_up && index_up && middle_up && !ring_up && !pinky_up) {
-        console.log('✌️ Detected: PEACE');
+      // Peace sign - only index and middle up, others down
+      if (!thumb_up && index_up && middle_up && !ring_up && !pinky_up && fingersUp === 2) {
+        console.log('✌️ CONFIRMED: PEACE (index + middle only)');
         return 'peace';
       }
       
-      // Rock/horns - index and pinky up, others down
-      if (!thumb_up && index_up && !middle_up && !ring_up && pinky_up) {
-        console.log('🤟 Detected: ROCK');
+      // Rock/horns - only index and pinky up, others down
+      if (!thumb_up && index_up && !middle_up && !ring_up && pinky_up && fingersUp === 2) {
+        console.log('🤟 CONFIRMED: ROCK (index + pinky only)');
         return 'rock';
       }
       
-      // Call me - thumb and pinky up, others down
-      if (thumb_up && !index_up && !middle_up && !ring_up && pinky_up) {
-        console.log('🤙 Detected: CALL ME');
+      // Call me - only thumb and pinky up, others down
+      if (thumb_up && !index_up && !middle_up && !ring_up && pinky_up && fingersUp === 2) {
+        console.log('🤙 CONFIRMED: CALL ME (thumb + pinky only)');
         return 'call_me';
       }
       
-      console.log('❓ No gesture pattern matched');
+      // Log unmatched patterns for debugging
+      console.log('❓ No gesture pattern matched - Fingers up:', fingersUp, 'Pattern:', {
+        thumb: thumb_up ? '👍' : '👎',
+        index: index_up ? '👍' : '👎', 
+        middle: middle_up ? '👍' : '👎',
+        ring: ring_up ? '👍' : '👎',
+        pinky: pinky_up ? '👍' : '👎'
+      });
+      
       return null;
       
     } catch (error) {
