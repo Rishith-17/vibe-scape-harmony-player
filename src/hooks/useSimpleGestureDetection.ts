@@ -15,7 +15,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
   const cleanupRef = useRef<(() => void) | null>(null);
   const lastGestureTimeRef = useRef(0);
   
-  const { togglePlayPause, skipNext, skipPrevious, setVolume } = useMusicPlayer();
+  const { togglePlayPause, skipNext, skipPrevious, setVolume, playlist, currentIndex } = useMusicPlayer();
   const { toast } = useToast();
 
   // Simple gesture handler
@@ -24,6 +24,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
     
     // Debounce gestures (1 second cooldown for better responsiveness)
     if (now - lastGestureTimeRef.current < 1000) {
+      console.log('🚫 Gesture debounced:', gestureType);
       return;
     }
     
@@ -31,9 +32,11 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
     setLastGesture(gestureType);
     
     console.log('🎯 Gesture executed:', gestureType);
+    console.log('📊 Current state - Volume:', currentVolume, 'Playlist length:', playlist?.length, 'Index:', currentIndex);
     
     switch (gestureType) {
       case 'fist':
+        console.log('▶️ Executing play/pause...');
         togglePlayPause();
         toast({
           title: "🎵 Gesture Control",
@@ -42,23 +45,42 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         break;
         
       case 'call_me':
-        skipNext();
-        toast({
-          title: "🎵 Gesture Control",
-          description: "🤙 Next song",
-        });
+        console.log('⏭️ Executing skip next... Can skip:', currentIndex < (playlist?.length || 0) - 1);
+        if (playlist && currentIndex < playlist.length - 1) {
+          skipNext();
+          toast({
+            title: "🎵 Gesture Control", 
+            description: "🤙 Next song",
+          });
+        } else {
+          console.log('❌ Cannot skip next - end of playlist');
+          toast({
+            title: "🎵 Gesture Control",
+            description: "🤙 End of playlist",
+          });
+        }
         break;
         
       case 'open_hand':
-        skipPrevious();
-        toast({
-          title: "🎵 Gesture Control",
-          description: "🖐️ Previous song",
-        });
+        console.log('⏮️ Executing skip previous... Can skip:', currentIndex > 0);
+        if (playlist && currentIndex > 0) {
+          skipPrevious();
+          toast({
+            title: "🎵 Gesture Control",
+            description: "🖐️ Previous song",
+          });
+        } else {
+          console.log('❌ Cannot skip previous - start of playlist');
+          toast({
+            title: "🎵 Gesture Control", 
+            description: "🖐️ Start of playlist",
+          });
+        }
         break;
         
       case 'peace':
         const newVolumeUp = Math.min(100, currentVolume + 5);
+        console.log('🔊 Executing volume up:', currentVolume, '→', newVolumeUp);
         setCurrentVolume(newVolumeUp);
         setVolume(newVolumeUp);
         toast({
@@ -69,6 +91,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         
       case 'rock':
         const newVolumeDown = Math.max(0, currentVolume - 5);
+        console.log('🔉 Executing volume down:', currentVolume, '→', newVolumeDown);
         setCurrentVolume(newVolumeDown);
         setVolume(newVolumeDown);
         toast({
@@ -76,6 +99,9 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
           description: `🤟 Volume down: ${newVolumeDown}%`,
         });
         break;
+        
+      default:
+        console.log('❓ Unknown gesture type:', gestureType);
     }
   };
 
@@ -352,6 +378,16 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
   useEffect(() => {
     if (options.enabled && !isActive) {
       console.log('🚀 Starting gesture detection...');
+      // Initialize volume from localStorage or default
+      if (typeof window !== 'undefined') {
+        const savedVolume = localStorage.getItem('vibescape_volume');
+        if (savedVolume) {
+          const vol = parseInt(savedVolume, 10);
+          if (!isNaN(vol)) {
+            setCurrentVolume(vol);
+          }
+        }
+      }
       startSimpleDetection();
     }
     
@@ -365,6 +401,11 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       setStatus('Stopped');
     };
   }, [options.enabled]); // Only depend on enabled flag
+
+  // Save volume to localStorage when it changes  
+  useEffect(() => {
+    localStorage.setItem('vibescape_volume', currentVolume.toString());
+  }, [currentVolume]);
 
   return {
     status,
