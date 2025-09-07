@@ -94,7 +94,12 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const playerManager = YouTubePlayerManager.getInstance();
 
   const skipNext = useCallback(() => {
-    if (playlist.length === 0) return;
+    console.log('🎵 skipNext called - playlist length:', playlist.length, 'currentIndex:', currentIndex);
+    
+    if (playlist.length === 0) {
+      console.log('❌ No playlist available for skipNext');
+      return;
+    }
     
     // Standard music player behavior: loop to first track if at end
     let nextIndex;
@@ -106,16 +111,21 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     
     const nextTrack = playlist[nextIndex];
     
+    console.log(`🎵 Skip Next: ${currentIndex} → ${nextIndex} (${nextTrack.title})`);
+    
     setCurrentIndex(nextIndex);
     setCurrentTrack(nextTrack);
     
     playerManager.playTrack(nextTrack);
-    
-    console.log(`🎵 Skip Next: ${currentIndex} → ${nextIndex} (${nextTrack.title})`);
   }, [currentIndex, playlist, playerManager]);
 
   const skipPrevious = useCallback(() => {
-    if (playlist.length === 0) return;
+    console.log('🎵 skipPrevious called - playlist length:', playlist.length, 'currentIndex:', currentIndex);
+    
+    if (playlist.length === 0) {
+      console.log('❌ No playlist available for skipPrevious');
+      return;
+    }
     
     // Smart Previous behavior like Spotify/YouTube Music
     const currentTime = playerManager.getCurrentTime();
@@ -137,12 +147,12 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     
     const prevTrack = playlist[prevIndex];
     
+    console.log(`🎵 Skip Previous: ${currentIndex} → ${prevIndex} (${prevTrack.title})`);
+    
     setCurrentIndex(prevIndex);
     setCurrentTrack(prevTrack);
     
     playerManager.playTrack(prevTrack);
-    
-    console.log(`🎵 Skip Previous: ${currentIndex} → ${prevIndex} (${prevTrack.title})`);
   }, [currentIndex, playlist, playerManager, currentTrack]);
 
   // Subscribe to player state changes - Fixed useEffect

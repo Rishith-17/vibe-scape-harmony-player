@@ -16,7 +16,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
   const lastGestureTimeRef = useRef(0);
   const playerManagerRef = useRef<any>(null);
   
-  const { togglePlayPause, skipNext, skipPrevious, setVolume, playlist, currentIndex } = useMusicPlayer();
+  const { togglePlayPause, skipNext, skipPrevious, setVolume, playlist, currentIndex, currentTrack } = useMusicPlayer();
   const { toast } = useToast();
 
   // Get YouTube player manager for direct volume access
@@ -66,30 +66,25 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         
       case 'call_me':
         console.log('⏭️ Executing skip next...');
+        console.log('⏭️ Current track:', currentTrack?.title);
         console.log('⏭️ Playlist info:', { 
           length: playlist?.length || 0, 
           currentIndex, 
           tracks: playlist?.map(t => t.title) || [] 
         });
         
-        if (playlist && playlist.length > 0) {
-          console.log('⏭️ Calling skipNext with looping...');
-          skipNext();
-          toast({
-            title: "🎵 Gesture Control", 
-            description: "🤙 Next song",
-          });
-        } else {
-          console.log('❌ No playlist available');
-          toast({
-            title: "🎵 Gesture Control",
-            description: "🤙 No playlist loaded",
-          });
-        }
+        // Always try to skip next - let the music player handle it
+        console.log('⏭️ Calling skipNext...');
+        skipNext();
+        toast({
+          title: "🎵 Gesture Control", 
+          description: "🤙 Next song",
+        });
         break;
         
       case 'open_hand':
         console.log('⏮️ Executing skip previous...');
+        console.log('⏮️ Current track:', currentTrack?.title);
         console.log('⏮️ Playlist info:', { 
           length: playlist?.length || 0, 
           currentIndex,
@@ -97,20 +92,13 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
           tracks: playlist?.map(t => t.title) || [] 
         });
         
-        if (playlist && playlist.length > 0) {
-          console.log('⏮️ Calling skipPrevious with smart restart...');
-          skipPrevious();
-          toast({
-            title: "🎵 Gesture Control",
-            description: "🖐️ Previous song",
-          });
-        } else {
-          console.log('❌ No playlist available');
-          toast({
-            title: "🎵 Gesture Control", 
-            description: "🖐️ No playlist loaded",
-          });
-        }
+        // Always try to skip previous - let the music player handle it
+        console.log('⏮️ Calling skipPrevious...');
+        skipPrevious();
+        toast({
+          title: "🎵 Gesture Control",
+          description: "🖐️ Previous song",
+        });
         break;
         
       case 'peace':
