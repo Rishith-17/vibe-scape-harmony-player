@@ -94,28 +94,56 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const playerManager = YouTubePlayerManager.getInstance();
 
   const skipNext = useCallback(() => {
+    if (playlist.length === 0) return;
+    
+    // Standard music player behavior: loop to first track if at end
+    let nextIndex;
     if (currentIndex < playlist.length - 1) {
-      const nextIndex = currentIndex + 1;
-      const nextTrack = playlist[nextIndex];
-      
-      setCurrentIndex(nextIndex);
-      setCurrentTrack(nextTrack);
-      
-      playerManager.playTrack(nextTrack);
+      nextIndex = currentIndex + 1;
+    } else {
+      nextIndex = 0; // Loop to first track
     }
+    
+    const nextTrack = playlist[nextIndex];
+    
+    setCurrentIndex(nextIndex);
+    setCurrentTrack(nextTrack);
+    
+    playerManager.playTrack(nextTrack);
+    
+    console.log(`🎵 Skip Next: ${currentIndex} → ${nextIndex} (${nextTrack.title})`);
   }, [currentIndex, playlist, playerManager]);
 
   const skipPrevious = useCallback(() => {
-    if (currentIndex > 0) {
-      const prevIndex = currentIndex - 1;
-      const prevTrack = playlist[prevIndex];
-      
-      setCurrentIndex(prevIndex);
-      setCurrentTrack(prevTrack);
-      
-      playerManager.playTrack(prevTrack);
+    if (playlist.length === 0) return;
+    
+    // Smart Previous behavior like Spotify/YouTube Music
+    const currentTime = playerManager.getCurrentTime();
+    
+    // If song has been playing for > 5 seconds, restart current track
+    if (currentTime > 5 && currentTrack) {
+      playerManager.seekTo(0);
+      console.log(`🔄 Restart current track: ${currentTrack.title}`);
+      return;
     }
-  }, [currentIndex, playlist, playerManager]);
+    
+    // Otherwise, go to previous track (loop to last if at beginning)
+    let prevIndex;
+    if (currentIndex > 0) {
+      prevIndex = currentIndex - 1;
+    } else {
+      prevIndex = playlist.length - 1; // Loop to last track
+    }
+    
+    const prevTrack = playlist[prevIndex];
+    
+    setCurrentIndex(prevIndex);
+    setCurrentTrack(prevTrack);
+    
+    playerManager.playTrack(prevTrack);
+    
+    console.log(`🎵 Skip Previous: ${currentIndex} → ${prevIndex} (${prevTrack.title})`);
+  }, [currentIndex, playlist, playerManager, currentTrack]);
 
   // Subscribe to player state changes - Fixed useEffect
   useEffect(() => {
@@ -772,8 +800,8 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     skipPrevious,
     seekTo,
     setVolume,
-    canSkipNext: currentIndex < playlist.length - 1,
-    canSkipPrevious: currentIndex > 0,
+    canSkipNext: playlist.length > 0, // Always can skip with looping
+    canSkipPrevious: playlist.length > 0, // Always can skip with looping
     playlists,
     createPlaylist,
     deletePlaylist,

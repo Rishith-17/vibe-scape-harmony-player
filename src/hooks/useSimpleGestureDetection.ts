@@ -65,39 +65,50 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         break;
         
       case 'call_me':
-        console.log('⏭️ Executing skip next... Can skip:', currentIndex < (playlist?.length || 0) - 1);
-        console.log('⏭️ Playlist:', playlist?.map(t => t.title));
-        if (playlist && playlist.length > 0 && currentIndex < playlist.length - 1) {
-          console.log('⏭️ Calling skipNext...');
+        console.log('⏭️ Executing skip next...');
+        console.log('⏭️ Playlist info:', { 
+          length: playlist?.length || 0, 
+          currentIndex, 
+          tracks: playlist?.map(t => t.title) || [] 
+        });
+        
+        if (playlist && playlist.length > 0) {
+          console.log('⏭️ Calling skipNext with looping...');
           skipNext();
           toast({
             title: "🎵 Gesture Control", 
             description: "🤙 Next song",
           });
         } else {
-          console.log('❌ Cannot skip next - end of playlist or no playlist');
+          console.log('❌ No playlist available');
           toast({
             title: "🎵 Gesture Control",
-            description: "🤙 End of playlist",
+            description: "🤙 No playlist loaded",
           });
         }
         break;
         
       case 'open_hand':
-        console.log('⏮️ Executing skip previous... Can skip:', currentIndex > 0);
-        console.log('⏮️ Playlist:', playlist?.map(t => t.title));
-        if (playlist && playlist.length > 0 && currentIndex > 0) {
-          console.log('⏮️ Calling skipPrevious...');
+        console.log('⏮️ Executing skip previous...');
+        console.log('⏮️ Playlist info:', { 
+          length: playlist?.length || 0, 
+          currentIndex,
+          currentTime: getCurrentPlayerVolume(),
+          tracks: playlist?.map(t => t.title) || [] 
+        });
+        
+        if (playlist && playlist.length > 0) {
+          console.log('⏮️ Calling skipPrevious with smart restart...');
           skipPrevious();
           toast({
             title: "🎵 Gesture Control",
             description: "🖐️ Previous song",
           });
         } else {
-          console.log('❌ Cannot skip previous - start of playlist or no playlist');
+          console.log('❌ No playlist available');
           toast({
             title: "🎵 Gesture Control", 
-            description: "🖐️ Start of playlist",
+            description: "🖐️ No playlist loaded",
           });
         }
         break;
