@@ -14,16 +14,36 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
   
   const cleanupRef = useRef<(() => void) | null>(null);
   const lastGestureTimeRef = useRef(0);
+  const playerManagerRef = useRef<any>(null);
   
   const { togglePlayPause, skipNext, skipPrevious, setVolume, playlist, currentIndex } = useMusicPlayer();
   const { toast } = useToast();
+
+  // Get YouTube player manager for direct volume access
+  useEffect(() => {
+    import('@/lib/youtubePlayerManager').then(module => {
+      playerManagerRef.current = module.default.getInstance();
+    });
+  }, []);
+
+  // Get current volume from YouTube player
+  const getCurrentPlayerVolume = () => {
+    if (playerManagerRef.current && playerManagerRef.current.player && playerManagerRef.current.playerReady) {
+      try {
+        return playerManagerRef.current.player.getVolume();
+      } catch (error) {
+        console.log('Could not get current volume:', error);
+      }
+    }
+    return currentVolume;
+  };
 
   // Simple gesture handler
   const handleGesture = (gestureType: string) => {
     const now = Date.now();
     
-    // Debounce gestures (1 second cooldown for better responsiveness)
-    if (now - lastGestureTimeRef.current < 1000) {
+    // Debounce gestures (500ms for better responsiveness)
+    if (now - lastGestureTimeRef.current < 500) {
       console.log('🚫 Gesture debounced:', gestureType);
       return;
     }
@@ -46,14 +66,16 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         
       case 'call_me':
         console.log('⏭️ Executing skip next... Can skip:', currentIndex < (playlist?.length || 0) - 1);
-        if (playlist && currentIndex < playlist.length - 1) {
+        console.log('⏭️ Playlist:', playlist?.map(t => t.title));
+        if (playlist && playlist.length > 0 && currentIndex < playlist.length - 1) {
+          console.log('⏭️ Calling skipNext...');
           skipNext();
           toast({
             title: "🎵 Gesture Control", 
             description: "🤙 Next song",
           });
         } else {
-          console.log('❌ Cannot skip next - end of playlist');
+          console.log('❌ Cannot skip next - end of playlist or no playlist');
           toast({
             title: "🎵 Gesture Control",
             description: "🤙 End of playlist",
@@ -63,14 +85,16 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         
       case 'open_hand':
         console.log('⏮️ Executing skip previous... Can skip:', currentIndex > 0);
-        if (playlist && currentIndex > 0) {
+        console.log('⏮️ Playlist:', playlist?.map(t => t.title));
+        if (playlist && playlist.length > 0 && currentIndex > 0) {
+          console.log('⏮️ Calling skipPrevious...');
           skipPrevious();
           toast({
             title: "🎵 Gesture Control",
             description: "🖐️ Previous song",
           });
         } else {
-          console.log('❌ Cannot skip previous - start of playlist');
+          console.log('❌ Cannot skip previous - start of playlist or no playlist');
           toast({
             title: "🎵 Gesture Control", 
             description: "🖐️ Start of playlist",
@@ -79,10 +103,18 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         break;
         
       case 'peace':
-        const newVolumeUp = Math.min(100, currentVolume + 5);
-        console.log('🔊 Executing volume up:', currentVolume, '→', newVolumeUp);
+        // Get actual current volume from player
+        const actualVolume = getCurrentPlayerVolume();
+        const newVolumeUp = Math.min(100, actualVolume + 5);
+        console.log('🔊 Executing volume up:', actualVolume, '→', newVolumeUp);
         setCurrentVolume(newVolumeUp);
         setVolume(newVolumeUp);
+        // Force update to ensure volume is applied
+        setTimeout(() => {
+          if (playerManagerRef.current && playerManagerRef.current.player) {
+            playerManagerRef.current.player.setVolume(newVolumeUp);
+          }
+        }, 100);
         toast({
           title: "🎵 Gesture Control",
           description: `✌️ Volume up: ${newVolumeUp}%`,
@@ -90,10 +122,18 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         break;
         
       case 'rock':
-        const newVolumeDown = Math.max(0, currentVolume - 5);
-        console.log('🔉 Executing volume down:', currentVolume, '→', newVolumeDown);
+        // Get actual current volume from player
+        const actualVolumeDown = getCurrentPlayerVolume();
+        const newVolumeDown = Math.max(0, actualVolumeDown - 5);
+        console.log('🔉 Executing volume down:', actualVolumeDown, '→', newVolumeDown);
         setCurrentVolume(newVolumeDown);
         setVolume(newVolumeDown);
+        // Force update to ensure volume is applied
+        setTimeout(() => {
+          if (playerManagerRef.current && playerManagerRef.current.player) {
+            playerManagerRef.current.player.setVolume(newVolumeDown);
+          }
+        }, 100);
         toast({
           title: "🎵 Gesture Control",
           description: `🤟 Volume down: ${newVolumeDown}%`,
