@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface SimpleGestureOptions {
   enabled: boolean;
+  onGesture: (gesture: string, confidence: number) => void;
 }
 
 export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
@@ -16,7 +17,6 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
   const lastGestureTimeRef = useRef(0);
   const playerManagerRef = useRef<any>(null);
   
-  const { togglePlayPause, skipNext, skipPrevious, setVolume, playlist, currentIndex, currentTrack, queue, history } = useMusicPlayer();
   const { toast } = useToast();
 
   // Get YouTube player manager for direct volume access
@@ -38,7 +38,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
     return currentVolume;
   };
 
-  // Simple gesture handler with confidence check
+  // Simple gesture handler with confidence check  
   const handleGesture = (gestureType: string, confidence = 1.0) => {
     const now = Date.now();
     
@@ -57,98 +57,10 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
     lastGestureTimeRef.current = now;
     setLastGesture(gestureType);
     
-    console.log('🎯 Gesture executed:', gestureType);
-    console.log('📊 Current state - Volume:', currentVolume, 'Playlist length:', playlist?.length, 'Index:', currentIndex);
+    console.log('🎯 Gesture detected:', gestureType, 'Confidence:', confidence);
     
-    switch (gestureType) {
-      case 'fist':
-        console.log('▶️ Executing play/pause...');
-        togglePlayPause();
-        toast({
-          title: "🎵 Gesture Control",
-          description: "✊ Play/Pause",
-        });
-        break;
-        
-      case 'call_me':
-        console.log('⏭️ Executing skip next...');
-        console.log('⏭️ Current track:', currentTrack?.title);
-        console.log('⏭️ Queue info:', { 
-          queueLength: queue?.length || 0, 
-          playlistLength: playlist?.length || 0, 
-          currentIndex,
-          queueTracks: queue?.map(t => t.title) || [],
-          playlistTracks: playlist?.map(t => t.title) || [] 
-        });
-        
-        // Queue-based navigation with immediate playback
-        skipNext();
-        toast({
-          title: "🎵 Gesture Control", 
-          description: "🤙 Next song",
-        });
-        break;
-        
-      case 'open_hand':
-        console.log('⏮️ Executing skip previous...');
-        console.log('⏮️ Current track:', currentTrack?.title);
-        console.log('⏮️ History info:', { 
-          historyLength: history?.length || 0, 
-          playlistLength: playlist?.length || 0, 
-          currentIndex,
-          historyTracks: history?.map(t => t.title) || [],
-          playlistTracks: playlist?.map(t => t.title) || [] 
-        });
-        
-        // Smart previous with queue/history-based navigation
-        skipPrevious();
-        toast({
-          title: "🎵 Gesture Control",
-          description: "🖐️ Previous song",
-        });
-        break;
-        
-      case 'peace':
-        // Get actual current volume from player
-        const actualVolume = getCurrentPlayerVolume();
-        const newVolumeUp = Math.min(100, actualVolume + 5);
-        console.log('🔊 Executing volume up:', actualVolume, '→', newVolumeUp);
-        setCurrentVolume(newVolumeUp);
-        setVolume(newVolumeUp);
-        // Force update to ensure volume is applied
-        setTimeout(() => {
-          if (playerManagerRef.current && playerManagerRef.current.player) {
-            playerManagerRef.current.player.setVolume(newVolumeUp);
-          }
-        }, 100);
-        toast({
-          title: "🎵 Gesture Control",
-          description: `✌️ Volume up: ${newVolumeUp}%`,
-        });
-        break;
-        
-      case 'rock':
-        // Get actual current volume from player
-        const actualVolumeDown = getCurrentPlayerVolume();
-        const newVolumeDown = Math.max(0, actualVolumeDown - 5);
-        console.log('🔉 Executing volume down:', actualVolumeDown, '→', newVolumeDown);
-        setCurrentVolume(newVolumeDown);
-        setVolume(newVolumeDown);
-        // Force update to ensure volume is applied
-        setTimeout(() => {
-          if (playerManagerRef.current && playerManagerRef.current.player) {
-            playerManagerRef.current.player.setVolume(newVolumeDown);
-          }
-        }, 100);
-        toast({
-          title: "🎵 Gesture Control",
-          description: `🤟 Volume down: ${newVolumeDown}%`,
-        });
-        break;
-        
-      default:
-        console.log('❓ Unknown gesture type:', gestureType);
-    }
+    // Use unified controls
+    options.onGesture(gestureType, confidence);
   };
 
   // MediaPipe Hands gesture detection

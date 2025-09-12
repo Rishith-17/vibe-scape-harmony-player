@@ -3,9 +3,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSimpleGestureDetection } from '@/hooks/useSimpleGestureDetection';
+import { useUnifiedMusicControls } from '@/hooks/useUnifiedMusicControls';
 import { GestureStatusIndicator } from './GestureStatusIndicator';
 import { GestureTutorial } from './GestureTutorial';
 import { TestGestureController } from './TestGestureController';
+import { VoiceControlsProvider } from './VoiceControlsProvider';
 
 interface GestureControlsProviderProps {
   children: React.ReactNode;
@@ -16,6 +18,8 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   const [gestureControlsEnabled, setGestureControlsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
+  
+  const { handleGestureCommand } = useUnifiedMusicControls();
 
   // Fetch user's gesture controls preference (default to true if no user)
   useEffect(() => {
@@ -56,7 +60,8 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   const { isPlaying } = useMusicPlayer();
   
   const gestureDetection = useSimpleGestureDetection({
-    enabled: gestureControlsEnabled, // Always enabled when gesture controls are on
+    enabled: gestureControlsEnabled,
+    onGesture: handleGestureCommand
   });
 
   // Add logging to see status
@@ -123,7 +128,7 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   }, [user]);
 
   return (
-    <>
+    <VoiceControlsProvider>
       {children}
       <GestureStatusIndicator
         isEnabled={gestureControlsEnabled && !isLoading}
@@ -138,6 +143,6 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
         isOpen={showTutorial}
         onClose={() => setShowTutorial(false)}
       />
-    </>
+    </VoiceControlsProvider>
   );
 };
