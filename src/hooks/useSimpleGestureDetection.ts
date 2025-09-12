@@ -16,7 +16,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
   const lastGestureTimeRef = useRef(0);
   const playerManagerRef = useRef<any>(null);
   
-  const { togglePlayPause, skipNext, skipPrevious, setVolume, playlist, currentIndex, currentTrack } = useMusicPlayer();
+  const { togglePlayPause, skipNext, skipPrevious, setVolume, playlist, currentIndex, currentTrack, queue, history } = useMusicPlayer();
   const { toast } = useToast();
 
   // Get YouTube player manager for direct volume access
@@ -38,12 +38,18 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
     return currentVolume;
   };
 
-  // Simple gesture handler
-  const handleGesture = (gestureType: string) => {
+  // Simple gesture handler with confidence check
+  const handleGesture = (gestureType: string, confidence = 1.0) => {
     const now = Date.now();
     
-    // Debounce gestures (500ms for better responsiveness)
-    if (now - lastGestureTimeRef.current < 500) {
+    // Require gesture confidence ≥ 0.75
+    if (confidence < 0.75) {
+      console.log('🚫 Gesture confidence too low:', gestureType, confidence);
+      return;
+    }
+    
+    // Debounce gestures (400ms as requested)
+    if (now - lastGestureTimeRef.current < 400) {
       console.log('🚫 Gesture debounced:', gestureType);
       return;
     }
@@ -67,14 +73,15 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       case 'call_me':
         console.log('⏭️ Executing skip next...');
         console.log('⏭️ Current track:', currentTrack?.title);
-        console.log('⏭️ Playlist info:', { 
-          length: playlist?.length || 0, 
-          currentIndex, 
-          tracks: playlist?.map(t => t.title) || [] 
+        console.log('⏭️ Queue info:', { 
+          queueLength: queue?.length || 0, 
+          playlistLength: playlist?.length || 0, 
+          currentIndex,
+          queueTracks: queue?.map(t => t.title) || [],
+          playlistTracks: playlist?.map(t => t.title) || [] 
         });
         
-        // Always try to skip next - let the music player handle it
-        console.log('⏭️ Calling skipNext...');
+        // Queue-based navigation with immediate playback
         skipNext();
         toast({
           title: "🎵 Gesture Control", 
@@ -85,15 +92,15 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       case 'open_hand':
         console.log('⏮️ Executing skip previous...');
         console.log('⏮️ Current track:', currentTrack?.title);
-        console.log('⏮️ Playlist info:', { 
-          length: playlist?.length || 0, 
+        console.log('⏮️ History info:', { 
+          historyLength: history?.length || 0, 
+          playlistLength: playlist?.length || 0, 
           currentIndex,
-          currentTime: getCurrentPlayerVolume(),
-          tracks: playlist?.map(t => t.title) || [] 
+          historyTracks: history?.map(t => t.title) || [],
+          playlistTracks: playlist?.map(t => t.title) || [] 
         });
         
-        // Always try to skip previous - let the music player handle it
-        console.log('⏮️ Calling skipPrevious...');
+        // Smart previous with queue/history-based navigation
         skipPrevious();
         toast({
           title: "🎵 Gesture Control",

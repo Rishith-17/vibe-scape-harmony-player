@@ -45,12 +45,16 @@ interface MusicPlayerContextType {
   hasError: boolean;
   playlist: Track[];
   currentIndex: number;
+  queue: Track[];
+  history: Track[];
   playTrack: (track: Track, newPlaylist?: Track[], index?: number) => void;
   togglePlayPause: () => void;
   skipNext: () => void;
   skipPrevious: () => void;
   seekTo: (time: number) => void;
   setVolume: (volume: number) => void;
+  addToQueue: (track: Track) => void;
+  clearQueue: () => void;
   canSkipNext: boolean;
   canSkipPrevious: boolean;
   playlists: Playlist[];
@@ -78,6 +82,8 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [playlist, setPlaylist] = useState<Track[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [queue, setQueue] = useState<Track[]>([]);
+  const [history, setHistory] = useState<Track[]>([]);
   const [playerState, setPlayerState] = useState<PlayerState>({
     isPlaying: false,
     currentTime: 0,
@@ -94,66 +100,98 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const playerManager = YouTubePlayerManager.getInstance();
 
   const skipNext = useCallback(() => {
-    console.log('🎵 skipNext called - playlist length:', playlist.length, 'currentIndex:', currentIndex);
+    console.log('🎵 skipNext called - queue length:', queue.length, 'playlist length:', playlist.length);
     
-    if (playlist.length === 0) {
-      console.log('❌ No playlist available for skipNext');
+    let nextTrack: Track | null = null;
+    
+    // 🤙 Next: Pop from queue first, fallback to playlist loop
+    if (queue.length > 0) {
+      // Pop next item from queue
+      nextTrack = queue[0];
+      setQueue(prev => prev.slice(1));
+      
+      // Add current track to history (if exists)
+      if (currentTrack) {
+        setHistory(prev => [...prev, currentTrack]);
+      }
+      
+      console.log(`🎵 Skip Next from Queue: ${nextTrack.title}`);
+    } else if (playlist.length > 0) {
+      // Fallback to playlist navigation with loop
+      let nextIndex;
+      if (currentIndex < playlist.length - 1) {
+        nextIndex = currentIndex + 1;
+      } else {
+        nextIndex = 0; // Loop to first track
+      }
+      
+      nextTrack = playlist[nextIndex];
+      setCurrentIndex(nextIndex);
+      
+      // Add current track to history (if exists)
+      if (currentTrack) {
+        setHistory(prev => [...prev, currentTrack]);
+      }
+      
+      console.log(`🎵 Skip Next from Playlist: ${currentIndex} → ${nextIndex} (${nextTrack.title})`);
+    } else {
+      console.log('❌ No queue or playlist available for skipNext');
       return;
     }
     
-    // Standard music player behavior: loop to first track if at end
-    let nextIndex;
-    if (currentIndex < playlist.length - 1) {
-      nextIndex = currentIndex + 1;
-    } else {
-      nextIndex = 0; // Loop to first track
-    }
-    
-    const nextTrack = playlist[nextIndex];
-    
-    console.log(`🎵 Skip Next: ${currentIndex} → ${nextIndex} (${nextTrack.title})`);
-    
-    setCurrentIndex(nextIndex);
+    // Update current track and start playback immediately
     setCurrentTrack(nextTrack);
-    
     playerManager.playTrack(nextTrack);
-  }, [currentIndex, playlist, playerManager]);
+  }, [currentIndex, playlist, queue, currentTrack, playerManager]);
 
   const skipPrevious = useCallback(() => {
-    console.log('🎵 skipPrevious called - playlist length:', playlist.length, 'currentIndex:', currentIndex);
-    
-    if (playlist.length === 0) {
-      console.log('❌ No playlist available for skipPrevious');
-      return;
-    }
+    console.log('🎵 skipPrevious called - history length:', history.length, 'playlist length:', playlist.length);
     
     // Smart Previous behavior like Spotify/YouTube Music
     const currentTime = playerManager.getCurrentTime();
     
-    // If song has been playing for > 5 seconds, restart current track
+    // 🖐️ Previous: If >5s restart current, else pop from history or fallback to playlist
     if (currentTime > 5 && currentTrack) {
       playerManager.seekTo(0);
-      console.log(`🔄 Restart current track: ${currentTrack.title}`);
+      console.log(`🔄 Restart current track (${currentTime.toFixed(1)}s): ${currentTrack.title}`);
       return;
     }
     
-    // Otherwise, go to previous track (loop to last if at beginning)
-    let prevIndex;
-    if (currentIndex > 0) {
-      prevIndex = currentIndex - 1;
+    let prevTrack: Track | null = null;
+    
+    // Pop from history first
+    if (history.length > 0) {
+      prevTrack = history[history.length - 1];
+      setHistory(prev => prev.slice(0, -1));
+      
+      // Add current track back to front of queue (if exists)
+      if (currentTrack) {
+        setQueue(prev => [currentTrack, ...prev]);
+      }
+      
+      console.log(`🎵 Skip Previous from History: ${prevTrack.title}`);
+    } else if (playlist.length > 0) {
+      // Fallback to playlist navigation with loop
+      let prevIndex;
+      if (currentIndex > 0) {
+        prevIndex = currentIndex - 1;
+      } else {
+        prevIndex = playlist.length - 1; // Loop to last track
+      }
+      
+      prevTrack = playlist[prevIndex];
+      setCurrentIndex(prevIndex);
+      
+      console.log(`🎵 Skip Previous from Playlist: ${currentIndex} → ${prevIndex} (${prevTrack.title})`);
     } else {
-      prevIndex = playlist.length - 1; // Loop to last track
+      console.log('❌ No history or playlist available for skipPrevious');
+      return;
     }
     
-    const prevTrack = playlist[prevIndex];
-    
-    console.log(`🎵 Skip Previous: ${currentIndex} → ${prevIndex} (${prevTrack.title})`);
-    
-    setCurrentIndex(prevIndex);
+    // Update current track and start playback immediately
     setCurrentTrack(prevTrack);
-    
     playerManager.playTrack(prevTrack);
-  }, [currentIndex, playlist, playerManager, currentTrack]);
+  }, [currentIndex, playlist, history, currentTrack, playerManager]);
 
   // Subscribe to player state changes - Fixed useEffect
   useEffect(() => {
@@ -215,6 +253,16 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
   const setVolume = useCallback((volume: number) => {
     playerManager.setVolume(volume);
   }, [playerManager]);
+
+  const addToQueue = useCallback((track: Track) => {
+    setQueue(prev => [...prev, track]);
+    console.log(`🎵 Added to queue: ${track.title}`);
+  }, []);
+
+  const clearQueue = useCallback(() => {
+    setQueue([]);
+    console.log('🎵 Queue cleared');
+  }, []);
 
   // Setup background playback and media session
   useEffect(() => {
@@ -804,14 +852,18 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     hasError: playerState.hasError,
     playlist,
     currentIndex,
+    queue,
+    history,
     playTrack,
     togglePlayPause,
     skipNext,
     skipPrevious,
     seekTo,
     setVolume,
-    canSkipNext: playlist.length > 0, // Always can skip with looping
-    canSkipPrevious: playlist.length > 0, // Always can skip with looping
+    addToQueue,
+    clearQueue,
+    canSkipNext: playlist.length > 0 || queue.length > 0, // Can skip if playlist or queue has items
+    canSkipPrevious: playlist.length > 0 || history.length > 0, // Can skip if playlist or history has items
     playlists,
     createPlaylist,
     deletePlaylist,
