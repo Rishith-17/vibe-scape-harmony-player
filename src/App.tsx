@@ -20,6 +20,7 @@ import SearchPage from "./pages/SearchPage";
 import LibraryPage from "./pages/LibraryPage";
 import ProfilePage from "./pages/ProfilePage";
 import EmotionsPage from "./pages/EmotionsPage";
+import InstallPage from "./pages/InstallPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ const AppContent = () => {
           <Route path="/" element={<Navigate to="/home" replace />} />
           <Route path="/index" element={<Navigate to="/home" replace />} />
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/install" element={<InstallPage />} />
           <Route
             path="/home"
             element={

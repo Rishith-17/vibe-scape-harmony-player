@@ -38,18 +38,18 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
     return currentVolume;
   };
 
-  // Simple gesture handler with confidence check  
+  // Optimized gesture handler with confidence check  
   const handleGesture = (gestureType: string, confidence = 1.0) => {
     const now = Date.now();
     
-    // Require gesture confidence ≥ 0.75
-    if (confidence < 0.75) {
+    // Require higher gesture confidence for accuracy
+    if (confidence < 0.85) {
       console.log('🚫 Gesture confidence too low:', gestureType, confidence);
       return;
     }
     
-    // Debounce gestures (400ms as requested)
-    if (now - lastGestureTimeRef.current < 400) {
+    // Optimized debounce (300ms for faster response)
+    if (now - lastGestureTimeRef.current < 300) {
       console.log('🚫 Gesture debounced:', gestureType);
       return;
     }
@@ -124,9 +124,9 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       // Configure with optimized thresholds for gesture accuracy
       hands.setOptions({
         maxNumHands: 1, // Focus on single hand for better accuracy
-        modelComplexity: 1,
-        minDetectionConfidence: 0.4, // Slightly higher for accuracy
-        minTrackingConfidence: 0.4,  // Slightly higher for accuracy
+        modelComplexity: 1, // Balanced for accuracy and performance
+        minDetectionConfidence: 0.7, // Higher for better accuracy
+        minTrackingConfidence: 0.6,  // Higher for stability
       });
       
       console.log('🤖 MediaPipe Hands initialized with low confidence thresholds');
@@ -152,7 +152,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         isProcessing = false;
       });
       
-      // Process frames at 5 FPS
+      // Process frames at optimized 10 FPS for better responsiveness
       const processFrame = async () => {
         if (video.readyState >= 2 && !isProcessing) {
           isProcessing = true;
@@ -161,7 +161,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         }
       };
       
-      const interval = setInterval(processFrame, 200); // 5 FPS
+      const interval = setInterval(processFrame, 100); // 10 FPS for better detection
       
       // Set up cleanup
       cleanupRef.current = () => {
@@ -253,9 +253,9 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       const pinky_mcp = landmarks[17];
       const wrist = landmarks[0];
       
-      // Enhanced finger state detection with multiple joint analysis
-      const fingerTolerance = 0.015; // Reduced for better accuracy
-      const thumbTolerance = 0.025; // Thumb needs different tolerance
+      // Enhanced finger state detection with optimized tolerances
+      const fingerTolerance = 0.02; // Optimized for accuracy
+      const thumbTolerance = 0.03; // Optimized thumb tolerance
       
       // For thumb, check if tip is higher than both IP and MCP joints
       const thumb_up = thumb_tip.y < (thumb_ip.y - thumbTolerance) && thumb_tip.y < (thumb_mcp.y - thumbTolerance);
