@@ -6,6 +6,8 @@ const config: CapacitorConfig = {
   appName: 'vibe-scape-harmony-player',
   webDir: 'dist',
   server: {
+    url: 'https://5b247013-5705-4da4-a18e-0c5af1e2f706.lovableproject.com?forceHideBadge=true',
+    cleartext: true,
     androidScheme: 'https'
   },
   plugins: {
