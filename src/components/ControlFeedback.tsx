@@ -3,14 +3,12 @@ import { cn } from '@/lib/utils';
 
 interface ControlFeedbackProps {
   gestureIcon?: string;
-  voiceText?: string;
   show: boolean;
   onComplete: () => void;
 }
 
 export const ControlFeedback: React.FC<ControlFeedbackProps> = ({
   gestureIcon,
-  voiceText,
   show,
   onComplete
 }) => {
@@ -43,16 +41,6 @@ export const ControlFeedback: React.FC<ControlFeedbackProps> = ({
             {gestureIcon}
           </div>
           <p className="text-sm text-muted-foreground">Gesture Control</p>
-        </div>
-      )}
-      
-      {voiceText && (
-        <div className="text-center">
-          <div className="text-2xl mb-2 font-medium text-primary">
-            🎤
-          </div>
-          <p className="text-lg font-medium capitalize">{voiceText}</p>
-          <p className="text-sm text-muted-foreground">Voice Command</p>
         </div>
       )}
     </div>

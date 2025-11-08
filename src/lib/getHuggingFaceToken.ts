@@ -1,5 +1,5 @@
 // lib/getHuggingFaceToken.ts
-import { supabase } from './supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 
 export async function getHuggingFaceToken() {
   const { data, error } = await supabase

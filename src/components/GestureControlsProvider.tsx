@@ -7,7 +7,7 @@ import { useUnifiedMusicControls } from '@/hooks/useUnifiedMusicControls';
 import { GestureStatusIndicator } from './GestureStatusIndicator';
 import { GestureTutorial } from './GestureTutorial';
 import { TestGestureController } from './TestGestureController';
-import { VoiceControlsProvider } from './VoiceControlsProvider';
+import { ControlFeedback } from './ControlFeedback';
 
 interface GestureControlsProviderProps {
   children: React.ReactNode;
@@ -127,8 +127,10 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     };
   }, [user]);
 
+  const { feedback, clearFeedback } = useUnifiedMusicControls();
+
   return (
-    <VoiceControlsProvider>
+    <>
       {children}
       <GestureStatusIndicator
         isEnabled={gestureControlsEnabled && !isLoading}
@@ -143,6 +145,11 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
         isOpen={showTutorial}
         onClose={() => setShowTutorial(false)}
       />
-    </VoiceControlsProvider>
+      <ControlFeedback
+        gestureIcon={feedback.gestureIcon}
+        show={feedback.show}
+        onComplete={clearFeedback}
+      />
+    </>
   );
 };

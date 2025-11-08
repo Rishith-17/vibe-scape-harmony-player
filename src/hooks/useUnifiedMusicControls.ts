@@ -12,7 +12,6 @@ interface ControlAction {
 export const useUnifiedMusicControls = () => {
   const [feedback, setFeedback] = useState<{
     gestureIcon?: string;
-    voiceText?: string;
     show: boolean;
   }>({ show: false });
   
@@ -77,8 +76,6 @@ export const useUnifiedMusicControls = () => {
     // Show feedback
     if (type === 'gesture' && gestureIcon) {
       setFeedback({ gestureIcon, show: true });
-    } else if (type === 'voice') {
-      setFeedback({ voiceText: command, show: true });
     }
 
     // Execute the command
@@ -187,17 +184,12 @@ export const useUnifiedMusicControls = () => {
     executeCommand(gesture, confidence, 'gesture', gestureIcons[gesture]);
   };
 
-  const handleVoiceCommand = (command: string, confidence: number) => {
-    executeCommand(command, confidence, 'voice');
-  };
-
   const clearFeedback = () => {
     setFeedback({ show: false });
   };
 
   return {
     handleGestureCommand,
-    handleVoiceCommand,
     feedback,
     clearFeedback
   };
