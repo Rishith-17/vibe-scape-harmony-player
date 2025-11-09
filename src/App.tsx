@@ -35,8 +35,15 @@ const VoiceIntegration = () => {
   const [voiceState, setVoiceState] = React.useState<'idle' | 'listening' | 'processing' | 'speaking' | 'error'>('idle');
 
   React.useEffect(() => {
+    console.log('[App] Voice control check:', {
+      featureEnabled: isFeatureEnabled('VOICE_CONTROL_ENABLED'),
+      userEnabled: voiceSettings.enabled,
+      consentGiven: voiceSettings.consentGiven
+    });
+
     // Only initialize if feature is enabled AND user has enabled it
     if (!isFeatureEnabled('VOICE_CONTROL_ENABLED') || !voiceSettings.enabled) {
+      console.log('[App] Voice control not active - feature or user setting disabled');
       // Clean up if controller exists
       if (voiceController) {
         voiceController.destroy();

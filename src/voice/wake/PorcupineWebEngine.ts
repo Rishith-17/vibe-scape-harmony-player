@@ -19,6 +19,8 @@ export class PorcupineWebEngine implements WakeWordEngine {
     try {
       // Get access key from environment
       const accessKey = import.meta.env.VITE_PICOVOICE_ACCESS_KEY;
+      console.log('[PorcupineWebEngine] Access key available:', !!accessKey);
+      
       if (!accessKey) {
         throw new Error('VITE_PICOVOICE_ACCESS_KEY not configured. Add it to your .env file.');
       }
