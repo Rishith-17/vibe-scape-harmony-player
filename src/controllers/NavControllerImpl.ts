@@ -23,7 +23,11 @@ export class NavControllerImpl implements NavControllerAdapter {
     this.navigate('/home');
   }
 
-  openSearch(): void {
-    this.navigate('/search');
+  openSearch(query?: string): void {
+    if (query) {
+      this.navigate(`/search?q=${encodeURIComponent(query)}`);
+    } else {
+      this.navigate('/search');
+    }
   }
 }

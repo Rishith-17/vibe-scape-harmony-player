@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Play, Pause, Plus, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -22,6 +23,7 @@ interface YouTubeVideo {
 }
 
 const SearchPage = () => {
+  const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<YouTubeVideo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -39,6 +41,15 @@ const SearchPage = () => {
     isLiked
   } = useMusicPlayer();
   const { toast } = useToast();
+
+  // Auto-search when query parameter is present (from voice command)
+  useEffect(() => {
+    const query = searchParams.get('q');
+    if (query) {
+      setSearchQuery(query);
+      searchYoutube(query);
+    }
+  }, [searchParams]);
 
   const searchYoutube = async (query = searchQuery) => {
     if (!query.trim()) {

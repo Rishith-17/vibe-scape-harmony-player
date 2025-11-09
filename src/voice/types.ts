@@ -47,7 +47,7 @@ export interface NavControllerAdapter {
   openLibrary(): void;
   openSettings(): void;
   openHome(): void;
-  openSearch(): void;
+  openSearch(query?: string): void;
 }
 
 export type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error';

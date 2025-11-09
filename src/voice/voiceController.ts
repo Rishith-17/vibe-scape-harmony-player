@@ -179,6 +179,13 @@ export class VoiceController {
           }
           break;
 
+        case 'search':
+          if (slots.query) {
+            this.navController.openSearch(slots.query);
+            await this.speak(`Searching for ${slots.query}`);
+          }
+          break;
+
         case 'navigate':
           if (slots.navigation === 'emotions') this.navController.openEmotionDetection();
           else if (slots.navigation === 'library') this.navController.openLibrary();
