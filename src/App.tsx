@@ -81,11 +81,14 @@ const VoiceIntegration = () => {
         await controller.initialize();
         await controller.start();
         
-        setVoiceController(controller);
-        console.log('[App] Voice controller initialized');
+        console.log('[App] Voice controller initialized and started');
       } catch (error) {
         console.error('[App] Failed to initialize voice controller:', error);
+        // Even if initialization fails, set controller to enable manual trigger
       }
+      
+      // Always set controller so manual trigger works
+      setVoiceController(controller);
     })();
 
     return () => {
@@ -106,8 +109,8 @@ const VoiceIntegration = () => {
     }
   }, [voiceController, voiceSettings.language, voiceSettings.wakeSensitivity, voiceSettings.ttsEnabled, voiceSettings.enabled]);
 
-  // Render VoiceChip only when enabled
-  if (!isFeatureEnabled('VOICE_CONTROL_ENABLED') || !voiceSettings.enabled || !voiceController) {
+  // Render VoiceChip when enabled (even if controller isn't fully initialized yet)
+  if (!isFeatureEnabled('VOICE_CONTROL_ENABLED') || !voiceSettings.enabled) {
     return null;
   }
 
@@ -115,6 +118,8 @@ const VoiceIntegration = () => {
     if (voiceController) {
       console.log('[App] Manual voice trigger');
       voiceController.manualTrigger();
+    } else {
+      console.warn('[App] Voice controller not ready yet');
     }
   };
 
