@@ -1,5 +1,4 @@
-
-import { Camera, Settings, Bell, Moon, HelpCircle, Info, LogOut, Edit, Zap } from 'lucide-react';
+import { Camera, Settings, Bell, Moon, HelpCircle, Info, LogOut, Edit, Zap, Mic } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +6,7 @@ import CameraAvatarDialog from '@/components/CameraAvatarDialog';
 import EditProfileDialog from '@/components/EditProfileDialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { isFeatureEnabled } from '@/config/featureFlags';
 
 const ProfilePage = () => {
   const [notifications, setNotifications] = useState(true);
@@ -203,6 +203,25 @@ const ProfilePage = () => {
                 </button>
               </div>
             ))}
+            
+            {/* Voice & Privacy Settings Link - Feature Flagged */}
+            {isFeatureEnabled('VOICE_CONTROL_ENABLED') && (
+              <div
+                onClick={() => navigate('/voice-settings')}
+                className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 cursor-pointer flex items-center justify-between"
+              >
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center mr-4">
+                    <Mic size={20} className="text-gray-300" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-white font-medium">Voice & Privacy</span>
+                    <span className="text-gray-400 text-sm">Hands-free voice controls</span>
+                  </div>
+                </div>
+                <span className="text-gray-400">›</span>
+              </div>
+            )}
           </div>
         </div>
 
