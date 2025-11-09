@@ -1,5 +1,6 @@
 import { WakeWordEngine } from '../types';
 import { PorcupineWorker } from '@picovoice/porcupine-web';
+import { WebVoiceProcessor } from '@picovoice/web-voice-processor';
 
 /**
  * Wake word engine using Picovoice Porcupine Web SDK
@@ -38,9 +39,13 @@ export class PorcupineWebEngine implements WakeWordEngine {
         {} // Model parameters (using default)
       );
 
-      // PorcupineWorker automatically starts listening after creation
+      console.log('[PorcupineWebEngine] Porcupine worker created, subscribing to voice processor...');
+      
+      // Subscribe to WebVoiceProcessor to start listening
+      await WebVoiceProcessor.subscribe(this.porcupine);
+
       this.isRunning = true;
-      console.log('[PorcupineWebEngine] Wake word detection active');
+      console.log('[PorcupineWebEngine] Wake word detection active - say "Hey Vibe"');
     } catch (error) {
       console.error('[PorcupineWebEngine] Failed to start:', error);
       throw error;
@@ -53,7 +58,13 @@ export class PorcupineWebEngine implements WakeWordEngine {
     console.log('[PorcupineWebEngine] Stopping wake word detection');
     
     if (this.porcupine) {
-      await this.porcupine.terminate();
+      try {
+        await WebVoiceProcessor.unsubscribe(this.porcupine);
+        await this.porcupine.release();
+        await this.porcupine.terminate();
+      } catch (error) {
+        console.error('[PorcupineWebEngine] Error stopping:', error);
+      }
       this.porcupine = null;
     }
     
