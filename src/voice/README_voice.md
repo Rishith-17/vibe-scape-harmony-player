@@ -24,25 +24,19 @@ Wake Word ("Hey Vibe") → ASR (Speech-to-Text) → NLU (Intent Parser) → Acti
 
 ### 1. Feature Flag
 
-Voice control is behind a feature flag in `src/config/featureFlags.ts`:
-
-```typescript
-VOICE_CONTROL_ENABLED: false // Set to true to enable
-```
+✅ Voice control is **ENABLED** in `src/config/featureFlags.ts`
 
 ### 2. Picovoice Porcupine Setup (Wake Word)
 
-1. Sign up at https://console.picovoice.ai/
-2. Create a custom wake word "Hey Vibe"
-3. Download the `.ppn` keyword file
-4. Get your access key
-5. Add to environment variables:
+✅ The "Hey Vibe" wake word model is installed at `public/models/Hey-vibe_en_wasm_v3_0_0.ppn`
+
+**Required:** Add your Picovoice access key to environment variables:
 
 ```env
 VITE_PICOVOICE_ACCESS_KEY=your_access_key_here
 ```
 
-6. Place the `.ppn` file in `public/models/hey_vibe.ppn`
+Get your access key from https://console.picovoice.ai/
 
 ### 3. Offline ASR Setup (Optional)
 

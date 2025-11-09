@@ -1,35 +1,48 @@
 import { WakeWordEngine } from '../types';
+import { PorcupineWorker } from '@picovoice/porcupine-web';
 
 /**
  * Wake word engine using Picovoice Porcupine Web SDK
- * STUB - Requires Porcupine access key and keyword model
- * 
- * Setup:
- * 1. Sign up at https://console.picovoice.ai/
- * 2. Create "Hey Vibe" keyword
- * 3. Download .ppn file
- * 4. Add access key to environment
+ * Detects "Hey Vibe" wake word on-device
  */
 export class PorcupineWebEngine implements WakeWordEngine {
   private isRunning = false;
   private detectionCallback: (() => void) | null = null;
   private sensitivity = 0.5;
-  private worker: Worker | null = null;
+  private porcupine: PorcupineWorker | null = null;
 
   async start(): Promise<void> {
     if (this.isRunning) return;
 
-    console.log('[PorcupineWebEngine] Starting wake word detection (STUB)');
+    console.log('[PorcupineWebEngine] Starting wake word detection');
     
-    // TODO: Initialize Porcupine Web Worker
-    // const accessKey = import.meta.env.VITE_PICOVOICE_ACCESS_KEY;
-    // if (!accessKey) {
-    //   throw new Error('VITE_PICOVOICE_ACCESS_KEY not configured');
-    // }
+    try {
+      // Get access key from environment
+      const accessKey = import.meta.env.VITE_PICOVOICE_ACCESS_KEY;
+      if (!accessKey) {
+        throw new Error('VITE_PICOVOICE_ACCESS_KEY not configured. Add it to your .env file.');
+      }
 
-    // For now, simulate with a simple voice activity detection
-    this.startSimpleVad();
-    this.isRunning = true;
+      // Initialize Porcupine with the custom "Hey Vibe" model
+      this.porcupine = await PorcupineWorker.create(
+        accessKey,
+        [{ publicPath: '/models/Hey-vibe_en_wasm_v3_0_0.ppn', label: 'Hey Vibe', sensitivity: this.sensitivity }],
+        (detection) => {
+          if (detection.label === 'Hey Vibe' && this.detectionCallback) {
+            console.log('[PorcupineWebEngine] Wake word "Hey Vibe" detected!');
+            this.detectionCallback();
+          }
+        },
+        {} // Model parameters (using default)
+      );
+
+      // PorcupineWorker automatically starts listening after creation
+      this.isRunning = true;
+      console.log('[PorcupineWebEngine] Wake word detection active');
+    } catch (error) {
+      console.error('[PorcupineWebEngine] Failed to start:', error);
+      throw error;
+    }
   }
 
   async stop(): Promise<void> {
@@ -37,9 +50,9 @@ export class PorcupineWebEngine implements WakeWordEngine {
 
     console.log('[PorcupineWebEngine] Stopping wake word detection');
     
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
+    if (this.porcupine) {
+      await this.porcupine.terminate();
+      this.porcupine = null;
     }
     
     this.isRunning = false;
@@ -51,18 +64,7 @@ export class PorcupineWebEngine implements WakeWordEngine {
 
   setSensitivity(value: number): void {
     this.sensitivity = Math.max(0, Math.min(1, value));
-  }
-
-  private startSimpleVad(): void {
-    // Simple stub: Manually trigger via keyboard for testing
-    // Press 'V' key to simulate wake word detection
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'v' && this.detectionCallback) {
-        console.log('[PorcupineWebEngine] Wake word detected (simulated)');
-        this.detectionCallback();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
+    // Note: Porcupine sensitivity is set during initialization
+    // To change it, you need to reinitialize with new sensitivity values
   }
 }
