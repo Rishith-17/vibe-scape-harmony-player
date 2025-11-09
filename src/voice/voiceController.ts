@@ -245,4 +245,10 @@ export class VoiceController {
     this.stop();
     this.earconPlayer.destroy();
   }
+
+  // Manual trigger for mobile/push-to-talk
+  async manualTrigger(): Promise<void> {
+    console.log('[VoiceController] Manual voice trigger activated');
+    await this.onWakeDetected();
+  }
 }

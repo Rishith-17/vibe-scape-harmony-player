@@ -23,7 +23,10 @@ export class PorcupineWebEngine implements WakeWordEngine {
       console.log('[PorcupineWebEngine] Access key available:', !!accessKey);
       
       if (!accessKey) {
-        throw new Error('VITE_PICOVOICE_ACCESS_KEY not configured. Add it to your .env file.');
+        console.warn('[PorcupineWebEngine] No access key - wake word detection disabled');
+        // Mark as running but don't initialize - allows manual trigger mode
+        this.isRunning = true;
+        return;
       }
 
       // Initialize Porcupine with the custom "Hey Vibe" model
@@ -48,7 +51,9 @@ export class PorcupineWebEngine implements WakeWordEngine {
       console.log('[PorcupineWebEngine] Wake word detection active - say "Hey Vibe"');
     } catch (error) {
       console.error('[PorcupineWebEngine] Failed to start:', error);
-      throw error;
+      console.warn('[PorcupineWebEngine] Continuing in manual trigger mode');
+      // Don't throw - allow manual trigger mode
+      this.isRunning = true;
     }
   }
 

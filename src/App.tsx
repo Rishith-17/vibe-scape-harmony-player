@@ -111,10 +111,17 @@ const VoiceIntegration = () => {
     return null;
   }
 
-  return <VoiceChipLazy state={voiceState} />;
+  const handleManualTrigger = () => {
+    if (voiceController) {
+      console.log('[App] Manual voice trigger');
+      voiceController.manualTrigger();
+    }
+  };
+
+  return <VoiceChipLazy state={voiceState} onManualTrigger={handleManualTrigger} />;
 };
 
-const VoiceChipLazy = ({ state }: { state: any }) => {
+const VoiceChipLazy = ({ state, onManualTrigger }: { state: any; onManualTrigger?: () => void }) => {
   const [VoiceChipComponent, setVoiceChipComponent] = React.useState<any>(null);
 
   React.useEffect(() => {
@@ -125,7 +132,7 @@ const VoiceChipLazy = ({ state }: { state: any }) => {
 
   if (!VoiceChipComponent) return null;
 
-  return <VoiceChipComponent state={state} />;
+  return <VoiceChipComponent state={state} onManualTrigger={onManualTrigger} />;
 };
 
 const AppContent = () => {
