@@ -52,6 +52,11 @@ const VoiceIntegration = () => {
       return;
     }
 
+    // Request microphone permissions early
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(() => console.log('[App] Microphone permission granted'))
+      .catch(err => console.warn('[App] Microphone permission denied:', err));
+
     // Lazy load voice controller
     let controller: any = null;
     

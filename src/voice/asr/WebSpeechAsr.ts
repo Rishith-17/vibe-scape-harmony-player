@@ -48,9 +48,12 @@ export class WebSpeechAsr implements AsrEngine {
     if (this.isListening) return;
 
     try {
+      console.log('[WebSpeechAsr] Starting speech recognition...');
       this.recognition.start();
       this.isListening = true;
+      console.log('[WebSpeechAsr] Speech recognition started successfully');
     } catch (error) {
+      console.error('[WebSpeechAsr] Failed to start:', error);
       throw new Error(`Failed to start speech recognition: ${error}`);
     }
   }

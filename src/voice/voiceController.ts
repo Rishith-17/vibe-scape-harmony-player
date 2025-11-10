@@ -61,6 +61,13 @@ export class VoiceController {
   async initialize(): Promise<void> {
     await this.earconPlayer.initialize();
     console.log('[VoiceController] Initialized');
+    
+    // Log current configuration
+    console.log('[VoiceController] Config:', {
+      language: this.config.language,
+      wakeSensitivity: this.config.wakeSensitivity,
+      ttsEnabled: this.config.ttsEnabled
+    });
   }
 
   async start(): Promise<void> {

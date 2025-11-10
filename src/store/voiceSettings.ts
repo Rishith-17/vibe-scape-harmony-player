@@ -21,12 +21,12 @@ interface VoiceSettingsStore extends VoiceSettings {
 }
 
 const DEFAULT_SETTINGS: VoiceSettings = {
-  enabled: false,
+  enabled: true,
   useOfflineAsr: false,
   language: 'en-IN',
   wakeSensitivity: 0.5,
   ttsEnabled: true,
-  consentGiven: false,
+  consentGiven: true,
 };
 
 export const useVoiceSettings = create<VoiceSettingsStore>()(
