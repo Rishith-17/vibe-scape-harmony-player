@@ -44,37 +44,69 @@ export function parseIntent(transcript: string): VoiceIntent {
     };
   }
   
-  // Play specific content
-  const playMatch = lower.match(/play (.+)/i);
-  if (playMatch) {
-    const query = playMatch[1];
-    
-    // Check if it's liked songs request
-    if (/(liked|favorite|favourite) (songs|playlist|music)/i.test(query) || 
-        /my (likes|favorites|favourites)/i.test(query)) {
-      return {
-        action: 'play_liked_songs',
-        slots: {},
-        raw: transcript,
-        confidence: 0.9,
-      };
-    }
-    
-    // Check if it's a playlist request
-    const playlistMatch = query.match(/from (.*) playlist/i) || query.match(/playlist (.*)/i);
-    if (playlistMatch) {
+  // Play playlist from Library (high priority)
+  if (/^(play|chalao|start|lagao)\s+(playlist\s+|from\s+library\s+)?(.+)/i.test(lower) &&
+      (/playlist|from\s+library/i.test(lower))) {
+    const match = lower.match(/^(play|chalao|start|lagao)\s+(?:playlist\s+|from\s+library\s+)?(.+)/i);
+    if (match && match[2]) {
+      const playlistName = match[2].trim();
       return {
         action: 'play_playlist',
-        slots: { playlistName: playlistMatch[1].trim() },
+        slots: { playlistName },
+        raw: transcript,
+        confidence: 0.92,
+      };
+    }
+  }
+  
+  // Play liked songs
+  if (/^(play|chalao)\s+(my\s+)?(liked|favorite|favourite)\s+(songs|playlist|music)/i.test(lower) ||
+      /^(liked|favorite|favourite)\s+(songs|playlist)/i.test(lower)) {
+    return {
+      action: 'play_liked_songs',
+      slots: {},
+      raw: transcript,
+      confidence: 0.90,
+    };
+  }
+  
+  // Search and Play (auto-play first result)
+  if (/^(search|find|dhundho|khojo)\s+(.+)/i.test(lower)) {
+    const match = lower.match(/^(search|find|dhundho|khojo)\s+(.+)/i);
+    if (match && match[2]) {
+      const query = match[2].trim();
+      return {
+        action: 'search_and_play',
+        slots: { query },
+        raw: transcript,
+        confidence: 0.88,
+      };
+    }
+  }
+  
+  // Hinglish search patterns: "X search karo", "X chalao"
+  if (/(.+)\s+(search\s+karo|chalao|dhundho)/i.test(lower)) {
+    const match = lower.match(/(.+)\s+(search\s+karo|chalao|dhundho)/i);
+    if (match && match[1]) {
+      const query = match[1].trim();
+      return {
+        action: 'search_and_play',
+        slots: { query },
         raw: transcript,
         confidence: 0.85,
       };
     }
+  }
+  
+  // Play specific content (general pattern)
+  const playMatch = lower.match(/^play\s+(.+)/i);
+  if (playMatch) {
+    const query = playMatch[1];
     
     // Check if it's nth track request
-    const nthMatch = query.match(/(first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|\d+) (song|track)/i) ||
-                     query.match(/song (number|num) (\d+)/i) ||
-                     query.match(/track (number|num) (\d+)/i);
+    const nthMatch = query.match(/(first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|\d+)\s+(song|track)/i) ||
+                     query.match(/song\s+(number|num)\s+(\d+)/i) ||
+                     query.match(/track\s+(number|num)\s+(\d+)/i);
     if (nthMatch) {
       const numberMap: Record<string, number> = {
         'first': 1, '1st': 1,
@@ -95,21 +127,22 @@ export function parseIntent(transcript: string): VoiceIntent {
         action: 'play_nth_track',
         slots: { trackNumber },
         raw: transcript,
-        confidence: 0.85,
+        confidence: 0.88,
       };
     }
     
     // Check if it's a mood request
-    const moodMatch = query.match(/(happy|calm|focus|chill|romantic|energetic|sad) (music|songs|gaane)/i);
+    const moodMatch = query.match(/(happy|calm|focus|chill|romantic|energetic|sad)\s+(music|songs|gaane)/i);
     if (moodMatch) {
       return {
         action: 'play_mood',
         slots: { mood: moodMatch[1].toLowerCase() as MoodType },
         raw: transcript,
-        confidence: 0.85,
+        confidence: 0.88,
       };
     }
     
+    // Default to play query (search in current playlist)
     return {
       action: 'play_query',
       slots: { query },
@@ -118,61 +151,54 @@ export function parseIntent(transcript: string): VoiceIntent {
     };
   }
   
-  // Search
-  const searchMatch = lower.match(/search (for )?(.+)/i) || lower.match(/find (.+)/i);
-  if (searchMatch) {
-    const query = searchMatch[2] || searchMatch[1];
-    return {
-      action: 'search',
-      slots: { query },
-      raw: transcript,
-      confidence: 0.8,
-    };
-  }
-  
-  // Navigation - more flexible patterns
-  if (/(open |go to |show |)?(emotion|mood)(s| detection| page)/i.test(lower)) {
-    return {
-      action: 'navigate',
-      slots: { navigation: 'emotions' },
-      raw: transcript,
-      confidence: 0.85,
-    };
-  }
-  
-  if (/(open |go to |show |)?library|my library/i.test(lower)) {
-    return {
-      action: 'navigate',
-      slots: { navigation: 'library' },
-      raw: transcript,
-      confidence: 0.85,
-    };
-  }
-  
-  if (/(open |go to |show |)?(settings|profile)/i.test(lower)) {
-    return {
-      action: 'navigate',
-      slots: { navigation: 'settings' },
-      raw: transcript,
-      confidence: 0.85,
-    };
-  }
-  
-  if (/(open |go to |show |go )?home( page)?/i.test(lower)) {
-    return {
-      action: 'navigate',
-      slots: { navigation: 'home' },
-      raw: transcript,
-      confidence: 0.85,
-    };
-  }
-  
-  if (/(open |go to |show |)?search/i.test(lower)) {
+  // Navigate to search (without auto-play)
+  if (/^(open\s+|go\s+to\s+)?search$/i.test(lower)) {
     return {
       action: 'navigate',
       slots: { navigation: 'search' },
       raw: transcript,
-      confidence: 0.85,
+      confidence: 0.90,
+    };
+  }
+  
+  // Navigation - flexible patterns
+  if (/(open|go\s+to|show|jaao|kholo)?\s*(emotion|mood)(s|detection|page)?/i.test(lower) && 
+      !/(playlist|song|music)/i.test(lower)) {
+    return {
+      action: 'navigate',
+      slots: { navigation: 'emotions' },
+      raw: transcript,
+      confidence: 0.88,
+    };
+  }
+  
+  if (/(open|go\s+to|show|jaao|kholo)?\s*library/i.test(lower) ||
+      /^library$/i.test(lower)) {
+    return {
+      action: 'navigate',
+      slots: { navigation: 'library' },
+      raw: transcript,
+      confidence: 0.88,
+    };
+  }
+  
+  if (/(open|go\s+to|show|jaao|kholo)?\s*(settings|profile)/i.test(lower) ||
+      /^settings$/i.test(lower)) {
+    return {
+      action: 'navigate',
+      slots: { navigation: 'settings' },
+      raw: transcript,
+      confidence: 0.88,
+    };
+  }
+  
+  if (/(go\s+)?home(\s+page)?/i.test(lower) || 
+      /^home$/i.test(lower)) {
+    return {
+      action: 'navigate',
+      slots: { navigation: 'home' },
+      raw: transcript,
+      confidence: 0.90,
     };
   }
   
@@ -186,13 +212,29 @@ export function parseIntent(transcript: string): VoiceIntent {
 }
 
 export const HELP_TEXT = `
-You can say commands like:
-- "Play", "Pause", "Next", "Previous"
-- "Volume up", "Volume down", "Volume to 50"
-- "Play happy music", "Play calm songs"
-- "Play first song", "Play second track"
-- "Play liked songs", "Play from playlist name"
-- "Play [song or artist name]"
-- "Search for [query]"
-- "Emotions", "Library", "Home", "Settings"
+Voice Commands:
+
+🎵 Playback:
+- "play", "pause", "resume", "next", "previous"
+- "play playlist [name]" - Play from Library
+- "search [artist/song]" - Auto-play first result
+- "play happy/calm/focus music" - Play mood
+- "play first/second song" - Play nth track
+
+🔊 Volume:
+- "volume up/down"
+- "volume to 50"
+
+🧭 Navigation:
+- "go home"
+- "open library/emotions/settings"
+
+💡 System:
+- "help" or "what can I say?"
+
+🌐 Hinglish:
+- "playlist Focus chalao"
+- "Arijit Singh search karo"
+- "volume ko 50 kar"
+- "agle gaane"
 `;

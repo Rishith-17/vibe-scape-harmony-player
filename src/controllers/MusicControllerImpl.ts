@@ -15,34 +15,34 @@ export class MusicControllerImpl implements MusicController {
     this.currentVolume = parseInt(localStorage.getItem('vibescape_volume') || '70');
   }
 
-  play(): void {
+  async play(): Promise<void> {
     console.log('[MusicController] ▶️ Play command');
     if (!this.player.isPlaying && this.player.currentTrack) {
       this.player.togglePlayPause();
     } else if (!this.player.currentTrack && this.player.playlist.length > 0) {
       // If no track is playing but playlist exists, play first track
-      this.player.playTrack(this.player.playlist[0], this.player.playlist, 0);
+      await this.player.playTrack(this.player.playlist[0], this.player.playlist, 0);
     }
   }
 
-  pause(): void {
+  async pause(): Promise<void> {
     console.log('[MusicController] ⏸️ Pause command');
     if (this.player.isPlaying) {
       this.player.togglePlayPause();
     }
   }
 
-  resume(): void {
+  async resume(): Promise<void> {
     console.log('[MusicController] ▶️ Resume command');
-    this.play();
+    await this.play();
   }
 
-  next(): void {
+  async next(): Promise<void> {
     console.log('[MusicController] ⏭️ Next command');
     this.player.skipNext();
   }
 
-  previous(): void {
+  async previous(): Promise<void> {
     console.log('[MusicController] ⏮️ Previous command');
     this.player.skipPrevious();
   }
@@ -124,9 +124,11 @@ export class MusicControllerImpl implements MusicController {
   async playPlaylist(playlistName: string): Promise<void> {
     console.log('[MusicController] 📋 Play playlist:', playlistName);
     
-    // Find playlist by name (case insensitive)
+    // Find playlist by name (case insensitive, fuzzy match)
+    const normalizedQuery = playlistName.toLowerCase().trim();
     const playlist = this.player.playlists.find(
-      p => p.name.toLowerCase() === playlistName.toLowerCase()
+      p => p.name.toLowerCase().includes(normalizedQuery) || 
+           normalizedQuery.includes(p.name.toLowerCase())
     );
     
     if (!playlist) {
@@ -138,9 +140,50 @@ export class MusicControllerImpl implements MusicController {
       if (songs.length === 0) {
         throw new Error(`Playlist "${playlistName}" is empty`);
       }
+      console.log(`[MusicController] 🎵 Playing "${playlist.name}" from track 1`);
       await this.player.playTrack(songs[0], songs, 0);
     } catch (error) {
       throw new Error(`Could not play playlist "${playlistName}"`);
+    }
+  }
+
+  async searchAndPlay(query: string): Promise<void> {
+    console.log('[MusicController] 🔍 Search and play:', query);
+    
+    try {
+      // Import supabase client
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Search using the YouTube edge function
+      const { data, error } = await supabase.functions.invoke('youtube-search', {
+        body: { query: `${query} music`, maxResults: 10 }
+      });
+      
+      if (error) {
+        console.error('[MusicController] Search error:', error);
+        throw new Error(`Search failed: ${error.message}`);
+      }
+      
+      if (!data?.videos || data.videos.length === 0) {
+        throw new Error(`No results found for "${query}"`);
+      }
+      
+      // Convert YouTube videos to Track format
+      const tracks = data.videos.map((video: any) => ({
+        id: video.id,
+        title: video.title,
+        channelTitle: video.channelTitle,
+        thumbnail: video.thumbnail,
+        videoId: video.id,
+      }));
+      
+      // Auto-play the first result
+      const topResult = tracks[0];
+      console.log('[MusicController] 🎵 Auto-playing top result:', topResult.title);
+      await this.player.playTrack(topResult, tracks, 0);
+    } catch (error) {
+      console.error('[MusicController] ❌ Search and play failed:', error);
+      throw new Error(`I couldn't find "${query}"`);
     }
   }
 

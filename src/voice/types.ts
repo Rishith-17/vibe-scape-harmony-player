@@ -13,6 +13,7 @@ export type VoiceAction =
   | 'play_nth_track'
   | 'play_liked_songs'
   | 'play_playlist'
+  | 'search_and_play'
   | 'navigate'
   | 'help'
   | 'unknown';
@@ -36,16 +37,17 @@ export interface VoiceIntent {
 }
 
 export interface MusicController {
-  play(): void;
-  pause(): void;
-  resume(): void;
-  next(): void;
-  previous(): void;
+  play(): Promise<void>;
+  pause(): Promise<void>;
+  resume(): Promise<void>;
+  next(): Promise<void>;
+  previous(): Promise<void>;
   playQuery(query: string): Promise<void>;
   playMood(mood: MoodType): Promise<void>;
   playNthTrack(trackNumber: number): Promise<void>;
   playLikedSongs(): Promise<void>;
   playPlaylist(playlistName: string): Promise<void>;
+  searchAndPlay(query: string): Promise<void>;
   setVolume(percent: number): void; // 0..100
   adjustVolume(delta: number): void; // +/-
 }

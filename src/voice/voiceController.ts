@@ -4,6 +4,8 @@ import { WebSpeechAsr } from './asr/WebSpeechAsr';
 import { TFJSWake } from './wake/TFJSWake';
 import { TtsEngine } from './tts/tts';
 import { EarconPlayer } from './EarconPlayer';
+import { runCommand } from './commandRunner';
+import { setPlayerReady, whenReady } from './playerGate';
 
 /**
  * Main voice controller - orchestrates wake → ASR → NLU → action flow
@@ -65,11 +67,15 @@ export class VoiceController {
     await this.earconPlayer.initialize();
     console.log('[VoiceController] Initialized');
     
+    // Mark player as ready
+    setPlayerReady(true);
+    
     // Log current configuration
     console.log('[VoiceController] Config:', {
       language: this.config.language,
       wakeSensitivity: this.config.wakeSensitivity,
-      ttsEnabled: this.config.ttsEnabled
+      ttsEnabled: this.config.ttsEnabled,
+      wakeEnabled: this.wakeEnabled
     });
   }
 
@@ -152,121 +158,160 @@ export class VoiceController {
     console.log('[VoiceController] 🎯 Executing action:', action, 'Slots:', slots);
 
     try {
-      switch (action) {
-        case 'play':
-          console.log('[VoiceController] ▶️ Playing music');
-          this.musicController.play();
-          await this.speak('Playing');
-          break;
+      // Use command runner to prevent overlapping commands
+      const result = await runCommand(async () => {
+        switch (action) {
+          case 'play':
+            console.log('[VoiceController] ▶️ Playing music');
+            await whenReady(async () => {
+              await this.musicController.play();
+            });
+            await this.speak('Playing');
+            return;
 
-        case 'pause':
-          console.log('[VoiceController] ⏸️ Pausing music');
-          this.musicController.pause();
-          await this.speak('Paused');
-          break;
+          case 'pause':
+            console.log('[VoiceController] ⏸️ Pausing music');
+            await whenReady(async () => {
+              await this.musicController.pause();
+            });
+            await this.speak('Paused');
+            return;
 
-        case 'resume':
-          console.log('[VoiceController] ▶️ Resuming music');
-          this.musicController.resume();
-          await this.speak('Resuming');
-          break;
+          case 'resume':
+            console.log('[VoiceController] ▶️ Resuming music');
+            await whenReady(async () => {
+              await this.musicController.resume();
+            });
+            await this.speak('Resuming');
+            return;
 
-        case 'next':
-          console.log('[VoiceController] ⏭️ Next track');
-          this.musicController.next();
-          await this.speak('Next track');
-          break;
+          case 'next':
+            console.log('[VoiceController] ⏭️ Next track');
+            await whenReady(async () => {
+              await this.musicController.next();
+            });
+            await this.speak('Next track');
+            return;
 
-        case 'previous':
-          console.log('[VoiceController] ⏮️ Previous track');
-          this.musicController.previous();
-          await this.speak('Previous track');
-          break;
+          case 'previous':
+            console.log('[VoiceController] ⏮️ Previous track');
+            await whenReady(async () => {
+              await this.musicController.previous();
+            });
+            await this.speak('Previous track');
+            return;
 
-        case 'volume_up':
-          console.log('[VoiceController] 🔊 Volume up');
-          this.musicController.adjustVolume(10);
-          await this.speak('Volume up');
-          break;
+          case 'volume_up':
+            console.log('[VoiceController] 🔊 Volume up');
+            this.musicController.adjustVolume(10);
+            await this.speak('Volume up');
+            return;
 
-        case 'volume_down':
-          console.log('[VoiceController] 🔉 Volume down');
-          this.musicController.adjustVolume(-10);
-          await this.speak('Volume down');
-          break;
+          case 'volume_down':
+            console.log('[VoiceController] 🔉 Volume down');
+            this.musicController.adjustVolume(-10);
+            await this.speak('Volume down');
+            return;
 
-        case 'volume_set':
-          if (slots.volume !== undefined) {
-            console.log('[VoiceController] 🔊 Setting volume to', slots.volume);
-            this.musicController.setVolume(slots.volume);
-            await this.speak(`Volume set to ${slots.volume}`);
-          }
-          break;
+          case 'volume_set':
+            if (slots.volume !== undefined) {
+              console.log('[VoiceController] 🔊 Setting volume to', slots.volume);
+              this.musicController.setVolume(slots.volume);
+              await this.speak(`Volume set to ${slots.volume}`);
+            }
+            return;
 
-        case 'play_query':
-          if (slots.query) {
-            console.log('[VoiceController] 🎵 Playing query:', slots.query);
-            await this.musicController.playQuery(slots.query);
-            await this.speak(`Playing ${slots.query}`);
-          }
-          break;
+          case 'play_query':
+            if (slots.query) {
+              console.log('[VoiceController] 🎵 Playing query:', slots.query);
+              await whenReady(async () => {
+                await this.musicController.playQuery(slots.query);
+              });
+              await this.speak(`Playing ${slots.query}`);
+            }
+            return;
 
-        case 'play_mood':
-          if (slots.mood) {
-            console.log('[VoiceController] 😊 Playing mood:', slots.mood);
-            await this.musicController.playMood(slots.mood);
-            await this.speak(`Playing ${slots.mood} music`);
-          }
-          break;
+          case 'play_mood':
+            if (slots.mood) {
+              console.log('[VoiceController] 😊 Playing mood:', slots.mood);
+              await whenReady(async () => {
+                await this.musicController.playMood(slots.mood);
+              });
+              await this.speak(`Playing ${slots.mood} music`);
+            }
+            return;
 
-        case 'play_nth_track':
-          if (slots.trackNumber) {
-            console.log('[VoiceController] 🎵 Playing track number:', slots.trackNumber);
-            await this.musicController.playNthTrack(slots.trackNumber);
-            await this.speak(`Playing track ${slots.trackNumber}`);
-          }
-          break;
+          case 'play_nth_track':
+            if (slots.trackNumber) {
+              console.log('[VoiceController] 🎵 Playing track number:', slots.trackNumber);
+              await whenReady(async () => {
+                await this.musicController.playNthTrack(slots.trackNumber);
+              });
+              await this.speak(`Playing track ${slots.trackNumber}`);
+            }
+            return;
 
-        case 'play_liked_songs':
-          console.log('[VoiceController] ❤️ Playing liked songs');
-          await this.musicController.playLikedSongs();
-          await this.speak('Playing your liked songs');
-          break;
+          case 'play_liked_songs':
+            console.log('[VoiceController] ❤️ Playing liked songs');
+            await whenReady(async () => {
+              await this.musicController.playLikedSongs();
+            });
+            await this.speak('Playing your liked songs');
+            return;
 
-        case 'play_playlist':
-          if (slots.playlistName) {
-            console.log('[VoiceController] 📋 Playing playlist:', slots.playlistName);
-            await this.musicController.playPlaylist(slots.playlistName);
-            await this.speak(`Playing ${slots.playlistName} playlist`);
-          }
-          break;
+          case 'play_playlist':
+            if (slots.playlistName) {
+              console.log('[VoiceController] 📋 Playing playlist:', slots.playlistName);
+              await whenReady(async () => {
+                await this.musicController.playPlaylist(slots.playlistName);
+              });
+              await this.speak(`Playing ${slots.playlistName} playlist`);
+            }
+            return;
 
-        case 'search':
-          if (slots.query) {
-            console.log('[VoiceController] 🔍 Searching:', slots.query);
-            this.navController.openSearch(slots.query);
-            await this.speak(`Searching for ${slots.query}`);
-          }
-          break;
+          case 'search_and_play':
+            if (slots.query) {
+              console.log('[VoiceController] 🔍 Searching and playing:', slots.query);
+              await whenReady(async () => {
+                await this.musicController.searchAndPlay(slots.query);
+              });
+              await this.speak(`Playing ${slots.query}`);
+            }
+            return;
 
-        case 'navigate':
-          console.log('[VoiceController] 🧭 Navigating to:', slots.navigation);
-          if (slots.navigation === 'emotions') this.navController.openEmotionDetection();
-          else if (slots.navigation === 'library') this.navController.openLibrary();
-          else if (slots.navigation === 'settings') this.navController.openSettings();
-          else if (slots.navigation === 'home') this.navController.openHome();
-          else if (slots.navigation === 'search') this.navController.openSearch();
-          await this.speak(`Opening ${slots.navigation}`);
-          break;
+          case 'search':
+            if (slots.query) {
+              console.log('[VoiceController] 🔍 Opening search for:', slots.query);
+              this.navController.openSearch(slots.query);
+              await this.speak(`Searching for ${slots.query}`);
+            }
+            return;
 
-        case 'help':
-          console.log('[VoiceController] ℹ️ Showing help');
-          await this.speak(HELP_TEXT);
-          break;
+          case 'navigate':
+            console.log('[VoiceController] 🧭 Navigating to:', slots.navigation);
+            if (slots.navigation === 'emotions') this.navController.openEmotionDetection();
+            else if (slots.navigation === 'library') this.navController.openLibrary();
+            else if (slots.navigation === 'settings') this.navController.openSettings();
+            else if (slots.navigation === 'home') this.navController.openHome();
+            else if (slots.navigation === 'search') this.navController.openSearch();
+            await this.speak(`Opening ${slots.navigation}`);
+            return;
 
-        default:
-          console.log('[VoiceController] ❓ Unknown action:', action);
-          await this.speak("I don't know how to do that yet.");
+          case 'help':
+            console.log('[VoiceController] ℹ️ Showing help');
+            await this.speak(HELP_TEXT);
+            return;
+
+          default:
+            console.log('[VoiceController] ❓ Unknown action:', action);
+            await this.speak("I don't know how to do that yet.");
+            return;
+        }
+      });
+
+      if (result === null) {
+        console.log('[VoiceController] ⏸️ Command skipped - another command is running');
+        await this.speak('Please wait, processing previous command');
       }
     } catch (error: any) {
       console.error('[VoiceController] ❌ Error executing intent:', error);
@@ -326,6 +371,7 @@ export class VoiceController {
     this.stop();
     this.wakeEngine.cleanup();
     this.earconPlayer.destroy();
+    setPlayerReady(false);
   }
 
   // Manual trigger for mobile/push-to-talk
