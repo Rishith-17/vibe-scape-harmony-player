@@ -85,6 +85,65 @@ export class MusicControllerImpl implements MusicController {
     }
   }
 
+  async playNthTrack(trackNumber: number): Promise<void> {
+    console.log('[MusicController] 🎵 Play track number:', trackNumber);
+    
+    if (!this.player.playlist || this.player.playlist.length === 0) {
+      throw new Error('No playlist loaded');
+    }
+    
+    const index = trackNumber - 1; // Convert to 0-based index
+    if (index < 0 || index >= this.player.playlist.length) {
+      throw new Error(`Track ${trackNumber} not found. Playlist has ${this.player.playlist.length} songs.`);
+    }
+    
+    const track = this.player.playlist[index];
+    await this.player.playTrack(track, this.player.playlist, index);
+  }
+
+  async playLikedSongs(): Promise<void> {
+    console.log('[MusicController] ❤️ Play liked songs');
+    
+    // Find the "Liked Songs" playlist
+    const likedPlaylist = this.player.playlists.find(p => p.name === 'Liked Songs');
+    if (!likedPlaylist) {
+      throw new Error('No liked songs found');
+    }
+    
+    try {
+      const songs = await this.player.getPlaylistSongs(likedPlaylist.id);
+      if (songs.length === 0) {
+        throw new Error('Liked songs playlist is empty');
+      }
+      await this.player.playTrack(songs[0], songs, 0);
+    } catch (error) {
+      throw new Error('Could not play liked songs');
+    }
+  }
+
+  async playPlaylist(playlistName: string): Promise<void> {
+    console.log('[MusicController] 📋 Play playlist:', playlistName);
+    
+    // Find playlist by name (case insensitive)
+    const playlist = this.player.playlists.find(
+      p => p.name.toLowerCase() === playlistName.toLowerCase()
+    );
+    
+    if (!playlist) {
+      throw new Error(`Playlist "${playlistName}" not found`);
+    }
+    
+    try {
+      const songs = await this.player.getPlaylistSongs(playlist.id);
+      if (songs.length === 0) {
+        throw new Error(`Playlist "${playlistName}" is empty`);
+      }
+      await this.player.playTrack(songs[0], songs, 0);
+    } catch (error) {
+      throw new Error(`Could not play playlist "${playlistName}"`);
+    }
+  }
+
   setVolume(percent: number): void {
     const volume = Math.max(0, Math.min(100, percent));
     console.log('[MusicController] 🔊 Set volume to:', volume);

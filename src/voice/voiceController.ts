@@ -207,6 +207,28 @@ export class VoiceController {
           }
           break;
 
+        case 'play_nth_track':
+          if (slots.trackNumber) {
+            console.log('[VoiceController] 🎵 Playing track number:', slots.trackNumber);
+            await this.musicController.playNthTrack(slots.trackNumber);
+            await this.speak(`Playing track ${slots.trackNumber}`);
+          }
+          break;
+
+        case 'play_liked_songs':
+          console.log('[VoiceController] ❤️ Playing liked songs');
+          await this.musicController.playLikedSongs();
+          await this.speak('Playing your liked songs');
+          break;
+
+        case 'play_playlist':
+          if (slots.playlistName) {
+            console.log('[VoiceController] 📋 Playing playlist:', slots.playlistName);
+            await this.musicController.playPlaylist(slots.playlistName);
+            await this.speak(`Playing ${slots.playlistName} playlist`);
+          }
+          break;
+
         case 'search':
           if (slots.query) {
             console.log('[VoiceController] 🔍 Searching:', slots.query);

@@ -49,6 +49,56 @@ export function parseIntent(transcript: string): VoiceIntent {
   if (playMatch) {
     const query = playMatch[1];
     
+    // Check if it's liked songs request
+    if (/(liked|favorite|favourite) (songs|playlist|music)/i.test(query) || 
+        /my (likes|favorites|favourites)/i.test(query)) {
+      return {
+        action: 'play_liked_songs',
+        slots: {},
+        raw: transcript,
+        confidence: 0.9,
+      };
+    }
+    
+    // Check if it's a playlist request
+    const playlistMatch = query.match(/from (.*) playlist/i) || query.match(/playlist (.*)/i);
+    if (playlistMatch) {
+      return {
+        action: 'play_playlist',
+        slots: { playlistName: playlistMatch[1].trim() },
+        raw: transcript,
+        confidence: 0.85,
+      };
+    }
+    
+    // Check if it's nth track request
+    const nthMatch = query.match(/(first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|\d+) (song|track)/i) ||
+                     query.match(/song (number|num) (\d+)/i) ||
+                     query.match(/track (number|num) (\d+)/i);
+    if (nthMatch) {
+      const numberMap: Record<string, number> = {
+        'first': 1, '1st': 1,
+        'second': 2, '2nd': 2,
+        'third': 3, '3rd': 3,
+        'fourth': 4, '4th': 4,
+        'fifth': 5, '5th': 5
+      };
+      
+      let trackNumber: number;
+      if (nthMatch[2] && !isNaN(parseInt(nthMatch[2]))) {
+        trackNumber = parseInt(nthMatch[2]);
+      } else {
+        trackNumber = numberMap[nthMatch[1].toLowerCase()] || parseInt(nthMatch[1]) || 1;
+      }
+      
+      return {
+        action: 'play_nth_track',
+        slots: { trackNumber },
+        raw: transcript,
+        confidence: 0.85,
+      };
+    }
+    
     // Check if it's a mood request
     const moodMatch = query.match(/(happy|calm|focus|chill|romantic|energetic|sad) (music|songs|gaane)/i);
     if (moodMatch) {
@@ -80,8 +130,8 @@ export function parseIntent(transcript: string): VoiceIntent {
     };
   }
   
-  // Navigation
-  if (/open (emotion|mood) (detection|page)/i.test(lower)) {
+  // Navigation - more flexible patterns
+  if (/(open |go to |show |)?(emotion|mood)(s| detection| page)/i.test(lower)) {
     return {
       action: 'navigate',
       slots: { navigation: 'emotions' },
@@ -90,7 +140,7 @@ export function parseIntent(transcript: string): VoiceIntent {
     };
   }
   
-  if (/open (library|my library)/i.test(lower)) {
+  if (/(open |go to |show |)?library|my library/i.test(lower)) {
     return {
       action: 'navigate',
       slots: { navigation: 'library' },
@@ -99,7 +149,7 @@ export function parseIntent(transcript: string): VoiceIntent {
     };
   }
   
-  if (/open (settings|profile)/i.test(lower)) {
+  if (/(open |go to |show |)?(settings|profile)/i.test(lower)) {
     return {
       action: 'navigate',
       slots: { navigation: 'settings' },
@@ -108,7 +158,7 @@ export function parseIntent(transcript: string): VoiceIntent {
     };
   }
   
-  if (/open (home|home page)/i.test(lower)) {
+  if (/(open |go to |show |go )?home( page)?/i.test(lower)) {
     return {
       action: 'navigate',
       slots: { navigation: 'home' },
@@ -117,7 +167,7 @@ export function parseIntent(transcript: string): VoiceIntent {
     };
   }
   
-  if (/open search/i.test(lower)) {
+  if (/(open |go to |show |)?search/i.test(lower)) {
     return {
       action: 'navigate',
       slots: { navigation: 'search' },
@@ -140,7 +190,9 @@ You can say commands like:
 - "Play", "Pause", "Next", "Previous"
 - "Volume up", "Volume down", "Volume to 50"
 - "Play happy music", "Play calm songs"
+- "Play first song", "Play second track"
+- "Play liked songs", "Play from playlist name"
 - "Play [song or artist name]"
 - "Search for [query]"
-- "Open emotions page", "Open library", "Open settings"
+- "Emotions", "Library", "Home", "Settings"
 `;
