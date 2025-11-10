@@ -1,7 +1,7 @@
 import { VoiceState, MusicController, NavControllerAdapter } from './types';
 import { parseIntent, HELP_TEXT } from './nlu/intentParser';
 import { WebSpeechAsr } from './asr/WebSpeechAsr';
-import { PorcupineWebEngine } from './wake/PorcupineWebEngine';
+import { TFJSWake } from './wake/TFJSWake';
 import { TtsEngine } from './tts/tts';
 import { EarconPlayer } from './EarconPlayer';
 
@@ -11,11 +11,12 @@ import { EarconPlayer } from './EarconPlayer';
  */
 export class VoiceController {
   private state: VoiceState = 'idle';
-  private wakeEngine: PorcupineWebEngine;
+  private wakeEngine: TFJSWake;
   private asrEngine: WebSpeechAsr;
   private ttsEngine: TtsEngine;
   private earconPlayer: EarconPlayer;
   private stateChangeCallback: ((state: VoiceState) => void) | null = null;
+  private wakeEnabled = true; // Can be toggled via settings
 
   constructor(
     private musicController: MusicController,
@@ -24,12 +25,14 @@ export class VoiceController {
       language: string;
       wakeSensitivity: number;
       ttsEnabled: boolean;
+      wakeEnabled?: boolean;
     }
   ) {
-    this.wakeEngine = new PorcupineWebEngine();
+    this.wakeEngine = new TFJSWake();
     this.asrEngine = new WebSpeechAsr(config.language);
     this.ttsEngine = new TtsEngine();
     this.earconPlayer = new EarconPlayer();
+    this.wakeEnabled = config.wakeEnabled !== false;
 
     this.setupEngines();
   }
@@ -72,12 +75,21 @@ export class VoiceController {
 
   async start(): Promise<void> {
     try {
-      await this.wakeEngine.start();
+      // Start wake word detection only if enabled and supported
+      if (this.wakeEnabled && TFJSWake.isSupported()) {
+        await this.wakeEngine.start();
+        console.log('[VoiceController] ✅ Voice control ready');
+        console.log('[VoiceController] 🎤 Say "Hey Vibe" or tap microphone button');
+      } else {
+        console.log('[VoiceController] ✅ Voice control ready (Tap Mic only)');
+        if (!TFJSWake.isSupported()) {
+          console.log('[VoiceController] ⚠️ Wake word not supported in this browser');
+        }
+      }
       this.setState('idle');
-      console.log('[VoiceController] ✅ Voice control ready');
-      console.log('[VoiceController] 🎤 Say "Hey Vibe" or tap microphone button');
     } catch (error) {
-      console.error('[VoiceController] Failed to start:', error);
+      console.error('[VoiceController] Failed to start wake word:', error);
+      console.log('[VoiceController] ✅ Falling back to Tap Mic only');
       this.setState('idle'); // Still allow manual trigger
     }
   }
@@ -301,10 +313,18 @@ export class VoiceController {
     if (config.language !== undefined) {
       this.asrEngine.setLanguage(config.language);
     }
+    if (config.wakeEnabled !== undefined) {
+      this.wakeEnabled = config.wakeEnabled;
+      // Restart if necessary
+      if (this.state === 'idle') {
+        this.stop().then(() => this.start());
+      }
+    }
   }
 
   destroy(): void {
     this.stop();
+    this.wakeEngine.cleanup();
     this.earconPlayer.destroy();
   }
 

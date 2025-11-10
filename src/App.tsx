@@ -76,6 +76,7 @@ const VoiceIntegration = () => {
             language: voiceSettings.language,
             wakeSensitivity: voiceSettings.wakeSensitivity,
             ttsEnabled: voiceSettings.ttsEnabled,
+            wakeEnabled: voiceSettings.wakeEnabled && !voiceSettings.pttOnly,
           }
         );
 

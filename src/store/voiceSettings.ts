@@ -3,6 +3,8 @@ import { persist } from 'zustand/middleware';
 
 export interface VoiceSettings {
   enabled: boolean;
+  wakeEnabled: boolean; // Enable "Hey Vibe" wake word
+  pttOnly: boolean; // Push-to-talk only mode (disables wake)
   useOfflineAsr: boolean;
   language: 'en-IN' | 'hi-IN';
   wakeSensitivity: number; // 0.0 - 1.0
@@ -12,6 +14,8 @@ export interface VoiceSettings {
 
 interface VoiceSettingsStore extends VoiceSettings {
   setEnabled: (enabled: boolean) => void;
+  setWakeEnabled: (enabled: boolean) => void;
+  setPttOnly: (pttOnly: boolean) => void;
   setUseOfflineAsr: (use: boolean) => void;
   setLanguage: (lang: 'en-IN' | 'hi-IN') => void;
   setWakeSensitivity: (sensitivity: number) => void;
@@ -22,9 +26,11 @@ interface VoiceSettingsStore extends VoiceSettings {
 
 const DEFAULT_SETTINGS: VoiceSettings = {
   enabled: true,
+  wakeEnabled: true, // "Hey Vibe" wake word enabled by default
+  pttOnly: false, // Allow both wake and tap
   useOfflineAsr: false,
   language: 'en-IN',
-  wakeSensitivity: 0.5,
+  wakeSensitivity: 0.7, // Slightly higher for better wake detection
   ttsEnabled: true,
   consentGiven: true,
 };
@@ -34,6 +40,8 @@ export const useVoiceSettings = create<VoiceSettingsStore>()(
     (set) => ({
       ...DEFAULT_SETTINGS,
       setEnabled: (enabled) => set({ enabled }),
+      setWakeEnabled: (wakeEnabled) => set({ wakeEnabled, pttOnly: !wakeEnabled }),
+      setPttOnly: (pttOnly) => set({ pttOnly, wakeEnabled: !pttOnly }),
       setUseOfflineAsr: (useOfflineAsr) => set({ useOfflineAsr }),
       setLanguage: (language) => set({ language }),
       setWakeSensitivity: (wakeSensitivity) => set({ wakeSensitivity }),

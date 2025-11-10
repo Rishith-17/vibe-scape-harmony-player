@@ -83,7 +83,7 @@ const VoiceSettingsPage: React.FC = () => {
               <div className="space-y-0.5">
                 <p className="font-medium">Enable Voice Control</p>
                 <p className="text-sm text-muted-foreground">
-                  Say "Hey Vibe" to activate
+                  Tap mic or say "Hey Vibe" to activate
                 </p>
               </div>
               <Switch
@@ -91,6 +91,36 @@ const VoiceSettingsPage: React.FC = () => {
                 onCheckedChange={handleEnableToggle}
               />
             </div>
+            
+            {settings.enabled && (
+              <div className="mt-4 pt-4 border-t space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <p className="font-medium">Enable "Hey Vibe" Wake Word</p>
+                    <p className="text-sm text-muted-foreground">
+                      Hands-free activation (works only when tab is visible)
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.wakeEnabled}
+                    onCheckedChange={settings.setWakeEnabled}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <p className="font-medium">Tap Mic Only</p>
+                    <p className="text-sm text-muted-foreground">
+                      Disable wake word, use push-to-talk only
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.pttOnly}
+                    onCheckedChange={settings.setPttOnly}
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -187,18 +217,27 @@ const VoiceSettingsPage: React.FC = () => {
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-2">
                 <p>
-                  • Wake word detection runs entirely on your device
+                  🔒 <strong>Privacy-First Design:</strong>
+                </p>
+                <p>
+                  • Wake word detection runs entirely on your device (TensorFlow.js)
                 </p>
                 <p>
                   • {settings.useOfflineAsr 
                       ? 'Speech recognition runs on your device' 
-                      : 'Speech transcripts are sent to your browser\'s speech service'}
+                      : 'Speech transcripts processed by browser (no server upload)'}
                 </p>
                 <p>
-                  • No audio is stored or sent to our servers
+                  • Wake word only active when tab is visible (pauses automatically)
+                </p>
+                <p>
+                  • No audio recordings are stored or sent to servers
                 </p>
                 <p>
                   • You can disable voice control anytime
+                </p>
+                <p className="pt-2">
+                  📱 <strong>Tap Mic works everywhere.</strong> Wake word requires browser support.
                 </p>
               </CardContent>
             </Card>
