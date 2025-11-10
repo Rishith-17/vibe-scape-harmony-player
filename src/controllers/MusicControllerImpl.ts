@@ -8,33 +8,47 @@ type MusicPlayerType = ReturnType<typeof useMusicPlayer>;
  * No internal logic changes - pure delegation
  */
 export class MusicControllerImpl implements MusicController {
-  constructor(private player: MusicPlayerType) {}
+  private currentVolume: number;
+
+  constructor(private player: MusicPlayerType) {
+    // Load volume from localStorage or default to 70
+    this.currentVolume = parseInt(localStorage.getItem('vibescape_volume') || '70');
+  }
 
   play(): void {
+    console.log('[MusicController] ▶️ Play command');
     if (!this.player.isPlaying && this.player.currentTrack) {
       this.player.togglePlayPause();
+    } else if (!this.player.currentTrack && this.player.playlist.length > 0) {
+      // If no track is playing but playlist exists, play first track
+      this.player.playTrack(this.player.playlist[0], this.player.playlist, 0);
     }
   }
 
   pause(): void {
+    console.log('[MusicController] ⏸️ Pause command');
     if (this.player.isPlaying) {
       this.player.togglePlayPause();
     }
   }
 
   resume(): void {
+    console.log('[MusicController] ▶️ Resume command');
     this.play();
   }
 
   next(): void {
+    console.log('[MusicController] ⏭️ Next command');
     this.player.skipNext();
   }
 
   previous(): void {
+    console.log('[MusicController] ⏮️ Previous command');
     this.player.skipPrevious();
   }
 
   async playQuery(query: string): Promise<void> {
+    console.log('[MusicController] 🔍 Play query:', query);
     // Search in current playlist
     const track = this.player.playlist.find(
       (t) =>
@@ -49,6 +63,7 @@ export class MusicControllerImpl implements MusicController {
   }
 
   async playMood(mood: MoodType): Promise<void> {
+    console.log('[MusicController] 😊 Play mood:', mood);
     // Map mood to emotion playlist
     const moodMap: Record<MoodType, string> = {
       happy: 'happy',
@@ -71,12 +86,16 @@ export class MusicControllerImpl implements MusicController {
   }
 
   setVolume(percent: number): void {
-    this.player.setVolume(Math.max(0, Math.min(100, percent)));
+    const volume = Math.max(0, Math.min(100, percent));
+    console.log('[MusicController] 🔊 Set volume to:', volume);
+    this.currentVolume = volume;
+    localStorage.setItem('vibescape_volume', volume.toString());
+    this.player.setVolume(volume);
   }
 
   adjustVolume(delta: number): void {
-    // Get current volume from player state - since volume isn't directly exposed,
-    // we'll use setVolume with relative adjustment based on typical default (50)
-    this.player.setVolume(Math.max(0, Math.min(100, 50 + delta)));
+    const newVolume = Math.max(0, Math.min(100, this.currentVolume + delta));
+    console.log('[MusicController] 🔊 Adjust volume from', this.currentVolume, 'to', newVolume);
+    this.setVolume(newVolume);
   }
 }

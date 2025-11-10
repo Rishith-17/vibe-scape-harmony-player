@@ -61,21 +61,21 @@ export const VoiceChip: React.FC<VoiceChipProps> = ({ state, onClick, onManualTr
 
     switch (state) {
       case 'listening':
-        return 'Listening...';
+        return '🎤 Listening...';
       case 'processing':
-        return 'Processing...';
+        return '⚙️ Processing...';
       case 'speaking':
-        return 'Speaking...';
+        return '🔊 Speaking...';
       case 'error':
-        return 'Error';
+        return 'Try Again';
       default:
-        return 'Say "Hey Vibe"';
+        return '🎤 Tap or Say "Hey Vibe"';
     }
   };
 
   const handleClick = () => {
-    if (isMobile && onManualTrigger) {
-      // On mobile, use push-to-talk
+    // Always allow manual trigger on button click (works for both mobile and desktop)
+    if (onManualTrigger) {
       onManualTrigger();
     } else if (onClick) {
       onClick();

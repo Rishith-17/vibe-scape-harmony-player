@@ -71,9 +71,15 @@ export class VoiceController {
   }
 
   async start(): Promise<void> {
-    await this.wakeEngine.start();
-    this.setState('idle');
-    console.log('[VoiceController] Started - listening for wake word');
+    try {
+      await this.wakeEngine.start();
+      this.setState('idle');
+      console.log('[VoiceController] ✅ Voice control ready');
+      console.log('[VoiceController] 🎤 Say "Hey Vibe" or tap microphone button');
+    } catch (error) {
+      console.error('[VoiceController] Failed to start:', error);
+      this.setState('idle'); // Still allow manual trigger
+    }
   }
 
   async stop(): Promise<void> {
@@ -85,16 +91,19 @@ export class VoiceController {
   }
 
   private async onWakeDetected(): Promise<void> {
+    console.log('[VoiceController] 🎤 Voice activated - listening...');
     this.earconPlayer.play('wake');
     this.setState('listening');
     
     try {
       await this.asrEngine.start();
       this.earconPlayer.play('listen');
+      console.log('[VoiceController] 🔊 Speak your command now');
     } catch (error) {
-      console.error('[VoiceController] Failed to start ASR:', error);
+      console.error('[VoiceController] Failed to start speech recognition:', error);
       this.setState('error');
       this.earconPlayer.play('error');
+      await this.speak('Sorry, microphone access failed');
       setTimeout(() => this.reset(), 2000);
     }
   }
@@ -128,45 +137,55 @@ export class VoiceController {
   private async executeIntent(intent: any): Promise<void> {
     const { action, slots } = intent;
 
+    console.log('[VoiceController] 🎯 Executing action:', action, 'Slots:', slots);
+
     try {
       switch (action) {
         case 'play':
+          console.log('[VoiceController] ▶️ Playing music');
           this.musicController.play();
           await this.speak('Playing');
           break;
 
         case 'pause':
+          console.log('[VoiceController] ⏸️ Pausing music');
           this.musicController.pause();
           await this.speak('Paused');
           break;
 
         case 'resume':
+          console.log('[VoiceController] ▶️ Resuming music');
           this.musicController.resume();
           await this.speak('Resuming');
           break;
 
         case 'next':
+          console.log('[VoiceController] ⏭️ Next track');
           this.musicController.next();
           await this.speak('Next track');
           break;
 
         case 'previous':
+          console.log('[VoiceController] ⏮️ Previous track');
           this.musicController.previous();
           await this.speak('Previous track');
           break;
 
         case 'volume_up':
+          console.log('[VoiceController] 🔊 Volume up');
           this.musicController.adjustVolume(10);
           await this.speak('Volume up');
           break;
 
         case 'volume_down':
+          console.log('[VoiceController] 🔉 Volume down');
           this.musicController.adjustVolume(-10);
           await this.speak('Volume down');
           break;
 
         case 'volume_set':
           if (slots.volume !== undefined) {
+            console.log('[VoiceController] 🔊 Setting volume to', slots.volume);
             this.musicController.setVolume(slots.volume);
             await this.speak(`Volume set to ${slots.volume}`);
           }
@@ -174,6 +193,7 @@ export class VoiceController {
 
         case 'play_query':
           if (slots.query) {
+            console.log('[VoiceController] 🎵 Playing query:', slots.query);
             await this.musicController.playQuery(slots.query);
             await this.speak(`Playing ${slots.query}`);
           }
@@ -181,6 +201,7 @@ export class VoiceController {
 
         case 'play_mood':
           if (slots.mood) {
+            console.log('[VoiceController] 😊 Playing mood:', slots.mood);
             await this.musicController.playMood(slots.mood);
             await this.speak(`Playing ${slots.mood} music`);
           }
@@ -188,12 +209,14 @@ export class VoiceController {
 
         case 'search':
           if (slots.query) {
+            console.log('[VoiceController] 🔍 Searching:', slots.query);
             this.navController.openSearch(slots.query);
             await this.speak(`Searching for ${slots.query}`);
           }
           break;
 
         case 'navigate':
+          console.log('[VoiceController] 🧭 Navigating to:', slots.navigation);
           if (slots.navigation === 'emotions') this.navController.openEmotionDetection();
           else if (slots.navigation === 'library') this.navController.openLibrary();
           else if (slots.navigation === 'settings') this.navController.openSettings();
@@ -203,13 +226,16 @@ export class VoiceController {
           break;
 
         case 'help':
+          console.log('[VoiceController] ℹ️ Showing help');
           await this.speak(HELP_TEXT);
           break;
 
         default:
+          console.log('[VoiceController] ❓ Unknown action:', action);
           await this.speak("I don't know how to do that yet.");
       }
     } catch (error: any) {
+      console.error('[VoiceController] ❌ Error executing intent:', error);
       await this.speak(error.message || 'Sorry, I could not complete that action.');
       throw error;
     }
@@ -262,7 +288,7 @@ export class VoiceController {
 
   // Manual trigger for mobile/push-to-talk
   async manualTrigger(): Promise<void> {
-    console.log('[VoiceController] Manual voice trigger activated');
+    console.log('[VoiceController] 🎤 Manual voice trigger - tap to speak');
     await this.onWakeDetected();
   }
 }
