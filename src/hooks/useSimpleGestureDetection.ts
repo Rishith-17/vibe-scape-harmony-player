@@ -38,18 +38,18 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
     return currentVolume;
   };
 
-  // Optimized gesture handler with confidence check  
+  // Optimized gesture handler with adjusted confidence and debounce
   const handleGesture = (gestureType: string, confidence = 1.0) => {
     const now = Date.now();
     
-    // Require higher gesture confidence for accuracy
-    if (confidence < 0.85) {
+    // Lower confidence requirement for better responsiveness (was 0.85)
+    if (confidence < 0.7) {
       console.log('🚫 Gesture confidence too low:', gestureType, confidence);
       return;
     }
     
-    // Optimized debounce (300ms for faster response)
-    if (now - lastGestureTimeRef.current < 300) {
+    // Shorter debounce (500ms) to prevent accidental double triggers but allow intentional gesture changes
+    if (now - lastGestureTimeRef.current < 500) {
       console.log('🚫 Gesture debounced:', gestureType);
       return;
     }
@@ -57,7 +57,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
     lastGestureTimeRef.current = now;
     setLastGesture(gestureType);
     
-    console.log('🎯 Gesture detected:', gestureType, 'Confidence:', confidence);
+    console.log('🎯 Gesture confirmed:', gestureType, 'Confidence:', confidence);
     
     // Use unified controls
     options.onGesture(gestureType, confidence);
@@ -253,9 +253,9 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       const pinky_mcp = landmarks[17];
       const wrist = landmarks[0];
       
-      // Enhanced finger state detection with optimized tolerances
-      const fingerTolerance = 0.02; // Optimized for accuracy
-      const thumbTolerance = 0.03; // Optimized thumb tolerance
+      // Enhanced finger state detection with balanced tolerances
+      const fingerTolerance = 0.03; // Slightly looser for better detection
+      const thumbTolerance = 0.04; // Slightly looser for thumb
       
       // For thumb, check if tip is higher than both IP and MCP joints
       const thumb_up = thumb_tip.y < (thumb_ip.y - thumbTolerance) && thumb_tip.y < (thumb_mcp.y - thumbTolerance);

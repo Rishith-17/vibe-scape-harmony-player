@@ -11,8 +11,8 @@ interface DoubleClapOptions {
 export const useDoubleClap = ({ 
   enabled, 
   onDoubleClap, 
-  threshold = 0.7,
-  timeWindow = 600 
+  threshold = 0.5,  // Lower threshold for easier clap detection
+  timeWindow = 800  // Slightly longer window for double clap
 }: DoubleClapOptions) => {
   const [isListening, setIsListening] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -85,7 +85,7 @@ export const useDoubleClap = ({
 
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 2048;
-      analyser.smoothingTimeConstant = 0.3;
+      analyser.smoothingTimeConstant = 0.2; // Less smoothing for better clap detection
       analyserRef.current = analyser;
 
       const source = audioContext.createMediaStreamSource(stream);

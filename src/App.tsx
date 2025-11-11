@@ -129,6 +129,19 @@ const VoiceIntegration = () => {
     }
   };
 
+  // Listen for gesture/clap voice trigger events
+  React.useEffect(() => {
+    const handleGestureTrigger = () => {
+      console.log('[App] 🤙 Voice triggered by gesture/clap');
+      handleManualTrigger();
+    };
+
+    window.addEventListener('vibescape:trigger-voice', handleGestureTrigger);
+    return () => {
+      window.removeEventListener('vibescape:trigger-voice', handleGestureTrigger);
+    };
+  }, [voiceController]);
+
   return <VoiceChipLazy state={voiceState} onManualTrigger={handleManualTrigger} />;
 };
 
