@@ -21,7 +21,7 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   const [showTutorial, setShowTutorial] = useState(false);
   const [voiceControlActive, setVoiceControlActive] = useState(false);
   
-  const { handleGestureCommand, registerVoiceControlTrigger } = useUnifiedMusicControls();
+  const { handleGestureCommand, registerVoiceControlTrigger, feedback, clearFeedback } = useUnifiedMusicControls();
 
   // Voice control trigger function
   const activateVoiceControl = () => {
@@ -150,8 +150,6 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
       supabase.removeChannel(channel);
     };
   }, [user]);
-
-  const { feedback, clearFeedback } = useUnifiedMusicControls();
 
   return (
     <>
