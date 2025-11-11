@@ -1,9 +1,10 @@
-import { Camera, Settings, Bell, Moon, HelpCircle, Info, LogOut, Edit, Zap, Mic } from 'lucide-react';
+import { Camera, Settings, Bell, Moon, HelpCircle, Info, LogOut, Edit, Zap, Mic, Navigation2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import CameraAvatarDialog from '@/components/CameraAvatarDialog';
 import EditProfileDialog from '@/components/EditProfileDialog';
+import { GestureSettingsDialog } from '@/components/GestureSettingsDialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { isFeatureEnabled } from '@/config/featureFlags';
@@ -15,6 +16,7 @@ const ProfilePage = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isGestureSettingsOpen, setIsGestureSettingsOpen] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -204,6 +206,25 @@ const ProfilePage = () => {
               </div>
             ))}
             
+            {/* Gesture Navigation Settings - Only show when gesture controls are enabled */}
+            {gestureControls && (
+              <div
+                onClick={() => setIsGestureSettingsOpen(true)}
+                className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 cursor-pointer flex items-center justify-between"
+              >
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center mr-4">
+                    <Navigation2 size={20} className="text-gray-300" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-white font-medium">Gesture Navigation</span>
+                    <span className="text-gray-400 text-sm">Configure thumbs up gesture</span>
+                  </div>
+                </div>
+                <span className="text-gray-400">›</span>
+              </div>
+            )}
+            
             {/* Voice & Privacy Settings Link - Feature Flagged */}
             {isFeatureEnabled('VOICE_CONTROL_ENABLED') && (
               <div
@@ -255,6 +276,11 @@ const ProfilePage = () => {
         isOpen={isEditDialogOpen}
         onClose={() => setIsEditDialogOpen(false)}
         onProfileUpdated={handleProfileUpdated}
+      />
+      
+      <GestureSettingsDialog
+        isOpen={isGestureSettingsOpen}
+        onClose={() => setIsGestureSettingsOpen(false)}
       />
     </div>
   );

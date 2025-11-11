@@ -17,26 +17,36 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
     
     switch (gestureType) {
       case 'fist':
-        togglePlayPause();
+        if (togglePlayPause) {
+          togglePlayPause();
+        }
         toast({
           title: "🎵 Test Gesture",
-          description: "✊ Play/Pause (Key: 1)",
-        });
-        break;
-        
-      case 'call_me':
-        skipNext();
-        toast({
-          title: "🎵 Test Gesture",
-          description: "🤙 Next song (Key: 2)",
+          description: "✊ Stop (Key: 1)",
         });
         break;
         
       case 'open_hand':
-        skipPrevious();
+        if (togglePlayPause) {
+          togglePlayPause();
+        }
         toast({
           title: "🎵 Test Gesture",
-          description: "🖐️ Previous song (Key: 3)",
+          description: "🖐️ Play/Resume (Key: 2)",
+        });
+        break;
+        
+      case 'call_me':
+        toast({
+          title: "🎵 Test Gesture",
+          description: "🤙 Voice Control (Key: 3)",
+        });
+        break;
+        
+      case 'thumbs_up':
+        toast({
+          title: "🎵 Test Gesture",
+          description: "👍 Navigation (Key: 4)",
         });
         break;
         
@@ -46,7 +56,7 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
         setVolume(newVolumeUp);
         toast({
           title: "🎵 Test Gesture",
-          description: `✌️ Volume up: ${newVolumeUp}% (Key: 4)`,
+          description: `✌️ Volume up: ${newVolumeUp}% (Key: 5)`,
         });
         break;
         
@@ -56,7 +66,7 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
         setVolume(newVolumeDown);
         toast({
           title: "🎵 Test Gesture",
-          description: `🤟 Volume down: ${newVolumeDown}% (Key: 5)`,
+          description: `🤟 Volume down: ${newVolumeDown}% (Key: 6)`,
         });
         break;
     }
@@ -68,10 +78,11 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
     const handleKeyPress = (event: KeyboardEvent) => {
       switch(event.key) {
         case '1': handleGesture('fist'); break;
-        case '2': handleGesture('call_me'); break;
-        case '3': handleGesture('open_hand'); break;
-        case '4': handleGesture('peace'); break;
-        case '5': handleGesture('rock'); break;
+        case '2': handleGesture('open_hand'); break;
+        case '3': handleGesture('call_me'); break;
+        case '4': handleGesture('thumbs_up'); break;
+        case '5': handleGesture('peace'); break;
+        case '6': handleGesture('rock'); break;
       }
     };
     
@@ -85,7 +96,7 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
     <div className="fixed bottom-4 left-4 z-50 bg-yellow-100 border border-yellow-300 rounded-lg p-3 max-w-xs">
       <div className="text-sm font-medium text-yellow-800">⚠️ {status}</div>
       <div className="text-xs text-yellow-700 mt-1">
-        Test with keyboard: 1=✊ 2=🤙 3=🖐️ 4=✌️ 5=🤟
+        Test with keyboard: 1=✊ 2=🖐️ 3=🤙 4=👍 5=✌️ 6=🤟
       </div>
       <div className="text-xs text-yellow-600 mt-1">
         Camera gesture detection will replace this when ready

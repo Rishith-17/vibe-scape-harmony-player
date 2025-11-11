@@ -4,6 +4,7 @@ import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSimpleGestureDetection } from '@/hooks/useSimpleGestureDetection';
 import { useUnifiedMusicControls } from '@/hooks/useUnifiedMusicControls';
+import { useDoubleClap } from '@/hooks/useDoubleClap';
 import { GestureStatusIndicator } from './GestureStatusIndicator';
 import { GestureTutorial } from './GestureTutorial';
 import { TestGestureController } from './TestGestureController';
@@ -18,8 +19,28 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   const [gestureControlsEnabled, setGestureControlsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [voiceControlActive, setVoiceControlActive] = useState(false);
   
-  const { handleGestureCommand } = useUnifiedMusicControls();
+  const { handleGestureCommand, registerVoiceControlTrigger } = useUnifiedMusicControls();
+
+  // Voice control trigger function
+  const activateVoiceControl = () => {
+    console.log('🎤 Voice control activated by gesture/clap');
+    setVoiceControlActive(true);
+    // TODO: Integrate with actual voice controller
+    // For now, just show a toast
+  };
+
+  // Register voice control trigger with unified controls
+  useEffect(() => {
+    registerVoiceControlTrigger(activateVoiceControl);
+  }, []);
+
+  // Double clap detection
+  const { isListening: clapListening } = useDoubleClap({
+    enabled: gestureControlsEnabled,
+    onDoubleClap: activateVoiceControl
+  });
 
   // Fetch user's gesture controls preference (default to true if no user)
   useEffect(() => {
@@ -66,14 +87,15 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
 
   // Add logging to see status
   useEffect(() => {
-    console.log('🤚 Simple Gesture Controls Status:', {
+    console.log('🤚 Gesture & Clap Controls Status:', {
       enabled: gestureControlsEnabled,
       loading: isLoading,
       user: !!user,
       musicPlaying: isPlaying,
-      status: gestureDetection.status,
-      active: gestureDetection.isActive,
-      lastGesture: gestureDetection.lastGesture
+      gestureStatus: gestureDetection.status,
+      gestureActive: gestureDetection.isActive,
+      lastGesture: gestureDetection.lastGesture,
+      clapListening: clapListening
     });
   }, [gestureControlsEnabled, isLoading, user, isPlaying, gestureDetection.status, gestureDetection.isActive, gestureDetection.lastGesture]);
 
@@ -90,11 +112,13 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
       }
       
       console.log('🤚 Try these gestures:');
-      console.log('✊ Fist → Play/Pause');
-      console.log('🤙 Call Me → Next Song');
-      console.log('🖐️ Five Fingers → Previous Song'); 
+      console.log('✊ Fist → Stop');
+      console.log('🖐️ Open Hand → Play/Resume');
+      console.log('🤙 Call Me → Voice Control');
+      console.log('👍 Thumbs Up → Navigation');
       console.log('✌️ Peace Sign → Volume Up');
       console.log('🤟 Rock Sign → Volume Down');
+      console.log('👏👏 Double Clap → Voice Control');
     } else if (gestureControlsEnabled && !gestureDetection.isActive) {
       console.log('🔄 Initializing gesture detection... Please allow camera access when prompted.');
     }

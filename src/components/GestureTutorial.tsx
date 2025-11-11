@@ -18,20 +18,26 @@ export const GestureTutorial: React.FC<GestureTutorialProps> = ({ isOpen, onClos
     {
       emoji: '✊',
       name: 'Closed Fist',
-      action: 'Play / Pause',
-      description: 'Make a closed fist to toggle music playback'
-    },
-    {
-      emoji: '🤙',
-      name: 'Call Me',
-      action: 'Next Song',
-      description: 'Thumb and pinky extended, other fingers down'
+      action: 'Stop',
+      description: 'Make a closed fist to stop music playback'
     },
     {
       emoji: '🖐️',
       name: 'Open Hand',
-      action: 'Previous Song',
-      description: 'All five fingers spread wide open'
+      action: 'Play / Resume',
+      description: 'All five fingers spread wide to play or resume'
+    },
+    {
+      emoji: '🤙',
+      name: 'Call Me',
+      action: 'Voice Control',
+      description: 'Thumb and pinky extended to activate voice assistant'
+    },
+    {
+      emoji: '👍',
+      name: 'Thumbs Up',
+      action: 'Navigation',
+      description: 'Thumb up to cycle through pages or go to favorite'
     },
     {
       emoji: '✌️',
@@ -44,6 +50,12 @@ export const GestureTutorial: React.FC<GestureTutorialProps> = ({ isOpen, onClos
       name: 'Rock Sign',
       action: 'Volume Down',
       description: 'Index finger and pinky up, thumb out'
+    },
+    {
+      emoji: '👏',
+      name: 'Double Clap',
+      action: 'Voice Control',
+      description: 'Clap twice quickly to activate voice assistant'
     }
   ];
 
@@ -61,7 +73,7 @@ export const GestureTutorial: React.FC<GestureTutorialProps> = ({ isOpen, onClos
         
         <div className="space-y-4">
           <p className="text-muted-foreground text-sm">
-            Use these hand gestures to control music playback when a song is playing:
+            Use these hand gestures and double clap to control music and activate voice commands:
           </p>
           
           <div className="space-y-3">

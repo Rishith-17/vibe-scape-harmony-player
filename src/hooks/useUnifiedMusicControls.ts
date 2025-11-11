@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface ControlAction {
   type: 'gesture' | 'voice';
@@ -14,6 +15,8 @@ export const useUnifiedMusicControls = () => {
     gestureIcon?: string;
     show: boolean;
   }>({ show: false });
+  const [voiceControlCallback, setVoiceControlCallback] = useState<(() => void) | null>(null);
+  const [navigationCycleIndex, setNavigationCycleIndex] = useState(0);
   
   const lastActionRef = useRef<ControlAction | null>(null);
   const { 
@@ -26,6 +29,7 @@ export const useUnifiedMusicControls = () => {
     playlist
   } = useMusicPlayer();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const shouldExecuteAction = (newAction: ControlAction): boolean => {
     const now = Date.now();
@@ -81,22 +85,44 @@ export const useUnifiedMusicControls = () => {
     // Execute the command
     switch (command.toLowerCase()) {
       case 'fist':
-      case 'play':
-      case 'pause':
       case 'stop':
-        togglePlayPause();
-        break;
-        
-      case 'call_me':
-      case 'next':
-      case 'skip':
-        skipNext();
+        // Fist = Stop only
+        if (isPlaying) {
+          togglePlayPause();
+        }
+        toast({
+          title: "⏹️ Stopped",
+          description: "Music stopped",
+        });
         break;
         
       case 'open_hand':
-      case 'previous':
-      case 'back':
-        skipPrevious();
+      case 'play':
+      case 'resume':
+        // Open hand = Play/Resume
+        if (!isPlaying) {
+          togglePlayPause();
+        }
+        toast({
+          title: "▶️ Playing",
+          description: "Music resumed",
+        });
+        break;
+        
+      case 'call_me':
+        // Call me = Open Voice Control
+        if (voiceControlCallback) {
+          voiceControlCallback();
+        }
+        toast({
+          title: "🎤 Voice Control",
+          description: "Listening for your command...",
+        });
+        break;
+        
+      case 'thumbs_up':
+        // Thumbs up = Navigation (cycle or fixed)
+        handleThumbsUpNavigation();
         break;
         
       case 'peace':
@@ -172,13 +198,41 @@ export const useUnifiedMusicControls = () => {
     }
   };
 
+  const handleThumbsUpNavigation = () => {
+    // Get saved navigation preference (default to cycle mode)
+    const navPreference = localStorage.getItem('vibescape_thumbs_nav_mode');
+    const fixedDestination = localStorage.getItem('vibescape_thumbs_nav_destination');
+
+    if (navPreference === 'fixed' && fixedDestination) {
+      // Navigate to fixed destination
+      navigate(fixedDestination);
+      toast({
+        title: "👍 Navigation",
+        description: `Going to ${fixedDestination.replace('/', '')}`,
+      });
+    } else {
+      // Cycle through pages
+      const pages = ['/emotions', '/library', '/profile'];
+      const nextIndex = (navigationCycleIndex + 1) % pages.length;
+      setNavigationCycleIndex(nextIndex);
+      navigate(pages[nextIndex]);
+      
+      const pageNames = ['Emotions', 'Library', 'Profile'];
+      toast({
+        title: "👍 Navigation",
+        description: `Going to ${pageNames[nextIndex]}`,
+      });
+    }
+  };
+
   const handleGestureCommand = (gesture: string, confidence: number) => {
     const gestureIcons: Record<string, string> = {
       fist: '✊',
       call_me: '🤙',
       open_hand: '🖐️',
       peace: '✌️',
-      rock: '🤟'
+      rock: '🤟',
+      thumbs_up: '👍'
     };
 
     executeCommand(gesture, confidence, 'gesture', gestureIcons[gesture]);
@@ -188,9 +242,14 @@ export const useUnifiedMusicControls = () => {
     setFeedback({ show: false });
   };
 
+  const registerVoiceControlTrigger = (callback: () => void) => {
+    setVoiceControlCallback(() => callback);
+  };
+
   return {
     handleGestureCommand,
     feedback,
-    clearFeedback
+    clearFeedback,
+    registerVoiceControlTrigger
   };
 };
