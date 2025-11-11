@@ -175,68 +175,70 @@ const AppContent = () => {
   
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-background overflow-x-hidden">
-        <Routes>
-          <Route path="/" element={<Navigate to="/home" replace />} />
-          <Route path="/index" element={<Navigate to="/home" replace />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/install" element={<InstallPage />} />
-          <Route
-            path="/home"
-            element={
-              <ProtectedRoute>
-                <EnhancedHomePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/search"
-            element={
-              <ProtectedRoute>
-                <SearchPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/emotions"
-            element={
-              <ProtectedRoute>
-                <EmotionsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/library"
-            element={
-              <ProtectedRoute>
-                <LibraryPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          {isFeatureEnabled('VOICE_CONTROL_ENABLED') && (
+      <GestureControlsProvider>
+        <div className="min-h-screen bg-background overflow-x-hidden">
+          <Routes>
+            <Route path="/" element={<Navigate to="/home" replace />} />
+            <Route path="/index" element={<Navigate to="/home" replace />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/install" element={<InstallPage />} />
             <Route
-              path="/voice-settings"
+              path="/home"
               element={
                 <ProtectedRoute>
-                  <VoiceSettingsPageLazy />
+                  <EnhancedHomePage />
                 </ProtectedRoute>
               }
             />
-          )}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <BottomNavigation />
-        <MiniPlayer />
-        <VoiceIntegration />
-      </div>
+            <Route
+              path="/search"
+              element={
+                <ProtectedRoute>
+                  <SearchPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/emotions"
+              element={
+                <ProtectedRoute>
+                  <EmotionsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/library"
+              element={
+                <ProtectedRoute>
+                  <LibraryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            {isFeatureEnabled('VOICE_CONTROL_ENABLED') && (
+              <Route
+                path="/voice-settings"
+                element={
+                  <ProtectedRoute>
+                    <VoiceSettingsPageLazy />
+                  </ProtectedRoute>
+                }
+              />
+            )}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <BottomNavigation />
+          <MiniPlayer />
+          <VoiceIntegration />
+        </div>
+      </GestureControlsProvider>
     </BrowserRouter>
   );
 };
@@ -261,11 +263,9 @@ function App() {
       <TooltipProvider>
         <AuthProvider>
           <MusicPlayerProvider>
-            <GestureControlsProvider>
-              <Toaster />
-              <Sonner />
-              <AppContent />
-            </GestureControlsProvider>
+            <Toaster />
+            <Sonner />
+            <AppContent />
           </MusicPlayerProvider>
         </AuthProvider>
       </TooltipProvider>
