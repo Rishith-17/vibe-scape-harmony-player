@@ -1,7 +1,7 @@
 import { VoiceState, MusicController, NavControllerAdapter } from './types';
 import { parseIntent, HELP_TEXT } from './nlu/intentParser';
 import { WebSpeechAsr } from './asr/WebSpeechAsr';
-import { TFJSWake } from './wake/TFJSWake';
+import { PorcupineWebEngine } from './wake/PorcupineWebEngine';
 import { TtsEngine } from './tts/tts';
 import { EarconPlayer } from './EarconPlayer';
 import { runCommand } from './commandRunner';
@@ -13,7 +13,7 @@ import { setPlayerReady, whenReady } from './playerGate';
  */
 export class VoiceController {
   private state: VoiceState = 'idle';
-  private wakeEngine: TFJSWake;
+  private wakeEngine: PorcupineWebEngine;
   private asrEngine: WebSpeechAsr;
   private ttsEngine: TtsEngine;
   private earconPlayer: EarconPlayer;
@@ -30,7 +30,7 @@ export class VoiceController {
       wakeEnabled?: boolean;
     }
   ) {
-    this.wakeEngine = new TFJSWake();
+    this.wakeEngine = new PorcupineWebEngine();
     this.asrEngine = new WebSpeechAsr(config.language);
     this.ttsEngine = new TtsEngine();
     this.earconPlayer = new EarconPlayer();
@@ -81,16 +81,13 @@ export class VoiceController {
 
   async start(): Promise<void> {
     try {
-      // Start wake word detection only if enabled and supported
-      if (this.wakeEnabled && TFJSWake.isSupported()) {
+      // Start wake word detection only if enabled
+      if (this.wakeEnabled) {
         await this.wakeEngine.start();
         console.log('[VoiceController] ✅ Voice control ready');
-        console.log('[VoiceController] 🎤 Say "Hey Vibe" or tap microphone button');
+        console.log('[VoiceController] 🎤 Say "Hello Vibe" or tap microphone button');
       } else {
         console.log('[VoiceController] ✅ Voice control ready (Tap Mic only)');
-        if (!TFJSWake.isSupported()) {
-          console.log('[VoiceController] ⚠️ Wake word not supported in this browser');
-        }
       }
       this.setState('idle');
     } catch (error) {
@@ -369,7 +366,7 @@ export class VoiceController {
 
   destroy(): void {
     this.stop();
-    this.wakeEngine.cleanup();
+    this.wakeEngine.stop();
     this.earconPlayer.destroy();
     setPlayerReady(false);
   }

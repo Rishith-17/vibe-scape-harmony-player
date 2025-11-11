@@ -1,303 +1,174 @@
-# Voice Control Integration - "Hey Vibe" Assistant
+# Voice Control System - "Hello Vibe"
 
-Complete voice control system for the emotion-based music player PWA with privacy-first design.
+## Overview
 
-## 🎯 Features
+This voice control system uses **Porcupine Web** for wake word detection ("Hello Vibe") and **Web Speech API** for speech recognition and text-to-speech. All processing happens locally on-device for maximum privacy.
 
-### Two Control Methods
+## Features
 
-1. **Tap Mic (Primary)** - Push-to-Talk
-   - Works everywhere: desktop, mobile, all browsers
-   - Tap the floating mic button → speak → automatic action
-   - No wake word needed, instant activation
-   
-2. **"Hey Vibe" Wake Word (Optional)**
-   - Hands-free activation when tab is visible
-   - Uses TensorFlow.js Speech Commands (on-device ML)
-   - Only active when the PWA/tab is in foreground
-   - Automatically pauses when tab is hidden/minimized
+- 🎤 **Wake Word**: Say "Hello Vibe" to activate voice commands (foreground only)
+- 👆 **Tap-to-Speak**: Manual mic button for push-to-talk
+- 🎵 **Full Music Control**: Play playlists, search songs, control playback
+- 🌐 **Hinglish Support**: Commands work in English and Hinglish
+- 🔒 **Privacy First**: All audio processing stays on your device
 
-## 🏗️ Architecture
+## Setup
 
-```
-Voice Flow:
-┌─────────────────┐
-│ User Trigger    │ → Tap Mic OR "Hey Vibe" wake word
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│ ASR (STT)       │ → Web Speech API converts speech to text
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│ Intent Parser   │ → Regex-based NLU extracts action + slots
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│ Action Handler  │ → Execute via MusicController/NavController
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│ TTS Feedback    │ → Speech Synthesis confirms action
-└─────────────────┘
+### 1. Porcupine Access Key
+
+Add your Porcupine access key to `.env` or `.env.local`:
+
+```env
+VITE_PICOVOICE_ACCESS_KEY=your_access_key_here
 ```
 
-### Core Components
+Get your free access key at: https://console.picovoice.ai/
 
-- **`wake/TFJSWake.ts`** - TensorFlow.js wake word detector
-  - Listens for "Hey Vibe" only when tab is visible
-  - Automatically pauses on visibility change
-  - Uses Speech Commands model (lightweight, runs in browser)
+### 2. Wake Word Model
 
-- **`asr/WebSpeechAsr.ts`** - Web Speech API wrapper
-  - Starts/stops speech recognition on demand
-  - Provides interim and final transcripts
-  - Handles errors gracefully
+The custom "Hello Vibe" model is located at:
+```
+public/models/Hello-vibe_en_wasm_v3_0_0.ppn
+```
 
-- **`nlu/intentParser.ts`** - Natural Language Understanding
-  - Regex-based intent extraction
-  - Supports English and Hinglish commands
-  - Returns structured intent with confidence scores
+This file is loaded automatically by `PorcupineWebEngine.ts`.
 
-- **`tts/tts.ts`** - Text-to-Speech engine
-  - Uses Web Speech Synthesis API
-  - Supports barge-in (cancels ongoing speech)
-  - Configurable voice and language
+### 3. First Use
 
-- **`voiceController.ts`** - Main orchestrator
-  - Manages wake → ASR → NLU → action → TTS flow
-  - Handles state transitions
-  - Coordinates with music and navigation controllers
+1. Open the app and go to **Settings → Voice Control**
+2. Toggle "Enable Voice Assistant"
+3. Grant microphone permission when prompted
+4. Toggle "Enable Wake Word" to activate "Hello Vibe"
 
-- **`ui/VoiceChip.tsx`** - Floating mic button
-  - Shows current state (idle/listening/processing/speaking)
-  - Always available for manual trigger
-  - Responsive design for mobile and desktop
+## Supported Commands
 
-## 📝 Supported Commands
+### Playback
+- "play" / "resume" / "pause" / "stop"
+- "next song" / "previous song"
+- "play playlist Focus" (plays from library)
+- "search Arijit Singh" (auto-plays top result)
 
-### Playback Control
-- "play", "pause", "resume", "next", "previous"
-- "play [song/artist/playlist name]"
-- "play happy music" (moods: happy, calm, focus, chill, romantic, energetic, sad)
-- "play first song", "play second track" (positional)
-- "play liked songs", "play from [playlist name]"
-
-### Volume Control
-- "volume up", "volume down"
-- "volume to 50" (0-100)
+### Volume
+- "volume up" / "volume down"
+- "volume to 50" / "set volume 70"
 
 ### Navigation
-- "open emotions", "emotions page"
-- "library", "open library"
-- "settings", "open settings"
-- "home", "go home"
-- "search", "open search"
+- "open emotion page" / "go to emotions"
+- "open library" / "show library"
+- "open settings"
 
-### Search
-- "search for [query]"
-- "find [artist/song]"
+### Hinglish Examples
+- "playlist Focus chalao"
+- "Blinding Lights search karo"
+- "volume ko 50 kar"
+- "agle gaane" (next song)
 
-### System
-- "help", "what can I say?"
-- "what commands are available?"
+## Browser Compatibility
 
-### Hinglish Support
-- "chalu kar" (play), "band kar" (pause), "ruk ja" (stop)
-- "agle gaane" (next), "pichla gaana" (previous)
-- "volume ko 50 kar" (set volume)
-- "badhao" (increase), "kam kar" (decrease)
+| Browser | Wake Word | Tap-to-Speak | Notes |
+|---------|-----------|--------------|-------|
+| Chrome Desktop | ✅ | ✅ | Full support |
+| Chrome Android | ✅ | ✅ | Full support |
+| Edge | ✅ | ✅ | Full support |
+| Safari Desktop | ⚠️ | ✅ | Limited wake word support |
+| Safari iOS | ❌ | ✅ | Use tap-to-speak only |
+| Firefox | ⚠️ | ✅ | Wake word may have issues |
 
-## 🔒 Privacy & Security
+**Recommendation**: Use tap-to-speak on Safari/Firefox for best experience.
 
-### Privacy-First Design
-1. **On-Device Processing**
-   - All speech recognition happens in the browser (Web Speech API)
-   - TensorFlow.js model runs locally (no cloud calls)
-   - No audio data leaves your device
+## Privacy & Security
 
-2. **Explicit Permission**
-   - Requires one-time user click to enable voice
-   - Browser requests microphone permission
-   - Can be disabled anytime in settings
+- ✅ **Local Processing**: All audio stays on your device
+- ✅ **Explicit Consent**: Requires microphone permission
+- ✅ **Visibility Aware**: Wake word pauses when tab is hidden
+- ✅ **No Cloud**: Porcupine runs in WASM, Web Speech API is browser-native
+- ✅ **No Recording**: Audio is processed in real-time, never stored
 
-3. **Visibility Awareness**
-   - Wake word detection only when tab is visible
-   - Automatically pauses when:
-     - Tab is switched
-     - Window is minimized
-     - Device is locked
-     - Browser goes to background
+## Settings
 
-4. **No Persistent Recording**
-   - Microphone stops immediately after each command
-   - Wake word uses minimal audio buffer
-   - No audio storage or logging
+Access voice settings at **Profile → Voice Control**:
 
-### Permissions
-- **Microphone**: Required for voice input
-- **Granted Once**: Permission persists across sessions
-- **Revocable**: Can be removed in browser settings
+- **Enable Voice Assistant**: Master toggle
+- **Enable Wake Word**: Turn "Hello Vibe" on/off
+- **Push-to-Talk Only**: Disable wake word, use tap only
+- **Wake Sensitivity**: Adjust detection threshold (0.0-1.0)
+- **Language**: Choose recognition language (default: en-IN)
+- **TTS Feedback**: Enable/disable spoken responses
 
-## ⚙️ Setup & Configuration
-
-### 1. Enable Feature Flag
-```typescript
-// src/config/featureFlags.ts
-export const FEATURE_FLAGS = {
-  VOICE_CONTROL_ENABLED: true, // Set to true to enable voice
-} as const;
-```
-
-### 2. User Setup (First Time)
-1. Click the floating microphone button
-2. Browser requests microphone permission → Allow
-3. Voice control is now enabled
-4. Say "Hey Vibe" or tap mic to use
-
-### 3. Settings (Optional)
-Navigate to **Settings → Voice & Privacy**:
-- Toggle: Enable Voice Assistant
-- Toggle: Enable "Hey Vibe" Wake Word
-- Toggle: Tap Mic Only (disables wake word)
-- Language: Select preferred language (en-IN default)
-- Wake Sensitivity: Adjust threshold (0.0 - 1.0)
-- Toggle: TTS Feedback (enable/disable voice responses)
-
-## 🧪 Testing
-
-### Manual Testing
-
-#### Desktop Chrome/Edge
-1. Open PWA or tab
-2. Enable voice control (click mic)
-3. Say "Hey Vibe" → should activate
-4. Try commands: "play music", "next song", "volume up"
-5. Switch tabs → wake should pause
-6. Return to tab → wake should resume
-
-#### Mobile Chrome (Android)
-1. Install PWA
-2. Tap mic button → speak command
-3. Should execute without "Hey Vibe"
-4. Test: "play happy music", "next"
-
-#### Safari (iOS/macOS)
-1. Tap mic button (wake word may not work)
-2. Speak command → should execute
-3. Test basic commands
-
-### Browser Compatibility
-
-| Feature | Chrome | Edge | Safari | Firefox |
-|---------|--------|------|--------|---------|
-| Tap Mic (Web Speech API) | ✅ | ✅ | ✅ | ⚠️ Limited |
-| "Hey Vibe" Wake Word | ✅ | ✅ | ⚠️ Maybe | ❌ |
-| TTS Feedback | ✅ | ✅ | ✅ | ✅ |
-| Visibility Handling | ✅ | ✅ | ✅ | ✅ |
-
-**Recommended**: Chrome/Edge for full experience
-
-### Known Limitations
-
-1. **Firefox**: Web Speech API support varies by OS
-2. **Safari iOS**: Wake word may not work; use Tap Mic
-3. **Offline**: Requires internet for Web Speech API (browser-dependent)
-4. **Accents**: May need sensitivity adjustment for different accents
-5. **Noisy Environment**: Recognition accuracy decreases
-
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Wake Word Not Working
-- **Check**: Is tab visible? (Wake only works in foreground)
-- **Check**: Microphone permission granted?
-- **Try**: Increase wake sensitivity in settings
-- **Try**: Speak clearly: "Hey... Vibe" (slight pause helps)
-- **Fallback**: Use Tap Mic instead
-
-### Commands Not Recognized
-- **Check**: Speak clearly and at normal pace
-- **Check**: Reduce background noise
-- **Try**: Use exact command phrases (see list above)
-- **Try**: Adjust language setting (en-IN vs en-US)
-- **Check Console**: Look for intent parsing logs
-
-### TTS Not Speaking
-- **Check**: TTS enabled in settings?
-- **Check**: Device volume not muted?
-- **Try**: Different browser (Safari TTS quality varies)
+1. Check that `VITE_PICOVOICE_ACCESS_KEY` is set correctly
+2. Verify the model file exists at `public/models/Hello-vibe_en_wasm_v3_0_0.ppn`
+3. Ensure browser tab is visible (wake word auto-pauses when hidden)
+4. Try increasing sensitivity in settings
+5. Check browser console for Porcupine errors
 
 ### Microphone Permission Denied
-- **Fix**: Go to browser settings → Site Settings → Microphone
-- **Allow**: Grant permission for your site
-- **Refresh**: Reload the page
+1. Check browser settings → Site permissions → Microphone
+2. Reload the page after granting permission
+3. On mobile, ensure system-level mic permission is granted
 
-### Tab Switching Issues
-- Expected behavior: Wake pauses when tab is hidden
-- Check console: Should see "Tab hidden - pausing wake word detection"
-- Resume: Return to tab → wake resumes automatically
+### Commands Not Recognized
+1. Speak clearly and wait for the listening indicator
+2. Try simpler commands first ("play", "next")
+3. Check that language is set to 'en-IN' for Hinglish support
+4. Ensure Web Speech API is supported (check console)
 
-## 📊 Performance
+### "Next/Previous Not Executing"
+- The system uses a command mutex and player gate to prevent race conditions
+- If issues persist, check that `setPlayerReady(true)` is called in your music player initialization
 
-### Bundle Size Impact
-- TensorFlow.js: ~800 KB (lazy loaded)
-- Speech Commands model: ~4 MB (cached in browser)
-- Total voice code: ~50 KB
+## Custom Wake Word
 
-### Runtime Performance
-- Wake detection: ~5-10% CPU (only when tab visible)
-- Memory: ~50-100 MB additional (for TFJS model)
-- Latency:
-  - Tap → Start STT: ~100ms
-  - STT → Intent: ~500-2000ms (depends on speech length)
-  - Action execution: ~50-200ms
-  - TTS feedback: ~500-2000ms
+To train your own wake word or change "Hello Vibe":
 
-### Optimization
-- Lazy loading: Voice modules load only when enabled
-- Model caching: TFJS model stored in browser cache
-- Automatic cleanup: Resources freed when voice disabled
+1. Visit https://console.picovoice.ai/ppn
+2. Create a new wake word (e.g., "Hey Music", "DJ Vibe")
+3. Download the `.ppn` model file
+4. Replace `public/models/Hello-vibe_en_wasm_v3_0_0.ppn`
+5. Update the label in `PorcupineWebEngine.ts`:
+   ```typescript
+   [{ 
+     publicPath: '/models/your-wake-word.ppn', 
+     label: 'Your Wake Word', 
+     sensitivity: 0.6 
+   }]
+   ```
 
-## 🔄 Rollback / Disable
+## Architecture
 
-### Quick Disable
-```typescript
-// src/config/featureFlags.ts
-export const FEATURE_FLAGS = {
-  VOICE_CONTROL_ENABLED: false, // Disables entire voice subsystem
-};
+```
+src/voice/
+├── wake/
+│   └── PorcupineWebEngine.ts    # Porcupine Web wake word detection
+├── asr/
+│   └── WebSpeechAsr.ts          # Web Speech API wrapper (STT)
+├── nlu/
+│   └── intentParser.ts          # Natural language understanding
+├── tts/
+│   └── tts.ts                   # Text-to-speech engine
+├── ui/
+│   └── VoiceChip.tsx            # Floating mic button UI
+├── voiceController.ts           # Main orchestration
+├── commandRunner.ts             # Command mutex
+└── playerGate.ts                # Player readiness gate
 ```
 
-### User Disable
-Settings → Voice & Privacy → Toggle "Enable Voice Assistant" OFF
+## Performance
 
-### Uninstall
-1. Set feature flag to false
-2. Remove voice-related dependencies (optional):
-   ```bash
-   npm uninstall @tensorflow/tfjs @tensorflow-models/speech-commands
-   ```
-3. Delete `src/voice/` directory (optional)
+- **Bundle Size**: ~200KB (Porcupine WASM + models)
+- **Memory**: ~50-100MB during active listening
+- **CPU**: Minimal (~1-2% on modern devices)
+- **Latency**: <500ms from wake detection to command execution
 
-## 🚀 Future Enhancements
+## License
 
-- [ ] Custom wake word training (user records their own)
-- [ ] Offline ASR with Vosk.js (privacy++)
-- [ ] Voice biometrics for user identification
-- [ ] Multi-language support (Hindi, Spanish, etc.)
-- [ ] Conversation mode (multi-turn dialogue)
-- [ ] Voice shortcuts (custom command macros)
+Porcupine is licensed under Apache 2.0 for open-source projects.
+Commercial use requires a Picovoice license: https://picovoice.ai/pricing/
 
-## 📚 Technical References
+## Support
 
-- [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API)
-- [TensorFlow.js Speech Commands](https://github.com/tensorflow/tfjs-models/tree/master/speech-commands)
-- [Page Visibility API](https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API)
-
-## 📄 License
-
-Same as parent project.
-
----
-
-**Questions?** Check console logs with `[VoiceController]` prefix for detailed flow.
+- Porcupine Docs: https://picovoice.ai/docs/porcupine/
+- Web Speech API: https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API
+- Issues: Check browser console and network tab for errors

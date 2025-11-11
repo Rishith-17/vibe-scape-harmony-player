@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 
 export interface VoiceSettings {
   enabled: boolean;
-  wakeEnabled: boolean; // Enable "Hey Vibe" wake word
+  wakeEnabled: boolean; // Enable "Hello Vibe" wake word
   pttOnly: boolean; // Push-to-talk only mode (disables wake)
   useOfflineAsr: boolean;
   language: 'en-IN' | 'hi-IN';
@@ -26,7 +26,7 @@ interface VoiceSettingsStore extends VoiceSettings {
 
 const DEFAULT_SETTINGS: VoiceSettings = {
   enabled: true,
-  wakeEnabled: true, // "Hey Vibe" wake word enabled by default
+  wakeEnabled: true, // "Hello Vibe" wake word enabled by default
   pttOnly: false, // Allow both wake and tap
   useOfflineAsr: false,
   language: 'en-IN',

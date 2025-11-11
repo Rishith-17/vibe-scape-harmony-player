@@ -69,7 +69,7 @@ export const VoiceChip: React.FC<VoiceChipProps> = ({ state, onClick, onManualTr
       case 'error':
         return 'Try Again';
       default:
-        return '🎤 Tap or Say "Hey Vibe"';
+        return '🎤 Tap or Say "Hello Vibe"';
     }
   };
 

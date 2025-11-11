@@ -83,7 +83,7 @@ const VoiceSettingsPage: React.FC = () => {
               <div className="space-y-0.5">
                 <p className="font-medium">Enable Voice Control</p>
                 <p className="text-sm text-muted-foreground">
-                  Tap mic or say "Hey Vibe" to activate
+                  Tap mic or say "Hello Vibe" to activate
                 </p>
               </div>
               <Switch
@@ -96,7 +96,7 @@ const VoiceSettingsPage: React.FC = () => {
               <div className="mt-4 pt-4 border-t space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <p className="font-medium">Enable "Hey Vibe" Wake Word</p>
+                    <p className="font-medium">Enable "Hello Vibe" Wake Word</p>
                     <p className="text-sm text-muted-foreground">
                       Hands-free activation (works only when tab is visible)
                     </p>
