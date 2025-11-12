@@ -15,8 +15,6 @@ export const useUnifiedMusicControls = () => {
     gestureIcon?: string;
     show: boolean;
   }>({ show: false });
-  const [voiceControlCallback, setVoiceControlCallback] = useState<(() => void) | null>(null);
-  const [navigationCycleIndex, setNavigationCycleIndex] = useState(0);
   
   const lastActionRef = useRef<ControlAction | null>(null);
   const { 
@@ -110,19 +108,13 @@ export const useUnifiedMusicControls = () => {
         break;
         
       case 'call_me':
-        // Call me = Open Voice Control
-        if (voiceControlCallback) {
-          voiceControlCallback();
-        }
+        // Call me = Open Voice Control (dispatch event for VoiceIntegration)
+        const voiceEvent = new CustomEvent('vibescape:trigger-voice');
+        window.dispatchEvent(voiceEvent);
         toast({
           title: "🎤 Voice Control",
           description: "Listening for your command...",
         });
-        break;
-        
-      case 'thumbs_up':
-        // Thumbs up = Navigation (cycle or fixed)
-        handleThumbsUpNavigation();
         break;
         
       case 'peace':
@@ -198,32 +190,6 @@ export const useUnifiedMusicControls = () => {
     }
   };
 
-  const handleThumbsUpNavigation = () => {
-    // Get saved navigation preference (default to cycle mode)
-    const navPreference = localStorage.getItem('vibescape_thumbs_nav_mode');
-    const fixedDestination = localStorage.getItem('vibescape_thumbs_nav_destination');
-
-    if (navPreference === 'fixed' && fixedDestination) {
-      // Navigate to fixed destination
-      navigate(fixedDestination);
-      toast({
-        title: "👍 Navigation",
-        description: `Going to ${fixedDestination.replace('/', '')}`,
-      });
-    } else {
-      // Cycle through pages
-      const pages = ['/emotions', '/library', '/profile'];
-      const nextIndex = (navigationCycleIndex + 1) % pages.length;
-      setNavigationCycleIndex(nextIndex);
-      navigate(pages[nextIndex]);
-      
-      const pageNames = ['Emotions', 'Library', 'Profile'];
-      toast({
-        title: "👍 Navigation",
-        description: `Going to ${pageNames[nextIndex]}`,
-      });
-    }
-  };
 
   const handleGestureCommand = (gesture: string, confidence: number) => {
     const gestureIcons: Record<string, string> = {
@@ -231,8 +197,7 @@ export const useUnifiedMusicControls = () => {
       call_me: '🤙',
       open_hand: '🖐️',
       peace: '✌️',
-      rock: '🤟',
-      thumbs_up: '👍'
+      rock: '🤟'
     };
 
     executeCommand(gesture, confidence, 'gesture', gestureIcons[gesture]);
@@ -242,14 +207,9 @@ export const useUnifiedMusicControls = () => {
     setFeedback({ show: false });
   };
 
-  const registerVoiceControlTrigger = (callback: () => void) => {
-    setVoiceControlCallback(() => callback);
-  };
-
   return {
     handleGestureCommand,
     feedback,
-    clearFeedback,
-    registerVoiceControlTrigger
+    clearFeedback
   };
 };

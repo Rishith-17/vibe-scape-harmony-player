@@ -21,25 +21,17 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   const [showTutorial, setShowTutorial] = useState(false);
   const [voiceControlActive, setVoiceControlActive] = useState(false);
   
-  const { handleGestureCommand, registerVoiceControlTrigger, feedback, clearFeedback } = useUnifiedMusicControls();
+  const { handleGestureCommand, feedback, clearFeedback } = useUnifiedMusicControls();
 
   // Voice control trigger function - dispatches event for VoiceIntegration to handle
   const activateVoiceControl = () => {
     console.log('🎤 Voice control activated by gesture/clap - dispatching event');
     setVoiceControlActive(true);
     
-    // Show immediate feedback
-    handleGestureCommand('voice_control', 1.0);
-    
     // Dispatch custom event that VoiceIntegration listens for
     const event = new CustomEvent('vibescape:trigger-voice');
     window.dispatchEvent(event);
   };
-
-  // Register voice control trigger with unified controls
-  useEffect(() => {
-    registerVoiceControlTrigger(activateVoiceControl);
-  }, []);
 
   // Double clap detection
   const { isListening: clapListening } = useDoubleClap({

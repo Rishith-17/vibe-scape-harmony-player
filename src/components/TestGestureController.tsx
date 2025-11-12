@@ -43,13 +43,6 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
         });
         break;
         
-      case 'thumbs_up':
-        toast({
-          title: "🎵 Test Gesture",
-          description: "👍 Navigation (Key: 4)",
-        });
-        break;
-        
       case 'peace':
         const newVolumeUp = Math.min(100, currentVolume + 10);
         setCurrentVolume(newVolumeUp);
@@ -80,9 +73,8 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
         case '1': handleGesture('fist'); break;
         case '2': handleGesture('open_hand'); break;
         case '3': handleGesture('call_me'); break;
-        case '4': handleGesture('thumbs_up'); break;
-        case '5': handleGesture('peace'); break;
-        case '6': handleGesture('rock'); break;
+        case '4': handleGesture('peace'); break;
+        case '5': handleGesture('rock'); break;
       }
     };
     
@@ -96,7 +88,7 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
     <div className="fixed bottom-4 left-4 z-50 bg-yellow-100 border border-yellow-300 rounded-lg p-3 max-w-xs">
       <div className="text-sm font-medium text-yellow-800">⚠️ {status}</div>
       <div className="text-xs text-yellow-700 mt-1">
-        Test with keyboard: 1=✊ 2=🖐️ 3=🤙 4=👍 5=✌️ 6=🤟
+        Test with keyboard: 1=✊ 2=🖐️ 3=🤙 4=✌️ 5=🤟
       </div>
       <div className="text-xs text-yellow-600 mt-1">
         Camera gesture detection will replace this when ready
