@@ -306,12 +306,6 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         return 'rock';
       }
       
-      // Call me - only thumb and pinky up, others down
-      if (thumb_up && !index_up && !middle_up && !ring_up && pinky_up && fingersUp === 2) {
-        console.log('🤙 CONFIRMED: CALL ME (thumb + pinky only)');
-        return 'call_me';
-      }
-      
       // Log unmatched patterns for debugging
       console.log('❓ No gesture pattern matched - Fingers up:', fingersUp, 'Pattern:', {
         thumb: thumb_up ? '👍' : '👎',

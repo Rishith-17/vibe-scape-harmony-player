@@ -109,9 +109,8 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
       }
       
       console.log('🤚 Active gesture controls:');
-      console.log('✊ Fist → Pause playback');
-      console.log('🖐️ Open Hand → Play/Resume playback');
-      console.log('🤙 Call Me → Activate Voice Control');
+      console.log('✊ Fist → Toggle Play/Pause (3-second cooldown)');
+      console.log('🖐️ Open Hand → Activate Voice Control');
       console.log('✌️ Peace → Volume Up (+5%)');
       console.log('🤟 Rock → Volume Down (-5%)');
       console.log('👏👏 Double Clap → Activate Voice Control');

@@ -17,6 +17,7 @@ export const useUnifiedMusicControls = () => {
   }>({ show: false });
   
   const lastActionRef = useRef<ControlAction | null>(null);
+  const lastFistGestureRef = useRef<number>(0);
   const { 
     togglePlayPause, 
     skipNext, 
@@ -102,25 +103,35 @@ export const useUnifiedMusicControls = () => {
     // Execute the command
     switch (command.toLowerCase()) {
       case 'fist':
-        // Fist = PAUSE (only if currently playing)
-        if (isPlaying) {
+        // Fist = Toggle Play/Pause with 3-second cooldown
+        const now = Date.now();
+        const timeSinceLastFist = now - lastFistGestureRef.current;
+        
+        if (timeSinceLastFist < 3000) {
+          console.log('🚫 Fist gesture ignored - 3-second cooldown active');
+          return;
+        }
+        
+        lastFistGestureRef.current = now;
+        
+        if (currentTrack || playlist.length > 0) {
           togglePlayPause();
           toast({
-            title: "⏸️ Paused",
-            description: "Playback paused",
+            title: isPlaying ? "⏸️ Paused" : "▶️ Playing",
+            description: isPlaying ? "Playback paused" : currentTrack?.title || "Music resumed",
           });
         }
         break;
         
       case 'open_hand':
-        // Open hand = PLAY/RESUME (only if not playing)
-        if (!isPlaying && (currentTrack || playlist.length > 0)) {
-          togglePlayPause();
-          toast({
-            title: "▶️ Playing",
-            description: currentTrack?.title || "Music resumed",
-          });
-        }
+        // Open hand = Voice Control (same as call_me)
+        console.log('🖐️ Dispatching voice control trigger event');
+        const voiceEvent = new CustomEvent('vibescape:trigger-voice');
+        window.dispatchEvent(voiceEvent);
+        toast({
+          title: "🎤 Voice Control",
+          description: "Listening for your command...",
+        });
         break;
       
       case 'stop':
@@ -166,12 +177,11 @@ export const useUnifiedMusicControls = () => {
         }
         break;
         
-      case 'call_me':
       case 'voice_control':
-        // Call me gesture = Activate Voice Control (dispatch event for VoiceIntegration)
-        console.log('🤙 Dispatching voice control trigger event');
-        const voiceEvent = new CustomEvent('vibescape:trigger-voice');
-        window.dispatchEvent(voiceEvent);
+        // Voice control command (from voice or other sources)
+        console.log('🎤 Dispatching voice control trigger event');
+        const voiceControlEvent = new CustomEvent('vibescape:trigger-voice');
+        window.dispatchEvent(voiceControlEvent);
         toast({
           title: "🎤 Voice Control",
           description: "Listening for your command...",
@@ -255,7 +265,6 @@ export const useUnifiedMusicControls = () => {
   const handleGestureCommand = async (gesture: string, confidence: number) => {
     const gestureIcons: Record<string, string> = {
       fist: '✊',
-      call_me: '🤙',
       open_hand: '🖐️',
       peace: '✌️',
       rock: '🤟'
