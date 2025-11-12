@@ -116,7 +116,7 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
       }
       
       console.log('🤚 Active gesture controls (4 gestures only):');
-      console.log('🤚 Open Hand → Start Voice Control (same mic as Tap-Mic)');
+      console.log('🤚 Open Hand → Start Voice Control (reuses same mic instance as Tap-Mic)');
       console.log('✊ Fist → Toggle Play/Pause');
       console.log('🤘 Rock → Volume Down (-10%)');
       console.log('✌️ Peace → Volume Up (+10%)');

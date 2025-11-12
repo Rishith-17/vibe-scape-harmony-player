@@ -390,4 +390,11 @@ export class VoiceController {
     console.log('[VoiceController] 🎤 Gesture-triggered voice control - reusing same mic instance');
     await this.onWakeDetected();
   }
+
+  /**
+   * Check if mic is currently armed and ready
+   */
+  isMicArmed(): boolean {
+    return this.state === 'idle';
+  }
 }

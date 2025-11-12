@@ -20,10 +20,11 @@ This PWA implements a precise 4-gesture hand control system for music playback a
 
 ### Mic Reusability
 When the **Open Hand** gesture is detected:
-1. System calls `VoiceController.startListeningFromArmedMic()`
-2. This reuses the existing `asrEngine` instance (no new `SpeechRecognition()` or `getUserMedia()` calls)
-3. User sees the same overlay/animation as with Tap-Mic
-4. System is listening for voice commands using the same audio pipeline
+1. System dispatches `CustomEvent('vibescape:trigger-voice')`
+2. App.tsx catches this event and calls `VoiceController.manualTrigger()`
+3. This reuses the existing `asrEngine` instance (no new `SpeechRecognition()` or `getUserMedia()` calls)
+4. User sees the same overlay/animation as with Tap-Mic
+5. System is listening for voice commands using the same audio pipeline
 
 **No duplicate microphones or ASR instances are ever created by gesture code.**
 
@@ -137,8 +138,8 @@ if (timeDiff < 1000) { // Change to 800 or 1200
 - **Mic Overlay**: Same overlay appears for open-hand as for Tap-Mic (no visual difference)
 
 ### Toast Notifications
-- 🤚 Open Hand: "🎤 Voice Control - Listening for your command..."
-- ✊ Fist: "⏸️ Paused" / "▶️ Playing"
+- 🤚 Open Hand: "🎤 Voice Control Activated - Listening for your command..."
+- ✊ Fist: "⏸️ Paused - Playback paused" / "▶️ Playing - [Track Title]"
 - 🤘 Rock: "🔉 Volume Down - Volume decreased by 10%"
 - ✌️ Peace: "🔊 Volume Up - Volume increased by 10%"
 
@@ -176,12 +177,12 @@ Create tests in `src/hooks/__tests__/useUnifiedMusicControls.test.ts`:
 
 ```typescript
 describe('Gesture Commands', () => {
-  it('should call startListeningFromArmedMic for open_hand', () => {
-    // Mock VoiceController and verify startListeningFromArmedMic is called
+  it('should dispatch vibescape:trigger-voice event for open_hand', () => {
+    // Mock window.dispatchEvent and verify CustomEvent is dispatched
   });
 
   it('should toggle play/pause for fist', () => {
-    // Mock MusicController and verify pause() or resume() based on state
+    // Mock MusicController and verify togglePlayPause() is called
   });
 
   it('should adjust volume for rock and peace', () => {
@@ -189,7 +190,7 @@ describe('Gesture Commands', () => {
   });
 
   it('should not create new mic instances', () => {
-    // Mock getUserMedia and SpeechRecognition, assert they are NOT called
+    // Verify no new SpeechRecognition or getUserMedia calls in gesture code
   });
 });
 ```
@@ -209,8 +210,9 @@ describe('Gesture Commands', () => {
 
 ### Mic Issues
 - Open hand should NOT create new mic instance
-- Check console logs: `[VoiceController] Gesture-triggered voice control - reusing same mic instance`
-- Verify `startListeningFromArmedMic()` is implemented correctly
+- Check console logs: `🤚 Open hand detected - triggering voice control via same mic instance`
+- Verify `vibescape:trigger-voice` event is being dispatched and caught by App.tsx
+- Check console for `[VoiceController] 🎤 Manual voice trigger - tap to speak`
 - Check for permission dialogs being blocked
 
 ### Volume Not Changing

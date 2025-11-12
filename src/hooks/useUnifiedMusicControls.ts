@@ -104,31 +104,41 @@ export const useUnifiedMusicControls = () => {
     // Execute the command - EXACT 4-gesture mapping
     switch (command.toLowerCase()) {
       case 'open_hand':
-        // 🤚 Open Hand → Start mic (same instance as Tap-Mic)
-        console.log('🤚 Open hand detected - starting voice control with same mic instance');
+        // 🤚 Open Hand → Start voice control (reuse same mic/ASR instance as Tap-Mic)
+        console.log('🤚 Open hand detected - triggering voice control via same mic instance');
+        
+        // Dispatch event that App.tsx listens for - triggers voiceController.manualTrigger()
         const voiceEvent = new CustomEvent('vibescape:trigger-voice');
         window.dispatchEvent(voiceEvent);
+        
         toast({
-          title: "🎤 Voice Control",
+          title: "🎤 Voice Control Activated",
           description: "Listening for your command...",
         });
         break;
         
       case 'fist':
         // ✊ Fist → Toggle Play/Pause
-        console.log('✊ Fist detected - toggling play/pause');
+        console.log('✊ Fist detected - toggling play/pause. Current state:', isPlaying);
         
         if (currentTrack || playlist.length > 0) {
           const wasPlaying = isPlaying;
+          
+          // Call togglePlayPause and show immediate feedback
           togglePlayPause();
+          
+          const newState = wasPlaying ? "Paused" : "Playing";
+          console.log(`✊ Fist action executed: ${newState}`);
+          
           toast({
             title: wasPlaying ? "⏸️ Paused" : "▶️ Playing",
-            description: wasPlaying ? "Playback paused" : currentTrack?.title || "Music playing",
+            description: wasPlaying ? "Playback paused" : currentTrack?.title || "Music resumed",
           });
         } else {
+          console.log('✊ Fist gesture - no music available');
           toast({
             title: "No Music",
-            description: "No track to play",
+            description: "Add songs to your playlist first",
             variant: "destructive",
           });
         }
