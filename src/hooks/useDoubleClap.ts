@@ -78,6 +78,7 @@ export const useDoubleClap = ({
         } 
       });
       
+      console.log('✅ Microphone access granted for clap detection');
       micStreamRef.current = stream;
 
       const audioContext = new AudioContext();
@@ -92,16 +93,17 @@ export const useDoubleClap = ({
       source.connect(analyser);
 
       setIsListening(true);
-      console.log('✅ Double-clap detection active');
+      console.log('✅ Double-clap detection active - listening for claps');
       
       // Start detection loop
       detectClap();
 
     } catch (error) {
       console.error('❌ Failed to start clap detection:', error);
+      setIsListening(false);
       toast({
-        title: "Microphone Access Denied",
-        description: "Please allow microphone access for clap detection",
+        title: "Microphone Access Needed",
+        description: "Please allow microphone access for double-clap detection",
         variant: "destructive",
       });
     }

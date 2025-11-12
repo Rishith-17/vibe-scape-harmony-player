@@ -131,9 +131,18 @@ const VoiceIntegration = () => {
 
   // Listen for gesture/clap voice trigger events
   React.useEffect(() => {
-    const handleGestureTrigger = () => {
-      console.log('[App] 🤙 Voice triggered by gesture/clap');
-      handleManualTrigger();
+    const handleGestureTrigger = async () => {
+      console.log('[App] 🤙 Voice triggered by gesture/clap - starting ASR');
+      if (voiceController) {
+        try {
+          await voiceController.manualTrigger();
+          console.log('[App] ✅ Voice ASR started successfully');
+        } catch (error) {
+          console.error('[App] ❌ Failed to start voice ASR:', error);
+        }
+      } else {
+        console.warn('[App] ⚠️ Voice controller not ready');
+      }
     };
 
     window.addEventListener('vibescape:trigger-voice', handleGestureTrigger);

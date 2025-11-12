@@ -28,6 +28,9 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     console.log('🎤 Voice control activated by gesture/clap - dispatching event');
     setVoiceControlActive(true);
     
+    // Show immediate feedback
+    handleGestureCommand('voice_control', 1.0);
+    
     // Dispatch custom event that VoiceIntegration listens for
     const event = new CustomEvent('vibescape:trigger-voice');
     window.dispatchEvent(event);
