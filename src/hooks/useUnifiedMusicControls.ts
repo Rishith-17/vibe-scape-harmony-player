@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { runCommand } from '@/voice/commandRunner';
 
 interface ControlAction {
   type: 'gesture' | 'voice';
@@ -27,7 +27,6 @@ export const useUnifiedMusicControls = () => {
     playlist
   } = useMusicPlayer();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const shouldExecuteAction = (newAction: ControlAction): boolean => {
     const now = Date.now();
@@ -40,7 +39,15 @@ export const useUnifiedMusicControls = () => {
 
     const timeDiff = now - lastActionRef.current.timestamp;
     
-    // If within 1 second, gesture takes priority
+    // Prevent duplicate actions within 500ms (debounce)
+    if (timeDiff < 500) {
+      if (newAction.action === lastActionRef.current.action) {
+        console.log('🚫 Duplicate action ignored - too soon:', newAction.action);
+        return false;
+      }
+    }
+    
+    // Within 1 second window, gesture takes priority over voice
     if (timeDiff < 1000) {
       if (newAction.type === 'gesture' && lastActionRef.current.type === 'voice') {
         console.log('🤚 Gesture overrides voice command');
@@ -56,14 +63,14 @@ export const useUnifiedMusicControls = () => {
     return true;
   };
 
-  const executeCommand = (
+  const executeCommand = async (
     command: string, 
     confidence: number, 
-    type: 'gesture' | 'voice',
+    commandType: 'gesture' | 'voice',
     gestureIcon?: string
   ) => {
     const action: ControlAction = {
-      type,
+      type: commandType,
       action: command,
       timestamp: Date.now(),
       confidence
@@ -73,42 +80,96 @@ export const useUnifiedMusicControls = () => {
       return;
     }
 
-    console.log(`🎵 Executing ${type} command:`, command, 'Confidence:', confidence);
+    console.log(`🎵 Executing ${commandType} command:`, command, 'Confidence:', confidence);
+
+    // Use command runner to prevent overlapping execution with voice commands
+    const result = await runCommand(async () => {
+      await executeCommandInternal(command, commandType, gestureIcon);
+    });
+
+    if (result === null) {
+      console.log('⏸️ Command skipped - another command is running');
+    }
+  };
+
+  const executeCommandInternal = async (command: string, commandType: 'gesture' | 'voice', gestureIcon?: string) => {
 
     // Show feedback
-    if (type === 'gesture' && gestureIcon) {
+    if (commandType === 'gesture' && gestureIcon) {
       setFeedback({ gestureIcon, show: true });
     }
 
     // Execute the command
     switch (command.toLowerCase()) {
       case 'fist':
-      case 'stop':
-        // Fist = Stop only
+        // Fist = PAUSE (only if currently playing)
         if (isPlaying) {
           togglePlayPause();
+          toast({
+            title: "⏸️ Paused",
+            description: "Playback paused",
+          });
         }
-        toast({
-          title: "⏹️ Stopped",
-          description: "Music stopped",
-        });
         break;
         
       case 'open_hand':
+        // Open hand = PLAY/RESUME (only if not playing)
+        if (!isPlaying && (currentTrack || playlist.length > 0)) {
+          togglePlayPause();
+          toast({
+            title: "▶️ Playing",
+            description: currentTrack?.title || "Music resumed",
+          });
+        }
+        break;
+      
+      case 'stop':
+        // Voice command 'stop' - same as pause
+        if (isPlaying) {
+          togglePlayPause();
+          toast({
+            title: "⏹️ Stopped",
+            description: "Playback stopped",
+          });
+        }
+        break;
+        
       case 'play':
       case 'resume':
-        // Open hand = Play/Resume
-        if (!isPlaying) {
+        // Voice commands 'play' or 'resume'
+        if (!isPlaying && (currentTrack || playlist.length > 0)) {
           togglePlayPause();
+          toast({
+            title: "▶️ Playing",
+            description: currentTrack?.title || "Music resumed",
+          });
         }
-        toast({
-          title: "▶️ Playing",
-          description: "Music resumed",
-        });
+        break;
+      
+      case 'next':
+        if (playlist.length > 0 || currentTrack) {
+          skipNext();
+          toast({
+            title: "⏭️ Next Track",
+            description: "Playing next song",
+          });
+        }
+        break;
+        
+      case 'previous':
+        if (playlist.length > 0 || currentTrack) {
+          skipPrevious();
+          toast({
+            title: "⏮️ Previous Track",
+            description: "Playing previous song",
+          });
+        }
         break;
         
       case 'call_me':
-        // Call me = Open Voice Control (dispatch event for VoiceIntegration)
+      case 'voice_control':
+        // Call me gesture = Activate Voice Control (dispatch event for VoiceIntegration)
+        console.log('🤙 Dispatching voice control trigger event');
         const voiceEvent = new CustomEvent('vibescape:trigger-voice');
         window.dispatchEvent(voiceEvent);
         toast({
@@ -191,7 +252,7 @@ export const useUnifiedMusicControls = () => {
   };
 
 
-  const handleGestureCommand = (gesture: string, confidence: number) => {
+  const handleGestureCommand = async (gesture: string, confidence: number) => {
     const gestureIcons: Record<string, string> = {
       fist: '✊',
       call_me: '🤙',
@@ -200,7 +261,11 @@ export const useUnifiedMusicControls = () => {
       rock: '🤟'
     };
 
-    executeCommand(gesture, confidence, 'gesture', gestureIcons[gesture]);
+    await executeCommand(gesture, confidence, 'gesture', gestureIcons[gesture]);
+  };
+  
+  const handleVoiceCommand = async (command: string) => {
+    await executeCommand(command, 1.0, 'voice');
   };
 
   const clearFeedback = () => {
@@ -209,6 +274,7 @@ export const useUnifiedMusicControls = () => {
 
   return {
     handleGestureCommand,
+    handleVoiceCommand,
     feedback,
     clearFeedback
   };

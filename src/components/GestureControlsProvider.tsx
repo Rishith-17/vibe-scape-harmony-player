@@ -108,14 +108,13 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
         localStorage.setItem('vibescape_gesture_tutorial_seen', 'true');
       }
       
-      console.log('🤚 Try these gestures:');
-      console.log('✊ Fist → Stop');
-      console.log('🖐️ Open Hand → Play/Resume');
-      console.log('🤙 Call Me → Voice Control');
-      console.log('👍 Thumbs Up → Navigation');
-      console.log('✌️ Peace Sign → Volume Up');
-      console.log('🤟 Rock Sign → Volume Down');
-      console.log('👏👏 Double Clap → Voice Control');
+      console.log('🤚 Active gesture controls:');
+      console.log('✊ Fist → Pause playback');
+      console.log('🖐️ Open Hand → Play/Resume playback');
+      console.log('🤙 Call Me → Activate Voice Control');
+      console.log('✌️ Peace → Volume Up (+5%)');
+      console.log('🤟 Rock → Volume Down (-5%)');
+      console.log('👏👏 Double Clap → Activate Voice Control');
     } else if (gestureControlsEnabled && !gestureDetection.isActive) {
       console.log('🔄 Initializing gesture detection... Please allow camera access when prompted.');
     }

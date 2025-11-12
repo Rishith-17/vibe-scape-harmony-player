@@ -18,8 +18,8 @@ export const GestureTutorial: React.FC<GestureTutorialProps> = ({ isOpen, onClos
     {
       emoji: '✊',
       name: 'Closed Fist',
-      action: 'Stop',
-      description: 'Make a closed fist to stop music playback'
+      action: 'Pause',
+      description: 'Make a closed fist to pause music playback'
     },
     {
       emoji: '🖐️',
@@ -32,12 +32,6 @@ export const GestureTutorial: React.FC<GestureTutorialProps> = ({ isOpen, onClos
       name: 'Call Me',
       action: 'Voice Control',
       description: 'Thumb and pinky extended to activate voice assistant'
-    },
-    {
-      emoji: '👍',
-      name: 'Thumbs Up',
-      action: 'Navigation',
-      description: 'Thumb up to cycle through pages or go to favorite'
     },
     {
       emoji: '✌️',
