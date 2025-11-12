@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSimpleGestureDetection } from '@/hooks/useSimpleGestureDetection';
 import { useUnifiedMusicControls } from '@/hooks/useUnifiedMusicControls';
 import { useDoubleClap } from '@/hooks/useDoubleClap';
+import { musicController } from '@/controllers/MusicControllerImpl';
 import { GestureStatusIndicator } from './GestureStatusIndicator';
 import { GestureTutorial } from './GestureTutorial';
 import { TestGestureController } from './TestGestureController';
@@ -16,10 +17,16 @@ interface GestureControlsProviderProps {
 
 export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = ({ children }) => {
   const { user } = useAuth();
+  const musicPlayer = useMusicPlayer();
   const [gestureControlsEnabled, setGestureControlsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
   const [voiceControlActive, setVoiceControlActive] = useState(false);
+  
+  // Initialize singleton musicController with player context
+  useEffect(() => {
+    musicController.setPlayerContext(musicPlayer);
+  }, [musicPlayer]);
   
   const { handleGestureCommand, feedback, clearFeedback } = useUnifiedMusicControls();
 
@@ -108,11 +115,11 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
         localStorage.setItem('vibescape_gesture_tutorial_seen', 'true');
       }
       
-      console.log('🤚 Active gesture controls:');
-      console.log('✊ Fist → Toggle Play/Pause (3-second cooldown)');
-      console.log('🖐️ Open Hand → Activate Voice Control');
-      console.log('✌️ Peace → Volume Up (+5%)');
-      console.log('🤟 Rock → Volume Down (-5%)');
+      console.log('🤚 Active gesture controls (4 gestures only):');
+      console.log('🤚 Open Hand → Start Voice Control (same mic as Tap-Mic)');
+      console.log('✊ Fist → Toggle Play/Pause');
+      console.log('🤘 Rock → Volume Down (-10%)');
+      console.log('✌️ Peace → Volume Up (+10%)');
       console.log('👏👏 Double Clap → Activate Voice Control');
     } else if (gestureControlsEnabled && !gestureDetection.isActive) {
       console.log('🔄 Initializing gesture detection... Please allow camera access when prompted.');

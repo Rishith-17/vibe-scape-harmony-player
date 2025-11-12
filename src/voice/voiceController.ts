@@ -376,4 +376,18 @@ export class VoiceController {
     console.log('[VoiceController] 🎤 Manual voice trigger - tap to speak');
     await this.onWakeDetected();
   }
+
+  /**
+   * Start listening using the existing ASR instance (for gesture control)
+   * This reuses the same microphone/ASR instance as Tap-Mic
+   */
+  async startListeningFromArmedMic(): Promise<void> {
+    if (this.state === 'listening' || this.state === 'processing') {
+      console.log('[VoiceController] ⚠️ Already listening or processing');
+      return;
+    }
+
+    console.log('[VoiceController] 🎤 Gesture-triggered voice control - reusing same mic instance');
+    await this.onWakeDetected();
+  }
 }

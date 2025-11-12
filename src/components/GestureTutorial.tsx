@@ -16,34 +16,28 @@ interface GestureTutorialProps {
 export const GestureTutorial: React.FC<GestureTutorialProps> = ({ isOpen, onClose }) => {
   const gestures = [
     {
-      emoji: '✊',
-      name: 'Closed Fist',
-      action: 'Toggle Play/Pause',
-      description: 'Make a closed fist to toggle playback (3-second cooldown)'
+      emoji: '🤚',
+      name: 'Open Hand',
+      action: 'Start Voice Control',
+      description: 'All five fingers extended - starts mic (same as Tap-Mic)'
     },
     {
-      emoji: '🖐️',
-      name: 'Open Hand',
-      action: 'Voice Control',
-      description: 'All five fingers spread wide to activate voice assistant'
+      emoji: '✊',
+      name: 'Fist',
+      action: 'Play/Pause Toggle',
+      description: 'All fingers closed - toggles between play and pause'
+    },
+    {
+      emoji: '🤘',
+      name: 'Rock Hand',
+      action: 'Volume Down',
+      description: 'Index and pinky up - decreases volume by 10%'
     },
     {
       emoji: '✌️',
       name: 'Peace Sign',
       action: 'Volume Up',
-      description: 'Index and middle finger up, others down (+5%)'
-    },
-    {
-      emoji: '🤟',
-      name: 'Rock Sign',
-      action: 'Volume Down',
-      description: 'Index finger and pinky up, thumb out (-5%)'
-    },
-    {
-      emoji: '👏',
-      name: 'Double Clap',
-      action: 'Voice Control',
-      description: 'Clap twice quickly to activate voice assistant'
+      description: 'Index and middle finger up - increases volume by 10%'
     }
   ];
 
@@ -61,7 +55,7 @@ export const GestureTutorial: React.FC<GestureTutorialProps> = ({ isOpen, onClos
         
         <div className="space-y-4">
           <p className="text-muted-foreground text-sm">
-            Use these hand gestures and double clap to control music and activate voice commands:
+            Control your music using these 4 hand gestures. Hold gestures clearly for best detection:
           </p>
           
           <div className="space-y-3">
@@ -83,7 +77,7 @@ export const GestureTutorial: React.FC<GestureTutorialProps> = ({ isOpen, onClos
           
           <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
             <p className="text-xs text-blue-600 dark:text-blue-400">
-              <strong>💡 Tips:</strong> Hold gestures for 1 second • Keep hand visible to camera • Works best in good lighting
+              <strong>💡 Tips:</strong> Hold gestures for 150ms • Keep hand clearly visible • Good lighting helps • Open Hand uses same mic as Tap-Mic button
             </p>
           </div>
           

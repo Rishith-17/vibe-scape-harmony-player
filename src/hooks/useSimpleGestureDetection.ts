@@ -16,6 +16,11 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
   const cleanupRef = useRef<(() => void) | null>(null);
   const lastGestureTimeRef = useRef(0);
   const playerManagerRef = useRef<any>(null);
+  const gestureStabilityRef = useRef<{
+    gesture: string | null;
+    count: number;
+    firstSeen: number;
+  }>({ gesture: null, count: 0, firstSeen: 0 });
   
   const { toast } = useToast();
 
@@ -38,28 +43,55 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
     return currentVolume;
   };
 
-  // Optimized gesture handler with adjusted confidence and debounce
+  // Gesture stabilization tracking (declared at the top with other refs)
+
+  // Strict gesture handler with stability requirement
   const handleGesture = (gestureType: string, confidence = 1.0) => {
     const now = Date.now();
     
-    // Lower confidence requirement for better responsiveness (was 0.85)
-    if (confidence < 0.7) {
+    // Strict confidence requirement (>=0.85)
+    if (confidence < 0.85) {
       console.log('🚫 Gesture confidence too low:', gestureType, confidence);
+      gestureStabilityRef.current = { gesture: null, count: 0, firstSeen: 0 };
       return;
     }
     
-    // Shorter debounce (500ms) to prevent accidental double triggers but allow intentional gesture changes
-    if (now - lastGestureTimeRef.current < 500) {
+    // Check stability - require same gesture for 2 consecutive frames (~150ms)
+    if (gestureStabilityRef.current.gesture !== gestureType) {
+      // New gesture detected, start stability tracking
+      gestureStabilityRef.current = {
+        gesture: gestureType,
+        count: 1,
+        firstSeen: now
+      };
+      console.log('👀 New gesture candidate:', gestureType, 'waiting for stability...');
+      return;
+    }
+    
+    // Same gesture seen again
+    gestureStabilityRef.current.count++;
+    const elapsed = now - gestureStabilityRef.current.firstSeen;
+    
+    // Require at least 2 consecutive detections and 150ms elapsed
+    if (gestureStabilityRef.current.count < 2 || elapsed < 150) {
+      console.log('⏱️ Gesture stabilizing...', gestureType, 'count:', gestureStabilityRef.current.count, 'elapsed:', elapsed);
+      return;
+    }
+    
+    // Debounce - prevent same gesture triggering too quickly
+    if (now - lastGestureTimeRef.current < 400) {
       console.log('🚫 Gesture debounced:', gestureType);
       return;
     }
     
+    // Gesture is stable and passes all checks
     lastGestureTimeRef.current = now;
     setLastGesture(gestureType);
+    gestureStabilityRef.current = { gesture: null, count: 0, firstSeen: 0 }; // Reset stability
     
-    console.log('🎯 Gesture confirmed:', gestureType, 'Confidence:', confidence);
+    console.log('✅ Gesture confirmed:', gestureType, 'Confidence:', confidence);
     
-    // Use unified controls
+    // Fire gesture event
     options.onGesture(gestureType, confidence);
   };
 
@@ -121,15 +153,15 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         }
       });
       
-      // Configure with optimized thresholds for gesture accuracy
+      // Configure with strict thresholds for accurate gesture recognition
       hands.setOptions({
-        maxNumHands: 1, // Focus on single hand for better accuracy
-        modelComplexity: 1, // Balanced for accuracy and performance
-        minDetectionConfidence: 0.7, // Higher for better accuracy
-        minTrackingConfidence: 0.6,  // Higher for stability
+        maxNumHands: 1, // Focus on single hand
+        modelComplexity: 1, // Balanced performance
+        minDetectionConfidence: 0.85, // Strict detection
+        minTrackingConfidence: 0.85,  // Strict tracking
       });
       
-      console.log('🤖 MediaPipe Hands initialized with low confidence thresholds');
+      console.log('🤖 MediaPipe Hands initialized with strict confidence thresholds (>=0.85)');
       
       let isProcessing = false;
       
@@ -280,30 +312,30 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         fingersDown
       });
       
-      // Enhanced gesture recognition with stricter patterns
+      // ONLY 4 allowed gestures - strict pattern matching
       
-      // Fist - all fingers down (strictest check)
+      // Open Hand - all 5 fingers extended
+      if (fingersUp === 5) {
+        console.log('🤚 CONFIRMED: OPEN HAND (all fingers up)');
+        return 'open_hand';
+      }
+      
+      // Fist - all 5 fingers closed
       if (fingersDown === 5) {
         console.log('✊ CONFIRMED: FIST (all fingers down)');
         return 'fist';
       }
       
-      // Open hand - all fingers up (strictest check)  
-      if (fingersUp === 5) {
-        console.log('🖐️ CONFIRMED: OPEN HAND (all fingers up)');
-        return 'open_hand';
+      // Rock Hand - index and pinky up, thumb/middle/ring down
+      if (!thumb_up && index_up && !middle_up && !ring_up && pinky_up && fingersUp === 2) {
+        console.log('🤘 CONFIRMED: ROCK (index + pinky only)');
+        return 'rock';
       }
       
-      // Peace sign - only index and middle up, others down
+      // Peace Hand - index and middle up, thumb/ring/pinky down
       if (!thumb_up && index_up && middle_up && !ring_up && !pinky_up && fingersUp === 2) {
         console.log('✌️ CONFIRMED: PEACE (index + middle only)');
         return 'peace';
-      }
-      
-      // Rock/horns - only index and pinky up, others down
-      if (!thumb_up && index_up && !middle_up && !ring_up && pinky_up && fingersUp === 2) {
-        console.log('🤟 CONFIRMED: ROCK (index + pinky only)');
-        return 'rock';
       }
       
       // Log unmatched patterns for debugging

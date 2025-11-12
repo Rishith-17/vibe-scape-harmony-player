@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useToast } from '@/hooks/use-toast';
 import { runCommand } from '@/voice/commandRunner';
+import { musicController } from '@/controllers/MusicControllerImpl';
 
 interface ControlAction {
   type: 'gesture' | 'voice';
@@ -100,32 +101,11 @@ export const useUnifiedMusicControls = () => {
       setFeedback({ gestureIcon, show: true });
     }
 
-    // Execute the command
+    // Execute the command - EXACT 4-gesture mapping
     switch (command.toLowerCase()) {
-      case 'fist':
-        // Fist = Toggle Play/Pause with 3-second cooldown
-        const now = Date.now();
-        const timeSinceLastFist = now - lastFistGestureRef.current;
-        
-        if (timeSinceLastFist < 3000) {
-          console.log('🚫 Fist gesture ignored - 3-second cooldown active');
-          return;
-        }
-        
-        lastFistGestureRef.current = now;
-        
-        if (currentTrack || playlist.length > 0) {
-          togglePlayPause();
-          toast({
-            title: isPlaying ? "⏸️ Paused" : "▶️ Playing",
-            description: isPlaying ? "Playback paused" : currentTrack?.title || "Music resumed",
-          });
-        }
-        break;
-        
       case 'open_hand':
-        // Open hand = Voice Control (same as call_me)
-        console.log('🖐️ Dispatching voice control trigger event');
+        // 🤚 Open Hand → Start mic (same instance as Tap-Mic)
+        console.log('🤚 Open hand detected - starting voice control with same mic instance');
         const voiceEvent = new CustomEvent('vibescape:trigger-voice');
         window.dispatchEvent(voiceEvent);
         toast({
@@ -133,26 +113,66 @@ export const useUnifiedMusicControls = () => {
           description: "Listening for your command...",
         });
         break;
-      
-      case 'stop':
-        // Voice command 'stop' - same as pause
-        if (isPlaying) {
+        
+      case 'fist':
+        // ✊ Fist → Toggle Play/Pause
+        console.log('✊ Fist detected - toggling play/pause');
+        
+        if (currentTrack || playlist.length > 0) {
+          const wasPlaying = isPlaying;
           togglePlayPause();
           toast({
-            title: "⏹️ Stopped",
-            description: "Playback stopped",
+            title: wasPlaying ? "⏸️ Paused" : "▶️ Playing",
+            description: wasPlaying ? "Playback paused" : currentTrack?.title || "Music playing",
+          });
+        } else {
+          toast({
+            title: "No Music",
+            description: "No track to play",
+            variant: "destructive",
           });
         }
         break;
         
+      case 'rock':
+        // 🤘 Rock → Volume Down (-10)
+        console.log('🤘 Rock hand detected - volume down');
+        musicController.adjustVolume(-10);
+        toast({
+          title: "🔉 Volume Down",
+          description: "Volume decreased by 10%",
+        });
+        break;
+        
+      case 'peace':
+        // ✌️ Peace → Volume Up (+10)
+        console.log('✌️ Peace hand detected - volume up');
+        musicController.adjustVolume(+10);
+        toast({
+          title: "🔊 Volume Up",
+          description: "Volume increased by 10%",
+        });
+        break;
+      
+      // Voice commands (not gesture-triggered)
       case 'play':
       case 'resume':
-        // Voice commands 'play' or 'resume'
         if (!isPlaying && (currentTrack || playlist.length > 0)) {
           togglePlayPause();
           toast({
             title: "▶️ Playing",
             description: currentTrack?.title || "Music resumed",
+          });
+        }
+        break;
+      
+      case 'pause':
+      case 'stop':
+        if (isPlaying) {
+          togglePlayPause();
+          toast({
+            title: "⏸️ Paused",
+            description: "Playback paused",
           });
         }
         break;
@@ -175,47 +195,6 @@ export const useUnifiedMusicControls = () => {
             description: "Playing previous song",
           });
         }
-        break;
-        
-      case 'voice_control':
-        // Voice control command (from voice or other sources)
-        console.log('🎤 Dispatching voice control trigger event');
-        const voiceControlEvent = new CustomEvent('vibescape:trigger-voice');
-        window.dispatchEvent(voiceControlEvent);
-        toast({
-          title: "🎤 Voice Control",
-          description: "Listening for your command...",
-        });
-        break;
-        
-      case 'peace':
-      case 'volume up':
-        const currentVol = parseInt(localStorage.getItem('vibescape_volume') || '70');
-        const newVolUp = Math.min(100, currentVol + 5);
-        setVolume(newVolUp);
-        localStorage.setItem('vibescape_volume', newVolUp.toString());
-        break;
-        
-      case 'rock':
-      case 'volume down':
-        const currentVolDown = parseInt(localStorage.getItem('vibescape_volume') || '70');
-        const newVolDown = Math.max(0, currentVolDown - 5);
-        setVolume(newVolDown);
-        localStorage.setItem('vibescape_volume', newVolDown.toString());
-        break;
-        
-      case 'shuffle':
-        toast({
-          title: "🔀 Shuffle",
-          description: "Shuffle feature coming soon",
-        });
-        break;
-        
-      case 'repeat':
-        toast({
-          title: "🔁 Repeat",
-          description: "Repeat feature coming soon",
-        });
         break;
         
       default:
@@ -263,11 +242,18 @@ export const useUnifiedMusicControls = () => {
 
 
   const handleGestureCommand = async (gesture: string, confidence: number) => {
+    // Only allow the 4 specified gestures
+    const allowedGestures = ['open_hand', 'fist', 'rock', 'peace'];
+    if (!allowedGestures.includes(gesture)) {
+      console.log('🚫 Gesture not in allowed list:', gesture);
+      return;
+    }
+
     const gestureIcons: Record<string, string> = {
+      open_hand: '🤚',
       fist: '✊',
-      open_hand: '🖐️',
-      peace: '✌️',
-      rock: '🤟'
+      rock: '🤘',
+      peace: '✌️'
     };
 
     await executeCommand(gesture, confidence, 'gesture', gestureIcons[gesture]);

@@ -8,11 +8,36 @@ type MusicPlayerType = ReturnType<typeof useMusicPlayer>;
  * No internal logic changes - pure delegation
  */
 export class MusicControllerImpl implements MusicController {
+  private playerContext: MusicPlayerType | null = null;
   private currentVolume: number;
 
-  constructor(private player: MusicPlayerType) {
+  constructor(player?: MusicPlayerType) {
     // Load volume from localStorage or default to 70
     this.currentVolume = parseInt(localStorage.getItem('vibescape_volume') || '70');
+    if (player) {
+      this.playerContext = player;
+    }
+  }
+
+  /**
+   * Set the player context (called from React component)
+   */
+  setPlayerContext(player: MusicPlayerType) {
+    this.playerContext = player;
+  }
+
+  private get player(): MusicPlayerType {
+    if (!this.playerContext) {
+      throw new Error('Player context not initialized');
+    }
+    return this.playerContext;
+  }
+
+  /**
+   * Check if music is currently playing
+   */
+  isPlaying(): boolean {
+    return this.playerContext?.isPlaying ?? false;
   }
 
   async play(): Promise<void> {
@@ -201,3 +226,6 @@ export class MusicControllerImpl implements MusicController {
     this.setVolume(newVolume);
   }
 }
+
+// Singleton instance exported for global use
+export const musicController = new MusicControllerImpl();
