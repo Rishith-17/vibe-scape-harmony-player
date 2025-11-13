@@ -7,10 +7,10 @@ This PWA implements a precise 4-gesture hand control system for music playback a
 
 | Gesture | Icon | Action | Details |
 |---------|------|--------|---------|
-| **Open Hand** | 🤚 | Start Voice Control | Triggers the same microphone instance used by Tap-Mic button. No duplicate mic/ASR instances are created. |
-| **Fist** | ✊ | Play/Pause Toggle | If playing → pause; if paused → play. Uses singleton MusicController instance. |
-| **Rock Hand** | 🤘 | Volume Down | Decreases volume by 10% (adjustVolume(-10)). |
-| **Peace Hand** | ✌️ | Volume Up | Increases volume by 10% (adjustVolume(+10)). |
+| **Open Hand** | 🤚 | Start Voice Control | Dispatches `vibescape:trigger-voice` event → App.tsx calls `voiceController.manualTrigger()` → Activates the SAME mic/ASR instance as Tap-Mic button (no duplicates). |
+| **Fist** | ✊ | Play/Pause Toggle | Uses `musicController.isPlaying()` → If playing calls `musicController.pause()`, if paused calls `musicController.resume()`. Controls singleton music player. |
+| **Rock Hand** | 🤘 | Volume Down | Calls `musicController.adjustVolume(-10)` → Decreases volume by 10%. |
+| **Peace Hand** | ✌️ | Volume Up | Calls `musicController.adjustVolume(+10)` → Increases volume by 10%. |
 
 ## Architecture
 
@@ -20,13 +20,15 @@ This PWA implements a precise 4-gesture hand control system for music playback a
 
 ### Mic Reusability
 When the **Open Hand** gesture is detected:
-1. System dispatches `CustomEvent('vibescape:trigger-voice')`
-2. App.tsx catches this event and calls `VoiceController.manualTrigger()`
-3. This reuses the existing `asrEngine` instance (no new `SpeechRecognition()` or `getUserMedia()` calls)
-4. User sees the same overlay/animation as with Tap-Mic
-5. System is listening for voice commands using the same audio pipeline
+1. `useUnifiedMusicControls` dispatches `new CustomEvent('vibescape:trigger-voice')`
+2. App.tsx event listener (line 148) catches the event
+3. Calls `voiceController.manualTrigger()` - the EXACT same method called by Tap-Mic button
+4. Voice controller starts listening using the existing `asrEngine` instance
+5. No new `SpeechRecognition()` or `getUserMedia()` calls are made
+6. User sees identical overlay/animation as with Tap-Mic button
+7. Voice command is processed through the same pipeline
 
-**No duplicate microphones or ASR instances are ever created by gesture code.**
+**Critical:** The open hand gesture triggers the exact same code path as tapping the mic button. Zero duplicate mic instances.
 
 ### Gesture Detection Pipeline
 
@@ -238,6 +240,24 @@ describe('Gesture Commands', () => {
 
 ---
 
-**Version**: 1.0  
-**Last Updated**: 2025-01-12  
+## Recent Fixes (v1.1)
+
+### ✊ Fist Gesture Fix
+**Problem**: Fist gesture was not reliably pausing/playing music in the player.
+
+**Root Cause**: Was calling `togglePlayPause()` from MusicPlayerContext hooks instead of the singleton `musicController` instance.
+
+**Solution**: Now uses `musicController.isPlaying()` to check state, then calls `musicController.pause()` or `musicController.resume()` directly. This ensures the gesture controls the exact same player instance used by voice commands and UI controls.
+
+### 🤚 Open Hand Gesture Fix
+**Problem**: Open hand gesture was creating a new microphone instance instead of reusing the existing one.
+
+**Root Cause**: N/A - was already correctly implemented via `vibescape:trigger-voice` event dispatch.
+
+**Solution**: Verified event flow: gesture → dispatch event → App.tsx listener → `voiceController.manualTrigger()` → reuse same ASR instance.
+
+---
+
+**Version**: 1.1  
+**Last Updated**: 2025-01-13  
 **Compatible With**: Vite 6, React 18, MediaPipe Hands 0.4
