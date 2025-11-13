@@ -118,24 +118,30 @@ export const useUnifiedMusicControls = () => {
         break;
         
       case 'fist':
-        // ✊ Fist → Toggle Play/Pause
-        console.log('✊ Fist detected - toggling play/pause. Current state:', isPlaying);
+        // ✊ Fist → Toggle Play/Pause using singleton musicController
+        console.log('✊ Fist detected - toggling play/pause via musicController');
         
-        if (currentTrack || playlist.length > 0) {
-          const wasPlaying = isPlaying;
+        try {
+          const wasPlaying = musicController.isPlaying();
+          console.log('✊ Current state:', wasPlaying ? 'Playing' : 'Paused');
           
-          // Call togglePlayPause and show immediate feedback
-          togglePlayPause();
-          
-          const newState = wasPlaying ? "Paused" : "Playing";
-          console.log(`✊ Fist action executed: ${newState}`);
-          
-          toast({
-            title: wasPlaying ? "⏸️ Paused" : "▶️ Playing",
-            description: wasPlaying ? "Playback paused" : currentTrack?.title || "Music resumed",
-          });
-        } else {
-          console.log('✊ Fist gesture - no music available');
+          if (wasPlaying) {
+            await musicController.pause();
+            console.log('✊ Fist action: Paused');
+            toast({
+              title: "⏸️ Paused",
+              description: "Playback paused",
+            });
+          } else {
+            await musicController.resume();
+            console.log('✊ Fist action: Playing');
+            toast({
+              title: "▶️ Playing",
+              description: currentTrack?.title || "Music resumed",
+            });
+          }
+        } catch (error) {
+          console.error('✊ Fist gesture error:', error);
           toast({
             title: "No Music",
             description: "Add songs to your playlist first",
