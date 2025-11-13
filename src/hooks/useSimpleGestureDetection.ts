@@ -291,10 +291,10 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       
       // ONLY 4 allowed gestures - strict pattern matching
       
-      // Open Hand - all 5 fingers extended
-      if (fingersUp === 5) {
-        console.log('🤚 CONFIRMED: OPEN HAND (all fingers up)');
-        return 'open_hand';
+      // Thumbs Up - only thumb extended, all others down
+      if (thumb_up && !index_up && !middle_up && !ring_up && !pinky_up && fingersUp === 1) {
+        console.log('👍 CONFIRMED: THUMBS UP (only thumb up)');
+        return 'thumbs_up';
       }
       
       // Fist - all 5 fingers closed
