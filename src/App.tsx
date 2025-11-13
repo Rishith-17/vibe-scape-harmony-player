@@ -136,16 +136,29 @@ const VoiceIntegration = () => {
       const source = customEvent.detail?.source || 'unknown';
       console.log('[App] 🤙 Voice triggered by:', source);
       
-      if (voiceController) {
-        try {
-          console.log('[App] ✅ Calling voiceController.manualTrigger() - SAME as Tap-Mic');
-          await voiceController.manualTrigger();
-          console.log('[App] ✅ Voice ASR started successfully');
-        } catch (error) {
-          console.error('[App] ❌ Failed to start voice ASR:', error);
+      // Wait for voiceController if not ready (max 2 seconds)
+      if (!voiceController) {
+        console.warn('[App] ⚠️ Voice controller not ready, waiting...');
+        let attempts = 0;
+        const maxAttempts = 20; // 20 * 100ms = 2 seconds
+        
+        while (!voiceController && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
         }
-      } else {
-        console.warn('[App] ⚠️ Voice controller not ready');
+        
+        if (!voiceController) {
+          console.error('[App] ❌ Voice controller failed to initialize');
+          return;
+        }
+      }
+      
+      try {
+        console.log('[App] ✅ Calling voiceController.manualTrigger() - SAME as Tap-Mic');
+        await voiceController.manualTrigger();
+        console.log('[App] ✅ Voice ASR started successfully');
+      } catch (error) {
+        console.error('[App] ❌ Failed to start voice ASR:', error);
       }
     };
 

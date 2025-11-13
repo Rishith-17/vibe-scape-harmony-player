@@ -104,21 +104,21 @@ export const useUnifiedMusicControls = () => {
 
     // Execute the command - EXACT 4-gesture mapping
     switch (command.toLowerCase()) {
-      case 'open_hand':
-        // 🤚 Open Hand → Activate THE SAME mic instance as Tap-Mic button
-        console.log('🤚 [GESTURE] Open hand detected - dispatching voice trigger event');
-        console.log('🤚 [GESTURE] This will call voiceController.manualTrigger() - the SAME function as Tap-Mic');
+      case 'thumbs_up':
+        // 👍 Thumbs Up → Activate THE SAME mic instance as Tap-Mic button
+        console.log('👍 [GESTURE] Thumbs up detected - dispatching voice trigger event');
+        console.log('👍 [GESTURE] This will call voiceController.manualTrigger() - the SAME function as Tap-Mic');
         
         // Dispatch event that App.tsx listens for to trigger voiceController.manualTrigger()
         const voiceEvent = new CustomEvent('vibescape:trigger-voice', {
-          detail: { source: 'open_hand_gesture' }
+          detail: { source: 'thumbs_up_gesture' }
         });
         window.dispatchEvent(voiceEvent);
-        console.log('🤚 [GESTURE] Event dispatched successfully');
+        console.log('👍 [GESTURE] Event dispatched successfully');
         
         toast({
           title: "🎤 Voice Control",
-          description: "Mic activated by gesture",
+          description: "Mic activated by thumbs up",
         });
         break;
         
@@ -273,14 +273,14 @@ export const useUnifiedMusicControls = () => {
 
   const handleGestureCommand = async (gesture: string, confidence: number) => {
     // Only allow the 4 specified gestures
-    const allowedGestures = ['open_hand', 'fist', 'rock', 'peace'];
+    const allowedGestures = ['thumbs_up', 'fist', 'rock', 'peace'];
     if (!allowedGestures.includes(gesture)) {
       console.log('🚫 Gesture not in allowed list:', gesture);
       return;
     }
 
     const gestureIcons: Record<string, string> = {
-      open_hand: '🤚',
+      thumbs_up: '👍',
       fist: '✊',
       rock: '🤘',
       peace: '✌️'
