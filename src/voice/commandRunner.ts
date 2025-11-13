@@ -21,7 +21,7 @@ export async function runCommand<T>(fn: () => Promise<T>): Promise<T | null> {
     // Short cooldown to prevent rapid-fire commands
     setTimeout(() => {
       busy = false;
-    }, 400);
+    }, 250); // Reduced for faster gesture response
   }
 }
 

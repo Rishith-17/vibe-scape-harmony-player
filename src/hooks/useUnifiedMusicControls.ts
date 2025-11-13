@@ -104,47 +104,41 @@ export const useUnifiedMusicControls = () => {
     // Execute the command - EXACT 4-gesture mapping
     switch (command.toLowerCase()) {
       case 'open_hand':
-        // 🤚 Open Hand → Start voice control (reuse same mic/ASR instance as Tap-Mic)
-        console.log('🤚 Open hand detected - triggering voice control via same mic instance');
+        // 🤚 Open Hand → Activate THE SAME mic instance as Tap-Mic button
+        console.log('🤚 Open hand detected - activating EXACT SAME mic as Tap-Mic');
         
-        // Dispatch event that App.tsx listens for - triggers voiceController.manualTrigger()
+        // This triggers voiceController.manualTrigger() - the SAME function Tap-Mic uses
         const voiceEvent = new CustomEvent('vibescape:trigger-voice');
         window.dispatchEvent(voiceEvent);
         
         toast({
-          title: "🎤 Voice Control Activated",
-          description: "Listening for your command...",
+          title: "🎤 Voice Control (Gesture)",
+          description: "Same mic as Tap-Mic activated!",
         });
         break;
         
       case 'fist':
-        // ✊ Fist → Toggle Play/Pause using singleton musicController
-        console.log('✊ Fist detected - toggling play/pause via musicController');
+        // ✊ Fist → Toggle Play/Pause on active music player
+        console.log('✊ Fist detected - toggling play/pause on current player');
         
         try {
-          const wasPlaying = musicController.isPlaying();
-          console.log('✊ Current state:', wasPlaying ? 'Playing' : 'Paused');
+          // Use the MusicPlayerContext directly - it controls the actual player
+          console.log('✊ Current player state:', isPlaying ? 'Playing' : 'Paused');
           
-          if (wasPlaying) {
-            await musicController.pause();
-            console.log('✊ Fist action: Paused');
-            toast({
-              title: "⏸️ Paused",
-              description: "Playback paused",
-            });
-          } else {
-            await musicController.resume();
-            console.log('✊ Fist action: Playing');
-            toast({
-              title: "▶️ Playing",
-              description: currentTrack?.title || "Music resumed",
-            });
-          }
+          // Simply toggle using the context's togglePlayPause
+          togglePlayPause();
+          
+          toast({
+            title: isPlaying ? "⏸️ Paused" : "▶️ Playing",
+            description: isPlaying ? "Playback paused" : (currentTrack?.title || "Music resumed"),
+          });
+          
+          console.log('✊ Fist action completed:', !isPlaying ? 'Now Playing' : 'Now Paused');
         } catch (error) {
           console.error('✊ Fist gesture error:', error);
           toast({
             title: "No Music",
-            description: "Add songs to your playlist first",
+            description: "Play a song first",
             variant: "destructive",
           });
         }

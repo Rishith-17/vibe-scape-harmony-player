@@ -45,53 +45,30 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
 
   // Gesture stabilization tracking (declared at the top with other refs)
 
-  // Strict gesture handler with stability requirement
+  // Fast, responsive gesture handler with minimal latency
   const handleGesture = (gestureType: string, confidence = 1.0) => {
     const now = Date.now();
     
-    // Strict confidence requirement (>=0.85)
-    if (confidence < 0.85) {
+    // Lower confidence threshold for faster detection (>=0.7)
+    if (confidence < 0.7) {
       console.log('🚫 Gesture confidence too low:', gestureType, confidence);
       gestureStabilityRef.current = { gesture: null, count: 0, firstSeen: 0 };
       return;
     }
     
-    // Check stability - require same gesture for 2 consecutive frames (~150ms)
-    if (gestureStabilityRef.current.gesture !== gestureType) {
-      // New gesture detected, start stability tracking
-      gestureStabilityRef.current = {
-        gesture: gestureType,
-        count: 1,
-        firstSeen: now
-      };
-      console.log('👀 New gesture candidate:', gestureType, 'waiting for stability...');
-      return;
-    }
-    
-    // Same gesture seen again
-    gestureStabilityRef.current.count++;
-    const elapsed = now - gestureStabilityRef.current.firstSeen;
-    
-    // Require at least 2 consecutive detections and 150ms elapsed
-    if (gestureStabilityRef.current.count < 2 || elapsed < 150) {
-      console.log('⏱️ Gesture stabilizing...', gestureType, 'count:', gestureStabilityRef.current.count, 'elapsed:', elapsed);
-      return;
-    }
-    
-    // Debounce - prevent same gesture triggering too quickly
-    if (now - lastGestureTimeRef.current < 400) {
+    // Minimal debounce - just prevent rapid duplicates within 250ms
+    if (now - lastGestureTimeRef.current < 250) {
       console.log('🚫 Gesture debounced:', gestureType);
       return;
     }
     
-    // Gesture is stable and passes all checks
+    // Fire immediately - no stability wait needed
     lastGestureTimeRef.current = now;
     setLastGesture(gestureType);
-    gestureStabilityRef.current = { gesture: null, count: 0, firstSeen: 0 }; // Reset stability
     
-    console.log('✅ Gesture confirmed:', gestureType, 'Confidence:', confidence);
+    console.log('✅ Gesture detected and fired:', gestureType, 'Confidence:', confidence);
     
-    // Fire gesture event
+    // Fire gesture event immediately
     options.onGesture(gestureType, confidence);
   };
 
@@ -146,22 +123,22 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       
       setStatus('Initializing hand tracker...');
       
-      // Initialize MediaPipe Hands with lower confidence
+      // Initialize MediaPipe Hands optimized for speed
       const hands = new (window as any).Hands({
         locateFile: (file: string) => {
           return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
         }
       });
       
-      // Configure with strict thresholds for accurate gesture recognition
+      // Configure for fast, responsive detection
       hands.setOptions({
         maxNumHands: 1, // Focus on single hand
-        modelComplexity: 1, // Balanced performance
-        minDetectionConfidence: 0.85, // Strict detection
-        minTrackingConfidence: 0.85,  // Strict tracking
+        modelComplexity: 0, // Fastest model for minimal latency
+        minDetectionConfidence: 0.65, // Lower for faster detection
+        minTrackingConfidence: 0.65,  // Lower for faster tracking
       });
       
-      console.log('🤖 MediaPipe Hands initialized with strict confidence thresholds (>=0.85)');
+      console.log('🤖 MediaPipe Hands initialized for fast detection (low latency mode)');
       
       let isProcessing = false;
       
@@ -184,7 +161,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         isProcessing = false;
       });
       
-      // Process frames at optimized 10 FPS for better responsiveness
+      // Process frames at 20 FPS for fast, responsive detection
       const processFrame = async () => {
         if (video.readyState >= 2 && !isProcessing) {
           isProcessing = true;
@@ -193,7 +170,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         }
       };
       
-      const interval = setInterval(processFrame, 100); // 10 FPS for better detection
+      const interval = setInterval(processFrame, 50); // 20 FPS for instant response
       
       // Set up cleanup
       cleanupRef.current = () => {
@@ -285,9 +262,9 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       const pinky_mcp = landmarks[17];
       const wrist = landmarks[0];
       
-      // Enhanced finger state detection with balanced tolerances
-      const fingerTolerance = 0.03; // Slightly looser for better detection
-      const thumbTolerance = 0.04; // Slightly looser for thumb
+      // Optimized finger state detection with looser tolerances for speed
+      const fingerTolerance = 0.05; // Looser for faster, more reliable detection
+      const thumbTolerance = 0.06; // Looser for thumb
       
       // For thumb, check if tip is higher than both IP and MCP joints
       const thumb_up = thumb_tip.y < (thumb_ip.y - thumbTolerance) && thumb_tip.y < (thumb_mcp.y - thumbTolerance);
