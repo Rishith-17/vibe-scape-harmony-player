@@ -19,7 +19,8 @@ export const useUnifiedMusicControls = () => {
   
   const lastActionRef = useRef<ControlAction | null>(null);
   const lastFistGestureRef = useRef<number>(0);
-  const { 
+  const FIST_COOLDOWN_MS = 3000; // 3-second cooldown for fist gesture
+  const {
     togglePlayPause, 
     skipNext, 
     skipPrevious, 
@@ -105,21 +106,40 @@ export const useUnifiedMusicControls = () => {
     switch (command.toLowerCase()) {
       case 'open_hand':
         // 🤚 Open Hand → Activate THE SAME mic instance as Tap-Mic button
-        console.log('🤚 Open hand detected - activating EXACT SAME mic as Tap-Mic');
+        console.log('🤚 [GESTURE] Open hand detected - dispatching voice trigger event');
+        console.log('🤚 [GESTURE] This will call voiceController.manualTrigger() - the SAME function as Tap-Mic');
         
-        // This triggers voiceController.manualTrigger() - the SAME function Tap-Mic uses
-        const voiceEvent = new CustomEvent('vibescape:trigger-voice');
+        // Dispatch event that App.tsx listens for to trigger voiceController.manualTrigger()
+        const voiceEvent = new CustomEvent('vibescape:trigger-voice', {
+          detail: { source: 'open_hand_gesture' }
+        });
         window.dispatchEvent(voiceEvent);
+        console.log('🤚 [GESTURE] Event dispatched successfully');
         
         toast({
-          title: "🎤 Voice Control (Gesture)",
-          description: "Same mic as Tap-Mic activated!",
+          title: "🎤 Voice Control",
+          description: "Mic activated by gesture",
         });
         break;
         
       case 'fist':
-        // ✊ Fist → Toggle Play/Pause on active music player
+        // ✊ Fist → Toggle Play/Pause with 3-second cooldown
+        const now = Date.now();
+        const timeSinceLastFist = now - lastFistGestureRef.current;
+        
+        if (timeSinceLastFist < FIST_COOLDOWN_MS) {
+          const remainingCooldown = Math.ceil((FIST_COOLDOWN_MS - timeSinceLastFist) / 1000);
+          console.log(`✊ Fist gesture on cooldown - ${remainingCooldown}s remaining`);
+          toast({
+            title: "⏳ Please Wait",
+            description: `Wait ${remainingCooldown}s before next fist gesture`,
+            variant: "destructive",
+          });
+          return;
+        }
+        
         console.log('✊ Fist detected - toggling play/pause on current player');
+        lastFistGestureRef.current = now;
         
         try {
           // Use the MusicPlayerContext directly - it controls the actual player
