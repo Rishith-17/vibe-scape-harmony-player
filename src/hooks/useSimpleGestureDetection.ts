@@ -193,13 +193,14 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       
     } catch (error) {
       console.error('❌ Hand gesture detection failed:', error);
-      setStatus('❌ Camera access denied or not supported');
+      setStatus('📷 Camera Permission Needed');
       setIsActive(false);
       
       toast({
-        title: "Gesture Control Unavailable",
-        description: "Please allow camera access for hand gestures",
+        title: "🎥 Camera Access Required",
+        description: "Allow camera to use hand gestures (👍✊🤘✌️). Check browser settings if blocked.",
         variant: "destructive",
+        duration: 8000,
       });
     }
   };

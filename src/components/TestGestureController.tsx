@@ -26,10 +26,10 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
         });
         break;
         
-      case 'open_hand':
+      case 'thumbs_up':
         toast({
           title: "🎵 Test Gesture",
-          description: "🖐️ Voice Control (Key: O)",
+          description: "👍 Voice Control (Key: T)",
         });
         // Dispatch voice control event
         const voiceEvent = new CustomEvent('vibescape:trigger-voice');
@@ -64,7 +64,7 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
     const handleKeyPress = (event: KeyboardEvent) => {
       switch(event.key.toLowerCase()) {
         case 'f': handleGesture('fist'); break;
-        case 'o': handleGesture('open_hand'); break;
+        case 't': handleGesture('thumbs_up'); break;
         case 'p': handleGesture('peace'); break;
         case 'r': handleGesture('rock'); break;
       }
@@ -80,7 +80,7 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
     <div className="fixed bottom-4 left-4 z-50 bg-yellow-100 border border-yellow-300 rounded-lg p-3 max-w-xs">
       <div className="text-sm font-medium text-yellow-800">⚠️ {status}</div>
       <div className="text-xs text-yellow-700 mt-1">
-        Test with keyboard: F=✊ O=🖐️ P=✌️ R=🤟
+        Test with keyboard: F=✊ T=👍 P=✌️ R=🤘
       </div>
       <div className="text-xs text-yellow-600 mt-1">
         Camera gesture detection will replace this when ready
