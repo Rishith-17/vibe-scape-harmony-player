@@ -3,6 +3,7 @@ import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { Button } from '@/components/ui/button';
 import { Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Emotion {
   label: string;
@@ -14,12 +15,12 @@ interface Props {
 }
 
 const EmotionResult: React.FC<Props> = ({ emotions }) => {
-  const { playlists, getPlaylistSongs, playTrack } = useMusicPlayer();
+  const { playTrack } = useMusicPlayer();
   const { toast } = useToast();
   const primaryEmotion = emotions[0]?.label?.toLowerCase();
   const [message, setMessage] = useState<string | null>(null);
 
-  // Auto-play from matching user playlist when emotion is detected
+  // Auto-play from matching emotion playlist when emotion is detected
   useEffect(() => {
     if (primaryEmotion) {
       const timer = setTimeout(async () => {
@@ -28,39 +29,64 @@ const EmotionResult: React.FC<Props> = ({ emotions }) => {
       
       return () => clearTimeout(timer);
     }
-  }, [primaryEmotion, playlists]);
+  }, [primaryEmotion]);
 
   const findAndPlayMatchingPlaylist = async (emotion: string) => {
     try {
-      // Find playlists that match the emotion name (case-insensitive)
-      const matchingPlaylists = playlists.filter(playlist => 
-        playlist.name.toLowerCase() === emotion.toLowerCase()
-      );
-
-      if (matchingPlaylists.length === 0) {
-        setMessage(`No playlist named '${emotion}' found. Create a playlist with this name to auto-play your mood next time.`);
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setMessage('Please log in to play emotion playlists');
         return;
       }
 
-      // If multiple playlists, choose the most recently created one
-      const selectedPlaylist = matchingPlaylists.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )[0];
+      // Find emotion playlist that matches the detected emotion
+      const { data: emotionPlaylists, error: playlistError } = await supabase
+        .from('emotion_playlists')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('emotion', emotion)
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-      // Get songs from the selected playlist
-      const songs = await getPlaylistSongs(selectedPlaylist.id);
+      if (playlistError) throw playlistError;
+
+      if (!emotionPlaylists || emotionPlaylists.length === 0) {
+        setMessage(`No '${emotion}' playlist found. Create one in your library to auto-play your mood next time.`);
+        return;
+      }
+
+      const selectedPlaylist = emotionPlaylists[0];
+
+      // Get songs from the emotion playlist
+      const { data: songs, error: songsError } = await supabase
+        .from('emotion_playlist_songs')
+        .select('*')
+        .eq('emotion_playlist_id', selectedPlaylist.id)
+        .order('position', { ascending: true });
+
+      if (songsError) throw songsError;
       
-      if (songs.length === 0) {
-        setMessage(`Playlist '${selectedPlaylist.name}' is empty. Add some songs to auto-play your mood next time.`);
+      if (!songs || songs.length === 0) {
+        setMessage(`Your '${emotion}' playlist is empty. Add some songs to auto-play your mood next time.`);
         return;
       }
+
+      // Convert to the format expected by playTrack
+      const formattedSongs = songs.map(song => ({
+        id: song.song_id,
+        title: song.title,
+        channelTitle: song.artist,
+        thumbnail: song.thumbnail || '',
+        url: song.url
+      }));
 
       // Play the first song from the playlist
-      playTrack(songs[0], songs, 0);
+      playTrack(formattedSongs[0], formattedSongs, 0);
       
       toast({
         title: "Now Playing",
-        description: `Playing from your '${selectedPlaylist.name}' playlist`,
+        description: `Playing from your '${emotion}' playlist`,
       });
 
       setMessage(null);
