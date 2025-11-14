@@ -28,7 +28,7 @@ serve(async (req) => {
     const base64Data = imageData.includes(',') ? imageData.split(',')[1] : imageData
 
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/dima806/facial_emotions_image_detection',
+      'https://router.huggingface.co/hf-inference/models/dima806/facial_emotions_image_detection',
       {
         method: 'POST',
         headers: {
