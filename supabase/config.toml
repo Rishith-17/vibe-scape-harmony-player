@@ -66,3 +66,6 @@ verify_jwt = false
 
 [functions.music-recommendations]
 verify_jwt = false
+
+[functions.emotion-detection]
+verify_jwt = false

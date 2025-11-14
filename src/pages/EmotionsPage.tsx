@@ -33,35 +33,33 @@ const EmotionDetector = () => {
     setIsAnalyzing(true);
 
     try {
-      // Convert base64 to the format expected by Hugging Face API
-      const base64Data = selectedImage.split(',')[1];
-      
-      const response = await fetch('https://api-inference.huggingface.co/models/dima806/facial_emotions_image_detection', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_HUGGINGFACE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          inputs: base64Data
-        }),
-      });
+      const response = await fetch(
+        'https://zchhecueiqpqhvrnnmsm.supabase.co/functions/v1/emotion-detection',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageData: selectedImage
+          }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API request failed: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('API Response:', result);
+      console.log('Emotion detection response:', result);
       
-      if (result && result.length > 0) {
-        // Sort emotions by confidence score
-        const sortedEmotions = result.sort((a: any, b: any) => b.score - a.score);
-        setEmotionResult(sortedEmotions);
+      if (result.emotions && result.emotions.length > 0) {
+        setEmotionResult(result.emotions);
         
         toast({
           title: "Analysis Complete!",
-          description: `Detected primary emotion: ${sortedEmotions[0].label}`,
+          description: `Detected primary emotion: ${result.emotions[0].label}`,
         });
       } else {
         throw new Error('No emotions detected');
@@ -70,7 +68,7 @@ const EmotionDetector = () => {
       console.error('Error analyzing emotion:', error);
       toast({
         title: "Analysis Failed",
-        description: "Could not detect emotion from image. Please try again.",
+        description: error instanceof Error ? error.message : "Could not detect emotion from image. Please try again.",
         variant: "destructive",
       });
     } finally {
