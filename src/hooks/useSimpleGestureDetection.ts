@@ -264,8 +264,8 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       const wrist = landmarks[0];
       
       // Optimized finger state detection with looser tolerances for speed
-      const fingerTolerance = 0.05; // Looser for faster, more reliable detection
-      const thumbTolerance = 0.06; // Looser for thumb
+      const fingerTolerance = 0.03; // More lenient for open hand detection
+      const thumbTolerance = 0.04; // More lenient for thumb
       
       // For thumb, check if tip is higher than both IP and MCP joints
       const thumb_up = thumb_tip.y < (thumb_ip.y - thumbTolerance) && thumb_tip.y < (thumb_mcp.y - thumbTolerance);
@@ -290,11 +290,12 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         fingersDown
       });
       
-      // ONLY 4 allowed gestures - strict pattern matching
+      // ONLY 4 allowed gestures - CHECK OPEN HAND FIRST (highest priority)
       
-      // Open Hand - all 5 fingers extended (for voice control)
-      if (thumb_up && index_up && middle_up && ring_up && pinky_up && fingersUp === 5) {
-        console.log('🤚 CONFIRMED: OPEN HAND (all 5 fingers up) - Voice Control');
+      // Open Hand - 4 or 5 fingers extended (more lenient for voice control)
+      // Must have at least index, middle, ring extended (core fingers)
+      if (fingersUp >= 4 && index_up && middle_up && ring_up) {
+        console.log('🤚 CONFIRMED: OPEN HAND (4-5 fingers up) - Voice Control');
         return 'open_hand';
       }
       
@@ -304,13 +305,13 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         return 'fist';
       }
       
-      // Rock Hand - index and pinky up, thumb/middle/ring down
+      // Rock Hand - EXACTLY index and pinky up, others down
       if (!thumb_up && index_up && !middle_up && !ring_up && pinky_up && fingersUp === 2) {
         console.log('🤘 CONFIRMED: ROCK (index + pinky only)');
         return 'rock';
       }
       
-      // Peace Hand - index and middle up, thumb/ring/pinky down
+      // Peace Hand - EXACTLY index and middle up, others down
       if (!thumb_up && index_up && middle_up && !ring_up && !pinky_up && fingersUp === 2) {
         console.log('✌️ CONFIRMED: PEACE (index + middle only)');
         return 'peace';
