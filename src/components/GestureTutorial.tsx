@@ -16,10 +16,10 @@ interface GestureTutorialProps {
 export const GestureTutorial: React.FC<GestureTutorialProps> = ({ isOpen, onClose }) => {
   const gestures = [
     {
-      emoji: '🤚',
-      name: 'Open Hand',
+      emoji: '👍',
+      name: 'Thumbs Up',
       action: 'Start Voice Control',
-      description: 'All five fingers extended - starts mic (same as Tap-Mic)'
+      description: 'Thumb up, other fingers closed - starts mic (same as Tap-Mic)'
     },
     {
       emoji: '✊',
@@ -30,14 +30,14 @@ export const GestureTutorial: React.FC<GestureTutorialProps> = ({ isOpen, onClos
     {
       emoji: '🤘',
       name: 'Rock Hand',
-      action: 'Volume Down',
-      description: 'Index and pinky up - decreases volume by 10%'
+      action: 'Next Song',
+      description: 'Index and pinky up - skips to next track'
     },
     {
       emoji: '✌️',
       name: 'Peace Sign',
-      action: 'Volume Up',
-      description: 'Index and middle finger up - increases volume by 10%'
+      action: 'Previous Song',
+      description: 'Index and middle finger up - goes to previous track'
     }
   ];
 
@@ -77,7 +77,7 @@ export const GestureTutorial: React.FC<GestureTutorialProps> = ({ isOpen, onClos
           
           <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
             <p className="text-xs text-blue-600 dark:text-blue-400">
-              <strong>💡 Tips:</strong> Hold gestures for 150ms • Keep hand clearly visible • Good lighting helps • Open Hand uses same mic as Tap-Mic button
+              <strong>💡 Tips:</strong> Hold gestures clearly for 250ms • Keep hand visible • Good lighting helps • Thumbs Up uses same mic as Tap-Mic button • Wake word "Hello Vibe" or double clap 👏👏 also activates voice
             </p>
           </div>
           

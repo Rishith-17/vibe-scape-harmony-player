@@ -23,13 +23,20 @@ export class PorcupineWebEngine implements WakeWordEngine {
     try {
       // Get access key from environment
       const accessKey = import.meta.env.VITE_PICOVOICE_ACCESS_KEY;
-      console.log('[PorcupineWebEngine] Access key available:', !!accessKey);
+      console.log('[PorcupineWebEngine] Access key check:', {
+        available: !!accessKey,
+        length: accessKey?.length,
+        firstChars: accessKey?.substring(0, 10)
+      });
       
-      if (!accessKey) {
-        console.warn('[PorcupineWebEngine] No access key - manual trigger only');
+      if (!accessKey || accessKey.trim() === '') {
+        console.warn('[PorcupineWebEngine] ⚠️ No access key found - manual trigger only');
+        console.warn('[PorcupineWebEngine] Set VITE_PICOVOICE_ACCESS_KEY in .env file');
         return;
       }
 
+      console.log('[PorcupineWebEngine] ✅ Access key found, requesting microphone...');
+      
       // Request microphone permission first
       await navigator.mediaDevices.getUserMedia({ audio: true });
       console.log('[PorcupineWebEngine] Microphone permission granted');
