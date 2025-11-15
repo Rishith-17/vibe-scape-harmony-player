@@ -352,14 +352,27 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       // 👍 Thumbs Up - ONLY thumb up, ALL others clearly down (VOICE CONTROL)
       // Most distinct gesture - thumb must be clearly extended alone
       if (thumb_up && !index_up && !middle_up && !ring_up && !pinky_up) {
-        // Extra verification: thumb tip must be significantly higher than all other fingertips
-        const thumbHigherThanOthers = thumb_tip.y < index_tip.y - 0.08 && 
-                                       thumb_tip.y < middle_tip.y - 0.08 &&
-                                       thumb_tip.y < ring_tip.y - 0.08 &&
-                                       thumb_tip.x > wrist.x - 0.1; // Thumb should be to the side
-        if (thumbHigherThanOthers) {
-          console.log('👍 CONFIRMED: THUMBS UP (thumb only, verified distinct) - Voice Control ONLY');
+        // Extra verification: thumb tip must be higher than other fingertips
+        // Relaxed from 0.08 to 0.05 for better detection
+        const thumbHigherThanOthers = thumb_tip.y < index_tip.y - 0.05 && 
+                                       thumb_tip.y < middle_tip.y - 0.05 &&
+                                       thumb_tip.y < ring_tip.y - 0.05;
+        
+        // Verify fingers are actually closed (not extended)
+        const fingersActuallyClosed = 
+          index_tip.y > index_pip.y &&
+          middle_tip.y > middle_pip.y &&
+          ring_tip.y > ring_pip.y;
+        
+        if (thumbHigherThanOthers && fingersActuallyClosed) {
+          console.log('👍 CONFIRMED: THUMBS UP (thumb only, verified distinct) - Voice Control');
+          console.log('👍 Dispatching voice control event...');
           return 'thumbs_up';
+        } else {
+          console.log('❌ REJECTED: Thumbs up check failed', {
+            thumbHigher: thumbHigherThanOthers,
+            fingersClosed: fingersActuallyClosed
+          });
         }
       }
       
