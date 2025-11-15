@@ -106,21 +106,15 @@ export class VoiceController {
   }
 
   private async onWakeDetected(): Promise<void> {
-    console.log('[VoiceController] 🎤 Voice activated - listening...');
-    this.earconPlayer.play('wake');
-    this.setState('listening');
+    console.log('[VoiceController] 🎤 Wake word detected - dispatching to unified system');
     
-    try {
-      await this.asrEngine.start();
-      this.earconPlayer.play('listen');
-      console.log('[VoiceController] 🔊 Speak your command now');
-    } catch (error) {
-      console.error('[VoiceController] Failed to start speech recognition:', error);
-      this.setState('error');
-      this.earconPlayer.play('error');
-      await this.speak('Sorry, microphone access failed');
-      setTimeout(() => this.reset(), 2000);
-    }
+    // Dispatch the same event that tap-mic and thumbs_up gesture use
+    // This ensures we use the SAME mic instance and UI flow
+    const voiceEvent = new CustomEvent('vibescape:trigger-voice', {
+      detail: { source: 'wake_word_detection' }
+    });
+    window.dispatchEvent(voiceEvent);
+    console.log('[VoiceController] 🎤 Event dispatched - unified voice control will handle');
   }
 
   private async processTranscript(transcript: string): Promise<void> {
