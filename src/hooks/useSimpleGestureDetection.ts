@@ -263,16 +263,21 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       const pinky_mcp = landmarks[17];
       const wrist = landmarks[0];
       
-      // STRICT finger state detection - reduce false positives
-      const fingerTolerance = 0.04; // Stricter threshold
-      const thumbTolerance = 0.05; // Stricter for thumb
+      // ULTRA-STRICT finger state detection - eliminate false positives
+      const fingerTolerance = 0.06; // Much stricter threshold
+      const thumbTolerance = 0.07; // Much stricter for thumb
+      
+      // Helper: Calculate distance between two points
+      const getDistance = (p1: any, p2: any) => {
+        return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+      };
       
       // For thumb, check if tip is SIGNIFICANTLY higher than both IP and MCP joints
       const thumb_up = thumb_tip.y < (thumb_ip.y - thumbTolerance) && 
                        thumb_tip.y < (thumb_mcp.y - thumbTolerance) &&
                        thumb_tip.y < wrist.y; // Thumb must be above wrist
       
-      // For other fingers, check tip vs PIP and MCP with strict thresholds
+      // For other fingers, check tip vs PIP and MCP with ultra-strict thresholds
       const index_up = index_tip.y < (index_pip.y - fingerTolerance) && 
                        index_tip.y < (index_mcp.y - fingerTolerance);
       const middle_up = middle_tip.y < (middle_pip.y - fingerTolerance) && 
@@ -286,6 +291,17 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       const fingersUp = [thumb_up, index_up, middle_up, ring_up, pinky_up].filter(Boolean).length;
       const fingersDown = [thumb_up, index_up, middle_up, ring_up, pinky_up].filter(f => !f).length;
       
+      // CRITICAL: Detect open hand explicitly to reject it
+      // Open hand = all fingers extended and far from palm
+      const allFingersExtended = index_up && middle_up && ring_up && pinky_up;
+      const fingersFarFromPalm = 
+        getDistance(index_tip, wrist) > 0.25 &&
+        getDistance(middle_tip, wrist) > 0.25 &&
+        getDistance(ring_tip, wrist) > 0.25 &&
+        getDistance(pinky_tip, wrist) > 0.20;
+      
+      const isOpenHand = allFingersExtended && fingersFarFromPalm;
+      
       console.log('👆 Enhanced finger states:', {
         thumb: thumb_up,
         index: index_up,
@@ -293,21 +309,43 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         ring: ring_up,
         pinky: pinky_up,
         fingersUp,
-        fingersDown
+        fingersDown,
+        isOpenHand
       });
+      
+      // REJECT open hand immediately
+      if (isOpenHand) {
+        console.log('✋ REJECTED: Open hand detected - no gesture');
+        return null;
+      }
       
       // ONLY 4 gestures with STRICT detection to avoid confusion
       
-      // ✊ Fist - ALL fingers clearly down including thumb (PLAY/PAUSE)
-      // Check this FIRST to prevent confusion with thumbs_up
+      // ✊ Fist - ALL fingers clearly CURLED into palm (PLAY/PAUSE)
+      // This is the HARDEST gesture to detect accurately - be ULTRA strict
       if (!thumb_up && !index_up && !middle_up && !ring_up && !pinky_up) {
-        // Extra check: all fingertips should be close to palm/wrist level
-        const allFingersClosed = index_tip.y > index_mcp.y && 
-                                 middle_tip.y > middle_mcp.y &&
-                                 ring_tip.y > ring_mcp.y;
-        if (allFingersClosed) {
-          console.log('✊ CONFIRMED: FIST (all closed, verified) - Play/Pause ONLY');
+        // CRITICAL: Verify fingers are actually CURLED into palm, not just down
+        // Check 1: All fingertips must be below their MCP joints (curled down)
+        const allFingersCurledDown = 
+          index_tip.y > index_mcp.y && 
+          middle_tip.y > middle_mcp.y &&
+          ring_tip.y > ring_mcp.y &&
+          pinky_tip.y > pinky_mcp.y;
+        
+        // Check 2: Fingertips must be CLOSE to wrist (curled into palm)
+        const fingersCloseToWrist = 
+          getDistance(index_tip, wrist) < 0.15 &&
+          getDistance(middle_tip, wrist) < 0.15 &&
+          getDistance(ring_tip, wrist) < 0.15;
+        
+        // Check 3: Thumb should be tucked in (close to hand)
+        const thumbTucked = getDistance(thumb_tip, index_mcp) < 0.12;
+        
+        if (allFingersCurledDown && fingersCloseToWrist && thumbTucked) {
+          console.log('✊ CONFIRMED: FIST (fingers curled into palm, verified) - Play/Pause');
           return 'fist';
+        } else {
+          console.log('❌ REJECTED: Not a proper fist - fingers not curled enough');
         }
       }
       
@@ -325,15 +363,15 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         }
       }
       
-      // 🤘 Rock Hand - ONLY index and pinky up, rest down (NEXT SONG)
+      // 🤘 Rock Hand - ONLY index and pinky up, rest down (VOLUME DOWN)
       if (!thumb_up && index_up && !middle_up && !ring_up && pinky_up && fingersUp === 2) {
-        console.log('🤘 CONFIRMED: ROCK (index + pinky only) - Next Song');
+        console.log('🤘 CONFIRMED: ROCK (index + pinky only) - Volume Down');
         return 'rock';
       }
       
-      // ✌️ Peace Hand - ONLY index and middle up, rest down (PREVIOUS SONG)
+      // ✌️ Peace Hand - ONLY index and middle up, rest down (VOLUME UP)
       if (!thumb_up && index_up && middle_up && !ring_up && !pinky_up && fingersUp === 2) {
-        console.log('✌️ CONFIRMED: PEACE (index + middle only) - Previous Song');
+        console.log('✌️ CONFIRMED: PEACE (index + middle only) - Volume Up');
         return 'peace';
       }
       
