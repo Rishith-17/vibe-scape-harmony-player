@@ -263,18 +263,24 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       const pinky_mcp = landmarks[17];
       const wrist = landmarks[0];
       
-      // Optimized finger state detection with looser tolerances for speed
-      const fingerTolerance = 0.03; // More lenient for gesture detection
-      const thumbTolerance = 0.04; // More lenient for thumb
+      // STRICT finger state detection - reduce false positives
+      const fingerTolerance = 0.04; // Stricter threshold
+      const thumbTolerance = 0.05; // Stricter for thumb
       
-      // For thumb, check if tip is higher than both IP and MCP joints
-      const thumb_up = thumb_tip.y < (thumb_ip.y - thumbTolerance) && thumb_tip.y < (thumb_mcp.y - thumbTolerance);
+      // For thumb, check if tip is SIGNIFICANTLY higher than both IP and MCP joints
+      const thumb_up = thumb_tip.y < (thumb_ip.y - thumbTolerance) && 
+                       thumb_tip.y < (thumb_mcp.y - thumbTolerance) &&
+                       thumb_tip.y < wrist.y; // Thumb must be above wrist
       
-      // For other fingers, check tip vs PIP and MCP
-      const index_up = index_tip.y < (index_pip.y - fingerTolerance) && index_tip.y < (index_mcp.y - fingerTolerance);
-      const middle_up = middle_tip.y < (middle_pip.y - fingerTolerance) && middle_tip.y < (middle_mcp.y - fingerTolerance);
-      const ring_up = ring_tip.y < (ring_pip.y - fingerTolerance) && ring_tip.y < (ring_mcp.y - fingerTolerance);
-      const pinky_up = pinky_tip.y < (pinky_pip.y - fingerTolerance) && pinky_tip.y < (pinky_mcp.y - fingerTolerance);
+      // For other fingers, check tip vs PIP and MCP with strict thresholds
+      const index_up = index_tip.y < (index_pip.y - fingerTolerance) && 
+                       index_tip.y < (index_mcp.y - fingerTolerance);
+      const middle_up = middle_tip.y < (middle_pip.y - fingerTolerance) && 
+                        middle_tip.y < (middle_mcp.y - fingerTolerance);
+      const ring_up = ring_tip.y < (ring_pip.y - fingerTolerance) && 
+                      ring_tip.y < (ring_mcp.y - fingerTolerance);
+      const pinky_up = pinky_tip.y < (pinky_pip.y - fingerTolerance) && 
+                       pinky_tip.y < (pinky_mcp.y - fingerTolerance);
       
       // Additional checks for gesture stability
       const fingersUp = [thumb_up, index_up, middle_up, ring_up, pinky_up].filter(Boolean).length;
@@ -290,28 +296,40 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         fingersDown
       });
       
-      // ONLY 4 allowed gestures with THUMBS UP for voice (most reliable)
+      // ONLY 4 gestures with STRICT detection to avoid confusion
       
-      // Thumbs Up - thumb extended, others closed (VOICE CONTROL)
-      // Most reliable gesture for voice activation
-      if (thumb_up && !index_up && !middle_up && !ring_up && !pinky_up && fingersUp === 1) {
-        console.log('👍 CONFIRMED: THUMBS UP (thumb only) - Voice Control');
-        return 'thumbs_up';
+      // 👍 Thumbs Up - ONLY thumb up, ALL others clearly down (VOICE CONTROL)
+      // Most distinct gesture - thumb must be clearly extended alone
+      if (thumb_up && !index_up && !middle_up && !ring_up && !pinky_up) {
+        // Extra check: thumb tip must be significantly higher than other fingertips
+        const thumbHigherThanOthers = thumb_tip.y < index_tip.y - 0.05 && 
+                                       thumb_tip.y < middle_tip.y - 0.05;
+        if (thumbHigherThanOthers) {
+          console.log('👍 CONFIRMED: THUMBS UP (thumb only, verified distinct) - Voice Control');
+          return 'thumbs_up';
+        }
       }
       
-      // Fist - all 5 fingers closed (PLAY/PAUSE)
-      if (fingersDown === 5 && !thumb_up) {
-        console.log('✊ CONFIRMED: FIST (all fingers down) - Play/Pause');
-        return 'fist';
+      // ✊ Fist - ALL fingers clearly down including thumb (PLAY/PAUSE)
+      // Most closed gesture - nothing should be extended
+      if (!thumb_up && !index_up && !middle_up && !ring_up && !pinky_up) {
+        // Extra check: all fingertips should be close to palm/wrist level
+        const allFingersClosed = index_tip.y > index_mcp.y && 
+                                 middle_tip.y > middle_mcp.y &&
+                                 thumb_tip.y > thumb_mcp.y;
+        if (allFingersClosed) {
+          console.log('✊ CONFIRMED: FIST (all closed, verified) - Play/Pause');
+          return 'fist';
+        }
       }
       
-      // Rock Hand - index and pinky up, others down (NEXT SONG)
+      // 🤘 Rock Hand - ONLY index and pinky up, rest down (NEXT SONG)
       if (!thumb_up && index_up && !middle_up && !ring_up && pinky_up && fingersUp === 2) {
         console.log('🤘 CONFIRMED: ROCK (index + pinky only) - Next Song');
         return 'rock';
       }
       
-      // Peace Hand - index and middle up, others down (PREVIOUS SONG)
+      // ✌️ Peace Hand - ONLY index and middle up, rest down (PREVIOUS SONG)
       if (!thumb_up && index_up && middle_up && !ring_up && !pinky_up && fingersUp === 2) {
         console.log('✌️ CONFIRMED: PEACE (index + middle only) - Previous Song');
         return 'peace';
