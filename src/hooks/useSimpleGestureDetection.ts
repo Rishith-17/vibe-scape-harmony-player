@@ -49,8 +49,8 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
   const handleGesture = (gestureType: string, confidence = 1.0) => {
     const now = Date.now();
     
-    // Lower confidence threshold for faster detection (>=0.7)
-    if (confidence < 0.7) {
+    // Higher confidence threshold to reduce false positives in crowds (>=0.85)
+    if (confidence < 0.85) {
       console.log('🚫 Gesture confidence too low:', gestureType, confidence);
       gestureStabilityRef.current = { gesture: null, count: 0, firstSeen: 0 };
       return;
@@ -292,10 +292,10 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       
       // ONLY 4 allowed gestures - strict pattern matching
       
-      // Thumbs Up - only thumb extended, all others down
-      if (thumb_up && !index_up && !middle_up && !ring_up && !pinky_up && fingersUp === 1) {
-        console.log('👍 CONFIRMED: THUMBS UP (only thumb up)');
-        return 'thumbs_up';
+      // Open Hand - all 5 fingers extended (for voice control)
+      if (thumb_up && index_up && middle_up && ring_up && pinky_up && fingersUp === 5) {
+        console.log('🤚 CONFIRMED: OPEN HAND (all 5 fingers up) - Voice Control');
+        return 'open_hand';
       }
       
       // Fist - all 5 fingers closed
