@@ -109,22 +109,16 @@ export const useUnifiedMusicControls = () => {
         // 👍 Thumbs Up → Activate THE SAME mic instance as Tap-Mic button
         console.log('👍 [GESTURE] Thumbs up detected - triggering voiceController.manualTrigger()');
         console.log('👍 [GESTURE] Instance ID: SAME voiceController as Tap-Mic button');
-        console.log('👍 [GESTURE] Current command type:', commandType);
         
         // Dispatch event that App.tsx listens for to trigger voiceController.manualTrigger()
         const voiceEvent = new CustomEvent('vibescape:trigger-voice', {
           detail: { source: 'thumbs_up_gesture' }
         });
         window.dispatchEvent(voiceEvent);
-        console.log('👍 [GESTURE] Event dispatched to window - listeners should receive it');
-        console.log('👍 [GESTURE] Event detail:', { source: 'thumbs_up_gesture' });
+        console.log('🤚 [GESTURE] Event dispatched - VoiceChip will show listening overlay');
         
-        // Show brief toast to confirm gesture was recognized
-        toast({
-          title: "👍 Listening...",
-          description: "Voice control activated",
-          duration: 1500,
-        });
+        // NO toast or feedback - let VoiceChip component handle all UI
+        // This ensures the SAME UI experience as clicking the Tap-Mic button
         break;
         
       case 'fist':
