@@ -198,7 +198,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       
       toast({
         title: "🎥 Camera Access Required",
-        description: "Allow camera to use hand gestures (👍✊🤘✌️). Check browser settings if blocked.",
+        description: "Allow camera to use hand gestures (🖐️✊🤘✌️). Check browser settings if blocked.",
         variant: "destructive",
         duration: 8000,
       });
@@ -324,39 +324,30 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         }
       }
       
-      // 👍 Thumbs Up - ONLY thumb up, ALL others clearly down (VOICE CONTROL)
-      // This is checked AFTER fist to ensure fist takes priority when thumb is not clearly extended
-      if (thumb_up && !index_up && !middle_up && !ring_up && !pinky_up) {
-        // Triple verification for thumbs_up:
-        // 1. Thumb tip significantly higher than all other fingertips (0.1+ difference)
-        // 2. Thumb extended sideways from wrist
-        // 3. All other fingers clearly closed
-        const thumbMuchHigher = thumb_tip.y < (index_tip.y - 0.1) && 
-                                 thumb_tip.y < (middle_tip.y - 0.1) &&
-                                 thumb_tip.y < (ring_tip.y - 0.1) &&
-                                 thumb_tip.y < (pinky_tip.y - 0.1);
+      // 🖐️ Open Hand - ALL five fingers extended (VOICE CONTROL)
+      // Very distinct gesture - all fingers must be clearly up
+      if (thumb_up && index_up && middle_up && ring_up && pinky_up && fingersUp === 5) {
+        // Verification: all fingertips should be well above their MCP joints
+        const allFingersExtended = index_tip.y < (index_mcp.y - 0.05) &&
+                                    middle_tip.y < (middle_mcp.y - 0.05) &&
+                                    ring_tip.y < (ring_mcp.y - 0.05) &&
+                                    pinky_tip.y < (pinky_mcp.y - 0.05);
         
-        const thumbExtendedSideways = Math.abs(thumb_tip.x - wrist.x) > 0.1;
-        
-        const otherFingersClosed = index_tip.y > index_mcp.y &&
-                                    middle_tip.y > middle_mcp.y &&
-                                    ring_tip.y > ring_mcp.y;
-        
-        if (thumbMuchHigher && thumbExtendedSideways && otherFingersClosed) {
-          console.log('👍 CONFIRMED: THUMBS UP (thumb clearly extended, all others closed) - Voice Control');
-          return 'thumbs_up';
+        if (allFingersExtended) {
+          console.log('🖐️ CONFIRMED: OPEN HAND (all 5 fingers extended) - Voice Control');
+          return 'open_hand';
         }
       }
       
-      // 🤘 Rock Hand - ONLY index and pinky up, rest down (NEXT SONG)
+      // 🤘 Rock Hand - ONLY index and pinky up, rest down (VOLUME DOWN)
       if (!thumb_up && index_up && !middle_up && !ring_up && pinky_up && fingersUp === 2) {
-        console.log('🤘 CONFIRMED: ROCK (index + pinky only) - Next Song');
+        console.log('🤘 CONFIRMED: ROCK (index + pinky only) - Volume Down');
         return 'rock';
       }
       
-      // ✌️ Peace Hand - ONLY index and middle up, rest down (PREVIOUS SONG)
+      // ✌️ Peace Hand - ONLY index and middle up, rest down (VOLUME UP)
       if (!thumb_up && index_up && middle_up && !ring_up && !pinky_up && fingersUp === 2) {
-        console.log('✌️ CONFIRMED: PEACE (index + middle only) - Previous Song');
+        console.log('✌️ CONFIRMED: PEACE (index + middle only) - Volume Up');
         return 'peace';
       }
       
