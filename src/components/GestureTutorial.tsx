@@ -30,14 +30,14 @@ export const GestureTutorial: React.FC<GestureTutorialProps> = ({ isOpen, onClos
     {
       emoji: '🤘',
       name: 'Rock Hand',
-      action: 'Next Song',
-      description: 'Index and pinky up - skips to next track'
+      action: 'Volume Down',
+      description: 'Index and pinky up - decreases volume by 10%'
     },
     {
       emoji: '✌️',
       name: 'Peace Sign',
-      action: 'Previous Song',
-      description: 'Index and middle finger up - goes to previous track'
+      action: 'Volume Up',
+      description: 'Index and middle finger up - increases volume by 10%'
     }
   ];
 

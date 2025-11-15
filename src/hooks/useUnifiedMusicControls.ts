@@ -164,41 +164,23 @@ export const useUnifiedMusicControls = () => {
         break;
         
       case 'rock':
-        // 🤘 Rock → Next Song
-        console.log('🤘 Rock hand detected - next song');
-        try {
-          await skipNext();
-          toast({
-            title: "⏭️ Next Song",
-            description: currentTrack?.title || "Skipping to next track",
-          });
-        } catch (error) {
-          console.error('🤘 Rock gesture error:', error);
-          toast({
-            title: "No Music",
-            description: "Play a song first",
-            variant: "destructive",
-          });
-        }
+        // 🤘 Rock → Volume Down
+        console.log('🤘 Rock hand detected - volume down');
+        musicController.adjustVolume(-10);
+        toast({
+          title: "🔉 Volume Down",
+          description: "Volume decreased by 10%",
+        });
         break;
         
       case 'peace':
-        // ✌️ Peace → Previous Song
-        console.log('✌️ Peace hand detected - previous song');
-        try {
-          await skipPrevious();
-          toast({
-            title: "⏮️ Previous Song",
-            description: "Going back to previous track",
-          });
-        } catch (error) {
-          console.error('✌️ Peace gesture error:', error);
-          toast({
-            title: "No Music",
-            description: "Play a song first",
-            variant: "destructive",
-          });
-        }
+        // ✌️ Peace → Volume Up
+        console.log('✌️ Peace hand detected - volume up');
+        musicController.adjustVolume(+10);
+        toast({
+          title: "🔊 Volume Up",
+          description: "Volume increased by 10%",
+        });
         break;
       
       // Voice commands (not gesture-triggered)
