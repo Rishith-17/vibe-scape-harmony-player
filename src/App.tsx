@@ -87,10 +87,14 @@ const VoiceIntegration = () => {
         await controller.initialize();
         await controller.start();
         
+        setVoiceController(controller);
         console.log('[App] Voice controller initialized and started');
       } catch (error) {
         console.error('[App] Failed to initialize voice controller:', error);
         // Even if initialization fails, set controller to enable manual trigger
+        if (controller) {
+          setVoiceController(controller);
+        }
       }
       
       // Always set controller so manual trigger works
