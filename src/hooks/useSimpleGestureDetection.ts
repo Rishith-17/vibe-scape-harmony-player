@@ -264,7 +264,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       const wrist = landmarks[0];
       
       // Optimized finger state detection with looser tolerances for speed
-      const fingerTolerance = 0.03; // More lenient for open hand detection
+      const fingerTolerance = 0.03; // More lenient for gesture detection
       const thumbTolerance = 0.04; // More lenient for thumb
       
       // For thumb, check if tip is higher than both IP and MCP joints
@@ -290,30 +290,30 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         fingersDown
       });
       
-      // ONLY 4 allowed gestures - CHECK OPEN HAND FIRST (highest priority)
+      // ONLY 4 allowed gestures with THUMBS UP for voice (most reliable)
       
-      // Open Hand - 4 or 5 fingers extended (more lenient for voice control)
-      // Must have at least index, middle, ring extended (core fingers)
-      if (fingersUp >= 4 && index_up && middle_up && ring_up) {
-        console.log('🤚 CONFIRMED: OPEN HAND (4-5 fingers up) - Voice Control');
-        return 'open_hand';
+      // Thumbs Up - thumb extended, others closed (VOICE CONTROL)
+      // Most reliable gesture for voice activation
+      if (thumb_up && !index_up && !middle_up && !ring_up && !pinky_up && fingersUp === 1) {
+        console.log('👍 CONFIRMED: THUMBS UP (thumb only) - Voice Control');
+        return 'thumbs_up';
       }
       
-      // Fist - all 5 fingers closed
-      if (fingersDown === 5) {
-        console.log('✊ CONFIRMED: FIST (all fingers down)');
+      // Fist - all 5 fingers closed (PLAY/PAUSE)
+      if (fingersDown === 5 && !thumb_up) {
+        console.log('✊ CONFIRMED: FIST (all fingers down) - Play/Pause');
         return 'fist';
       }
       
-      // Rock Hand - EXACTLY index and pinky up, others down
+      // Rock Hand - index and pinky up, others down (NEXT SONG)
       if (!thumb_up && index_up && !middle_up && !ring_up && pinky_up && fingersUp === 2) {
-        console.log('🤘 CONFIRMED: ROCK (index + pinky only)');
+        console.log('🤘 CONFIRMED: ROCK (index + pinky only) - Next Song');
         return 'rock';
       }
       
-      // Peace Hand - EXACTLY index and middle up, others down
+      // Peace Hand - index and middle up, others down (PREVIOUS SONG)
       if (!thumb_up && index_up && middle_up && !ring_up && !pinky_up && fingersUp === 2) {
-        console.log('✌️ CONFIRMED: PEACE (index + middle only)');
+        console.log('✌️ CONFIRMED: PEACE (index + middle only) - Previous Song');
         return 'peace';
       }
       

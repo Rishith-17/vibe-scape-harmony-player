@@ -11,8 +11,8 @@ interface DoubleClapOptions {
 export const useDoubleClap = ({ 
   enabled, 
   onDoubleClap, 
-  threshold = 0.5,  // Lower threshold for easier clap detection
-  timeWindow = 800  // Slightly longer window for double clap
+  threshold = 0.3,  // Even lower threshold for easier clap detection
+  timeWindow = 1000  // Longer window for double clap (1 second)
 }: DoubleClapOptions) => {
   const [isListening, setIsListening] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -42,9 +42,9 @@ export const useDoubleClap = ({
       const now = Date.now();
       const timeSinceLastClap = now - lastClapTimeRef.current;
 
-      console.log('👏 Clap detected! RMS:', rms.toFixed(3), 'Time since last:', timeSinceLastClap);
+      console.log('👏 Clap detected! RMS:', rms.toFixed(3), 'Threshold:', threshold, 'Time since last:', timeSinceLastClap);
 
-      if (timeSinceLastClap > 100 && timeSinceLastClap <= timeWindow) {
+      if (timeSinceLastClap > 150 && timeSinceLastClap <= timeWindow) {
         // Double clap detected!
         console.log('👏👏 DOUBLE CLAP DETECTED!');
         lastClapTimeRef.current = 0; // Reset to avoid triple claps
