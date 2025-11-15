@@ -263,14 +263,19 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       const pinky_mcp = landmarks[17];
       const wrist = landmarks[0];
       
-      // STRICT finger state detection - reduce false positives
-      const fingerTolerance = 0.04; // Stricter threshold
-      const thumbTolerance = 0.05; // Stricter for thumb
+      // ULTRA STRICT finger state detection - eliminate false positives
+      const fingerTolerance = 0.06; // Much stricter threshold
+      const thumbTolerance = 0.08; // Very strict for thumb to avoid confusion
       
-      // For thumb, check if tip is SIGNIFICANTLY higher than both IP and MCP joints
+      // For thumb UP: tip must be SIGNIFICANTLY higher than IP, MCP, AND wrist
+      // Also check horizontal position to ensure it's extended outward
       const thumb_up = thumb_tip.y < (thumb_ip.y - thumbTolerance) && 
                        thumb_tip.y < (thumb_mcp.y - thumbTolerance) &&
-                       thumb_tip.y < wrist.y; // Thumb must be above wrist
+                       thumb_tip.y < (wrist.y - 0.05) && // Thumb must be well above wrist
+                       Math.abs(thumb_tip.x - wrist.x) > 0.08; // Thumb must be extended sideways
+      
+      // For thumb DOWN (fist): tip must be clearly BELOW or at wrist level
+      const thumb_down = thumb_tip.y > (wrist.y - 0.02); // Thumb at or below wrist level
       
       // For other fingers, check tip vs PIP and MCP with strict thresholds
       const index_up = index_tip.y < (index_pip.y - fingerTolerance) && 
@@ -296,31 +301,49 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         fingersDown
       });
       
-      // ONLY 4 gestures with STRICT detection to avoid confusion
+      // ONLY 4 gestures with ULTRA STRICT detection to eliminate confusion
       
-      // ✊ Fist - ALL fingers clearly down including thumb (PLAY/PAUSE)
-      // Check this FIRST to prevent confusion with thumbs_up
-      if (!thumb_up && !index_up && !middle_up && !ring_up && !pinky_up) {
-        // Extra check: all fingertips should be close to palm/wrist level
-        const allFingersClosed = index_tip.y > index_mcp.y && 
-                                 middle_tip.y > middle_mcp.y &&
-                                 ring_tip.y > ring_mcp.y;
-        if (allFingersClosed) {
-          console.log('✊ CONFIRMED: FIST (all closed, verified) - Play/Pause ONLY');
+      // ✊ Fist - ALL fingers clearly down including thumb tucked (PLAY/PAUSE)
+      // Check thumb_down explicitly to ensure thumb is NOT extended
+      if (thumb_down && !index_up && !middle_up && !ring_up && !pinky_up) {
+        // Triple verification for fist:
+        // 1. All fingertips below their MCP joints
+        // 2. Thumb is at/below wrist level
+        // 3. All fingers are curled inward
+        const allFingersCurled = index_tip.y > (index_mcp.y - 0.02) && 
+                                  middle_tip.y > (middle_mcp.y - 0.02) &&
+                                  ring_tip.y > (ring_mcp.y - 0.02) &&
+                                  pinky_tip.y > (pinky_mcp.y - 0.02);
+        
+        // Ensure thumb is NOT extended upward (key difference from thumbs_up)
+        const thumbNotExtended = thumb_tip.y >= thumb_mcp.y - 0.03;
+        
+        if (allFingersCurled && thumbNotExtended) {
+          console.log('✊ CONFIRMED: FIST (all closed, thumb tucked, verified) - Play/Pause');
           return 'fist';
         }
       }
       
       // 👍 Thumbs Up - ONLY thumb up, ALL others clearly down (VOICE CONTROL)
-      // Most distinct gesture - thumb must be clearly extended alone
+      // This is checked AFTER fist to ensure fist takes priority when thumb is not clearly extended
       if (thumb_up && !index_up && !middle_up && !ring_up && !pinky_up) {
-        // Extra verification: thumb tip must be significantly higher than all other fingertips
-        const thumbHigherThanOthers = thumb_tip.y < index_tip.y - 0.08 && 
-                                       thumb_tip.y < middle_tip.y - 0.08 &&
-                                       thumb_tip.y < ring_tip.y - 0.08 &&
-                                       thumb_tip.x > wrist.x - 0.1; // Thumb should be to the side
-        if (thumbHigherThanOthers) {
-          console.log('👍 CONFIRMED: THUMBS UP (thumb only, verified distinct) - Voice Control ONLY');
+        // Triple verification for thumbs_up:
+        // 1. Thumb tip significantly higher than all other fingertips (0.1+ difference)
+        // 2. Thumb extended sideways from wrist
+        // 3. All other fingers clearly closed
+        const thumbMuchHigher = thumb_tip.y < (index_tip.y - 0.1) && 
+                                 thumb_tip.y < (middle_tip.y - 0.1) &&
+                                 thumb_tip.y < (ring_tip.y - 0.1) &&
+                                 thumb_tip.y < (pinky_tip.y - 0.1);
+        
+        const thumbExtendedSideways = Math.abs(thumb_tip.x - wrist.x) > 0.1;
+        
+        const otherFingersClosed = index_tip.y > index_mcp.y &&
+                                    middle_tip.y > middle_mcp.y &&
+                                    ring_tip.y > ring_mcp.y;
+        
+        if (thumbMuchHigher && thumbExtendedSideways && otherFingersClosed) {
+          console.log('👍 CONFIRMED: THUMBS UP (thumb clearly extended, all others closed) - Voice Control');
           return 'thumbs_up';
         }
       }
