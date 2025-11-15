@@ -298,28 +298,30 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       
       // ONLY 4 gestures with STRICT detection to avoid confusion
       
-      // 👍 Thumbs Up - ONLY thumb up, ALL others clearly down (VOICE CONTROL)
-      // Most distinct gesture - thumb must be clearly extended alone
-      if (thumb_up && !index_up && !middle_up && !ring_up && !pinky_up) {
-        // Extra check: thumb tip must be significantly higher than other fingertips
-        const thumbHigherThanOthers = thumb_tip.y < index_tip.y - 0.05 && 
-                                       thumb_tip.y < middle_tip.y - 0.05;
-        if (thumbHigherThanOthers) {
-          console.log('👍 CONFIRMED: THUMBS UP (thumb only, verified distinct) - Voice Control');
-          return 'thumbs_up';
-        }
-      }
-      
       // ✊ Fist - ALL fingers clearly down including thumb (PLAY/PAUSE)
-      // Most closed gesture - nothing should be extended
+      // Check this FIRST to prevent confusion with thumbs_up
       if (!thumb_up && !index_up && !middle_up && !ring_up && !pinky_up) {
         // Extra check: all fingertips should be close to palm/wrist level
         const allFingersClosed = index_tip.y > index_mcp.y && 
                                  middle_tip.y > middle_mcp.y &&
-                                 thumb_tip.y > thumb_mcp.y;
+                                 ring_tip.y > ring_mcp.y;
         if (allFingersClosed) {
-          console.log('✊ CONFIRMED: FIST (all closed, verified) - Play/Pause');
+          console.log('✊ CONFIRMED: FIST (all closed, verified) - Play/Pause ONLY');
           return 'fist';
+        }
+      }
+      
+      // 👍 Thumbs Up - ONLY thumb up, ALL others clearly down (VOICE CONTROL)
+      // Most distinct gesture - thumb must be clearly extended alone
+      if (thumb_up && !index_up && !middle_up && !ring_up && !pinky_up) {
+        // Extra verification: thumb tip must be significantly higher than all other fingertips
+        const thumbHigherThanOthers = thumb_tip.y < index_tip.y - 0.08 && 
+                                       thumb_tip.y < middle_tip.y - 0.08 &&
+                                       thumb_tip.y < ring_tip.y - 0.08 &&
+                                       thumb_tip.x > wrist.x - 0.1; // Thumb should be to the side
+        if (thumbHigherThanOthers) {
+          console.log('👍 CONFIRMED: THUMBS UP (thumb only, verified distinct) - Voice Control ONLY');
+          return 'thumbs_up';
         }
       }
       
