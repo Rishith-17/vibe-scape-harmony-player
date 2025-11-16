@@ -114,17 +114,23 @@ export class VoiceController {
    * Start listening with ASR (unified method for all triggers)
    */
   private async startListening(): Promise<void> {
+    console.log('[VoiceController] 🎤 startListening() called, current state:', this.state);
+    
     if (this.state === 'listening' || this.state === 'processing') {
       console.log('[VoiceController] ⚠️ Already listening or processing');
       return;
     }
 
+    console.log('[VoiceController] 🔄 Setting state to listening...');
     this.setState('listening');
+    
+    console.log('[VoiceController] 🔊 Playing earcon...');
     this.earconPlayer.play('listen');
     
     try {
+      console.log('[VoiceController] 🎤 Starting ASR engine...');
       await this.asrEngine.start();
-      console.log('[VoiceController] ✅ ASR started, listening for command...');
+      console.log('[VoiceController] ✅ ASR started successfully, listening for command...');
     } catch (error) {
       console.error('[VoiceController] ❌ Failed to start ASR:', error);
       this.setState('error');

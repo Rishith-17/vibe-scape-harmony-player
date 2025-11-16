@@ -124,12 +124,18 @@ const VoiceIntegration = () => {
     return null;
   }
 
-  const handleManualTrigger = () => {
+  const handleManualTrigger = async () => {
+    console.log('[App] 🎤 Mic button clicked!');
     if (voiceController) {
-      console.log('[App] Manual voice trigger');
-      voiceController.manualTrigger();
+      console.log('[App] ✅ Voice controller exists, calling manualTrigger()');
+      try {
+        await voiceController.manualTrigger();
+        console.log('[App] ✅ manualTrigger() completed successfully');
+      } catch (error) {
+        console.error('[App] ❌ manualTrigger() failed:', error);
+      }
     } else {
-      console.warn('[App] Voice controller not ready yet');
+      console.error('[App] ❌ Voice controller is NULL - not initialized!');
     }
   };
 

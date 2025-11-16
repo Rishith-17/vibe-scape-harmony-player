@@ -45,15 +45,21 @@ export class WebSpeechAsr implements AsrEngine {
   }
 
   async start(): Promise<void> {
-    if (this.isListening) return;
+    if (this.isListening) {
+      console.warn('[WebSpeechAsr] ⚠️ Already listening, stopping first...');
+      await this.stop();
+      // Small delay to ensure cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
 
     try {
-      console.log('[WebSpeechAsr] Starting speech recognition...');
+      console.log('[WebSpeechAsr] 🎤 Starting speech recognition...');
       this.recognition.start();
       this.isListening = true;
-      console.log('[WebSpeechAsr] Speech recognition started successfully');
+      console.log('[WebSpeechAsr] ✅ Speech recognition started successfully');
     } catch (error) {
-      console.error('[WebSpeechAsr] Failed to start:', error);
+      console.error('[WebSpeechAsr] ❌ Failed to start:', error);
+      this.isListening = false;
       throw new Error(`Failed to start speech recognition: ${error}`);
     }
   }

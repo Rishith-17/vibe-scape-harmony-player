@@ -42,9 +42,13 @@ export class PorcupineWebEngine implements WakeWordEngine {
       console.log('[PorcupineWebEngine] Microphone permission granted');
 
       // Initialize Porcupine with the custom "Hello Vibe" model
+      // Use base path with origin for proper model loading
+      const modelPath = `${window.location.origin}/models/Hello-vibe_en_wasm_v3_0_0.ppn`;
+      console.log('[PorcupineWebEngine] Loading model from:', modelPath);
+      
       this.porcupine = await PorcupineWorker.create(
         accessKey,
-        [{ publicPath: '/models/Hello-vibe_en_wasm_v3_0_0.ppn', label: 'Hello Vibe', sensitivity: this.sensitivity }],
+        [{ publicPath: modelPath, label: 'Hello Vibe', sensitivity: this.sensitivity }],
         (detection) => {
           if (detection.label === 'Hello Vibe' && this.detectionCallback) {
             console.log('[PorcupineWebEngine] 🎤 Wake word "Hello Vibe" detected!');
