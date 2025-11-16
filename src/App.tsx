@@ -52,10 +52,9 @@ const VoiceIntegration = () => {
       return;
     }
 
-    // Request microphone permissions early
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(() => console.log('[App] Microphone permission granted'))
-      .catch(err => console.warn('[App] Microphone permission denied:', err));
+    // NOTE: Do NOT request microphone permission here!
+    // Permission is ONLY requested through voiceController.armMic() when user taps mic button
+    // This ensures single shared mic instance and privacy-first design
 
     // Lazy load voice controller
     let controller: any = null;
@@ -139,51 +138,62 @@ const VoiceIntegration = () => {
     }
   };
 
-  // Listen for gesture/clap voice trigger events
-  React.useEffect(() => {
-    const handleGestureTrigger = async (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const source = customEvent.detail?.source || 'unknown';
-      console.log('[App] 🤙 Voice triggered by:', source);
-      
-      // Wait for voiceController if not ready (max 2 seconds)
-      if (!voiceController) {
-        console.warn('[App] ⚠️ Voice controller not ready, waiting...');
-        let attempts = 0;
-        const maxAttempts = 20; // 20 * 100ms = 2 seconds
-        
-        while (!voiceController && attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          attempts++;
-        }
+    // Listen for gesture/clap voice trigger events
+    React.useEffect(() => {
+      const handleGestureTrigger = async (event: Event) => {
+        const customEvent = event as CustomEvent;
+        const source = customEvent.detail?.source || 'unknown';
+        console.log('[App] 🤙 Voice triggered by:', source);
         
         if (!voiceController) {
-          console.error('[App] ❌ Voice controller failed to initialize');
+          console.error('[App] ❌ Voice controller not initialized');
           return;
         }
-      }
+        
+        // Check if mic is armed - if not, gesture should arm it first
+        if (!voiceController.isMicArmed()) {
+          console.log('[App] 🔓 Gesture trigger - arming mic first...');
+          try {
+            await voiceController.armMic();
+            console.log('[App] ✅ Mic armed by gesture, now starting listening...');
+          } catch (error) {
+            console.error('[App] ❌ Failed to arm mic from gesture:', error);
+            return;
+          }
+        }
+        
+        try {
+          console.log('[App] ✅ Calling voiceController.startListeningFromArmedMic() with source: gesture');
+          await voiceController.startListeningFromArmedMic('gesture');
+          console.log('[App] ✅ Voice ASR started successfully from gesture');
+          console.log('[App] 🔍 ASR Instance ID:', voiceController.getAsrInstanceId());
+        } catch (error) {
+          console.error('[App] ❌ Failed to start voice ASR from gesture:', error);
+        }
+      };
+
+      window.addEventListener('vibescape:trigger-voice', handleGestureTrigger);
+      console.log('[App] 🎤 Event listener registered for vibescape:trigger-voice');
       
-      try {
-        console.log('[App] ✅ Calling voiceController.manualTrigger() - SAME as Tap-Mic');
-        await voiceController.manualTrigger();
-        console.log('[App] ✅ Voice ASR started successfully');
-      } catch (error) {
-        console.error('[App] ❌ Failed to start voice ASR:', error);
-      }
-    };
+      return () => {
+        window.removeEventListener('vibescape:trigger-voice', handleGestureTrigger);
+      };
+    }, [voiceController]);
 
-    window.addEventListener('vibescape:trigger-voice', handleGestureTrigger);
-    console.log('[App] 🎤 Event listener registered for vibescape:trigger-voice');
-    
-    return () => {
-      window.removeEventListener('vibescape:trigger-voice', handleGestureTrigger);
-    };
-  }, [voiceController]);
-
-  return <VoiceChipLazy state={voiceState} onManualTrigger={handleManualTrigger} />;
+  return (
+    <VoiceChipLazy 
+      state={voiceState} 
+      onManualTrigger={handleManualTrigger}
+      voiceController={voiceController}
+    />
+  );
 };
 
-const VoiceChipLazy = ({ state, onManualTrigger }: { state: any; onManualTrigger?: () => void }) => {
+const VoiceChipLazy = ({ state, onManualTrigger, voiceController }: { 
+  state: any; 
+  onManualTrigger?: () => void;
+  voiceController?: any;
+}) => {
   const [VoiceChipComponent, setVoiceChipComponent] = React.useState<any>(null);
 
   React.useEffect(() => {
@@ -194,7 +204,16 @@ const VoiceChipLazy = ({ state, onManualTrigger }: { state: any; onManualTrigger
 
   if (!VoiceChipComponent) return null;
 
-  return <VoiceChipComponent state={state} onManualTrigger={onManualTrigger} />;
+  return (
+    <VoiceChipComponent 
+      state={state} 
+      onManualTrigger={onManualTrigger}
+      debugInfo={{
+        asrInstanceId: voiceController?.getAsrInstanceId() || null,
+        isMicArmed: voiceController?.isMicArmed() || false
+      }}
+    />
+  );
 };
 
 const AppContent = () => {

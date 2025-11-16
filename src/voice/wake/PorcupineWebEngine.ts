@@ -47,17 +47,29 @@ export class PorcupineWebEngine implements WakeWordEngine {
       console.debug('[PorcupineWebEngine] 💡 This is separate from the shared ASR mic instance');
 
       // Initialize Porcupine with the custom "Hello Vibe" model
-      // Use base path with origin for proper model loading
-      const modelPath = `${window.location.origin}/models/Hello-vibe_en_wasm_v3_0_0.ppn`;
+      // Use relative path for proper model loading (Vite handles public folder)
+      const modelPath = '/models/Hello-vibe_en_wasm_v3_0_0.ppn';
       console.debug('[PorcupineWebEngine] Loading model from:', modelPath);
       
       this.porcupine = await PorcupineWorker.create(
         accessKey,
-        [{ publicPath: modelPath, label: 'Hello Vibe', sensitivity: this.sensitivity }],
+        [{ 
+          publicPath: modelPath,
+          forceWrite: true, // Force model to be written to IndexedDB
+          label: 'Hello Vibe', 
+          sensitivity: this.sensitivity 
+        }],
         (detection) => {
           if (detection.label === 'Hello Vibe' && this.detectionCallback) {
             console.debug('[PorcupineWebEngine] 🎤 Wake word "Hello Vibe" detected!');
             console.debug('[PorcupineWebEngine] 🔔 Signaling voice controller (NO new mic created)');
+            
+            // Check if mic is armed before triggering
+            if (this.voiceController && !this.voiceController.isMicArmed()) {
+              console.warn('[PorcupineWebEngine] ⚠️ Wake word detected but mic not armed');
+              console.warn('[PorcupineWebEngine] 💡 User must tap mic button first to grant permission');
+              return;
+            }
             
             // CRITICAL: Only signal the controller - do NOT create mic resources here
             // The controller will check if mic is armed before starting ASR

@@ -265,7 +265,7 @@ export class VoiceController {
     }
 
     console.debug('[VoiceController] ✅ Mic armed, starting shared ASR instance:', ASR_INSTANCE_ID);
-    await this.startListeningFromArmedMic();
+    await this.startListeningFromArmedMic('wake');
   }
 
   /**
@@ -278,17 +278,20 @@ export class VoiceController {
    * 
    * CRITICAL: This method NEVER calls getUserMedia() or creates new SpeechRecognition
    * It only starts the already-created shared ASR instance
+   * 
+   * @param source - Optional source identifier for debugging ('tap'|'wake'|'gesture')
    */
-  async startListeningFromArmedMic(): Promise<void> {
+  async startListeningFromArmedMic(source: string = 'unknown'): Promise<void> {
     const now = Date.now();
     
-    console.debug('[VoiceController] 🎤 startListeningFromArmedMic() called');
+    console.debug('[VoiceController] 🎤 startListeningFromArmedMic() called from:', source);
     console.debug('[VoiceController] 📊 State:', {
       currentState: this.state,
       isArmed: isAsrArmed,
       isListening,
       instanceId: ASR_INSTANCE_ID,
-      timeSinceLastStart: now - lastStartTimestamp
+      timeSinceLastStart: now - lastStartTimestamp,
+      source
     });
 
     // Guard: Mic must be armed first
@@ -605,18 +608,17 @@ export class VoiceController {
    * Arms mic on first call, then starts listening on subsequent calls
    */
   async manualTrigger(): Promise<void> {
-    console.debug('[VoiceController] 🎤 Manual trigger (Tap-Mic button) - ASR_ID:', ASR_INSTANCE_ID);
+    console.debug('[VoiceController] 🎤 Manual trigger (Tap-Mic) - ASR_ID:', ASR_INSTANCE_ID);
     
     // Arm mic if not already armed (first tap)
     if (!this.isMicArmed()) {
       console.debug('[VoiceController] 🔓 First tap - arming mic and requesting permission...');
       await this.armMic();
-      console.debug('[VoiceController] ✅ Mic armed, ready for voice input');
+      console.debug('[VoiceController] ✅ Mic armed - now starting listening...');
     }
     
-    // Start listening using shared instance
-    console.debug('[VoiceController] 🎤 Starting listening via shared ASR instance');
-    await this.startListeningFromArmedMic();
+    // Start listening using the shared ASR instance
+    await this.startListeningFromArmedMic('tap');
   }
 
   /**
