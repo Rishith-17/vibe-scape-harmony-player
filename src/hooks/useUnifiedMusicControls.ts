@@ -105,14 +105,16 @@ export const useUnifiedMusicControls = () => {
 
     // Execute the command - EXACT 4-gesture mapping
     switch (command.toLowerCase()) {
-      case 'open_hand':
-        // 🖐️ Open Hand → Activate THE SAME mic instance as Tap-Mic button
-        console.log('🖐️ [GESTURE] Open hand detected - triggering voiceController.manualTrigger()');
-        console.log('🖐️ [GESTURE] Instance ID: SAME voiceController as Tap-Mic button');
+      case 'thumbs_up':
+        // 👍 Thumbs Up → Activate THE SAME mic instance as Tap-Mic button
+        console.log('👍 [GESTURE] Thumbs up detected - triggering VoiceController');
+        console.log('👍 [GESTURE] Dispatching vibescape:trigger-voice event');
+        console.log('👍 [GESTURE] This will call VoiceController.startListeningFromArmedMic("gesture")');
+        console.log('👍 [GESTURE] Using SAME shared ASR instance as Tap-Mic and Wake-word');
         
-        // Dispatch event that App.tsx listens for to trigger voiceController.manualTrigger()
+        // Dispatch event that App.tsx listens for to trigger VoiceController.startListeningFromArmedMic('gesture')
         const voiceEvent = new CustomEvent('vibescape:trigger-voice', {
-          detail: { source: 'open_hand_gesture' }
+          detail: { source: 'thumbs_up_gesture' }
         });
         window.dispatchEvent(voiceEvent);
         console.log('🤚 [GESTURE] Event dispatched - VoiceChip will show listening overlay');
