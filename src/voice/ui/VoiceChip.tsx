@@ -8,10 +8,16 @@ interface VoiceChipProps {
   state: VoiceState;
   onClick?: () => void;
   onManualTrigger?: () => void;
+  // Debug info for development
+  debugInfo?: {
+    asrInstanceId: string | null;
+    isMicArmed: boolean;
+  };
 }
 
-export const VoiceChip: React.FC<VoiceChipProps> = ({ state, onClick, onManualTrigger }) => {
+export const VoiceChip: React.FC<VoiceChipProps> = ({ state, onClick, onManualTrigger, debugInfo }) => {
   const isMobile = useIsMobile();
+  const isDev = import.meta.env.DEV;
 
   const getIcon = () => {
     switch (state) {
@@ -83,21 +89,34 @@ export const VoiceChip: React.FC<VoiceChipProps> = ({ state, onClick, onManualTr
   };
 
   return (
-    <button
-      onClick={handleClick}
-      className={cn(
-        'fixed bottom-24 right-4 z-50',
-        'flex items-center gap-2 px-5 py-3 rounded-full',
-        'text-white text-sm font-medium',
-        'shadow-lg transition-all duration-200',
-        'hover:scale-105 active:scale-95',
-        isMobile && 'px-6 py-4 text-base shadow-xl',
-        getColor()
+    <>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'fixed bottom-24 right-4 z-50',
+          'flex items-center gap-2 px-5 py-3 rounded-full',
+          'text-white text-sm font-medium',
+          'shadow-lg transition-all duration-200',
+          'hover:scale-105 active:scale-95',
+          isMobile && 'px-6 py-4 text-base shadow-xl',
+          getColor()
+        )}
+        aria-label={getText()}
+      >
+        {getIcon()}
+        <span className="font-semibold">{getText()}</span>
+      </button>
+      
+      {/* Development Debug Info */}
+      {isDev && debugInfo && (
+        <div className="fixed bottom-40 right-4 z-50 bg-black/80 text-white text-xs p-2 rounded-lg font-mono max-w-[200px]">
+          <div className="font-bold mb-1">🔧 Debug Info</div>
+          <div>Armed: {debugInfo.isMicArmed ? '✅' : '❌'}</div>
+          <div className="truncate" title={debugInfo.asrInstanceId || 'null'}>
+            ASR: {debugInfo.asrInstanceId?.slice(0, 15) || 'null'}...
+          </div>
+        </div>
       )}
-      aria-label={getText()}
-    >
-      {getIcon()}
-      <span className="font-semibold">{getText()}</span>
-    </button>
+    </>
   );
 };
