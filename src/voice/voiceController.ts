@@ -106,15 +106,31 @@ export class VoiceController {
   }
 
   private async onWakeDetected(): Promise<void> {
-    console.log('[VoiceController] 🎤 Wake word detected - dispatching to unified system');
+    console.log('[VoiceController] 🎤 Wake word detected - starting ASR directly');
+    await this.startListening();
+  }
+
+  /**
+   * Start listening with ASR (unified method for all triggers)
+   */
+  private async startListening(): Promise<void> {
+    if (this.state === 'listening' || this.state === 'processing') {
+      console.log('[VoiceController] ⚠️ Already listening or processing');
+      return;
+    }
+
+    this.setState('listening');
+    this.earconPlayer.play('listen');
     
-    // Dispatch the same event that tap-mic and thumbs_up gesture use
-    // This ensures we use the SAME mic instance and UI flow
-    const voiceEvent = new CustomEvent('vibescape:trigger-voice', {
-      detail: { source: 'wake_word_detection' }
-    });
-    window.dispatchEvent(voiceEvent);
-    console.log('[VoiceController] 🎤 Event dispatched - unified voice control will handle');
+    try {
+      await this.asrEngine.start();
+      console.log('[VoiceController] ✅ ASR started, listening for command...');
+    } catch (error) {
+      console.error('[VoiceController] ❌ Failed to start ASR:', error);
+      this.setState('error');
+      this.earconPlayer.play('error');
+      setTimeout(() => this.reset(), 2000);
+    }
   }
 
   private async processTranscript(transcript: string): Promise<void> {
@@ -368,7 +384,7 @@ export class VoiceController {
   // Manual trigger for mobile/push-to-talk
   async manualTrigger(): Promise<void> {
     console.log('[VoiceController] 🎤 Manual voice trigger - tap to speak');
-    await this.onWakeDetected();
+    await this.startListening();
   }
 
   /**
@@ -376,13 +392,8 @@ export class VoiceController {
    * This reuses the same microphone/ASR instance as Tap-Mic
    */
   async startListeningFromArmedMic(): Promise<void> {
-    if (this.state === 'listening' || this.state === 'processing') {
-      console.log('[VoiceController] ⚠️ Already listening or processing');
-      return;
-    }
-
     console.log('[VoiceController] 🎤 Gesture-triggered voice control - reusing same mic instance');
-    await this.onWakeDetected();
+    await this.startListening();
   }
 
   /**
