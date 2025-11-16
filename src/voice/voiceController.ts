@@ -8,140 +8,343 @@ import { runCommand } from './commandRunner';
 import { setPlayerReady, whenReady } from './playerGate';
 
 /**
+ * SINGLETON Voice Controller - Single Shared Microphone/ASR Instance
+ * 
+ * All activation paths (Tap-Mic, Wake-word, Gesture) reuse the SAME mic/ASR instance.
+ * No duplicate audio streams, overlays, or permission requests.
+ * 
+ * Principles:
+ * - One mic/ASR instance only (singleton pattern)
+ * - Wake and gesture ONLY signal this controller - they never create mic resources
+ * - armMic() is the ONLY place where getUserMedia() may be called
+ * - All activations produce identical behavior and UI state
+ */
+
+// Module-level singleton state - ensures single shared instance across all imports
+let sharedMediaStream: MediaStream | null = null;
+let sharedAsrEngine: WebSpeechAsr | null = null;
+let sharedTtsEngine: TtsEngine | null = null;
+let sharedEarconPlayer: EarconPlayer | null = null;
+let sharedWakeEngine: PorcupineWebEngine | null = null;
+let isAsrArmed = false;
+let isListening = false;
+let lastStartTimestamp = 0;
+const DUPLICATE_SUPPRESSION_MS = 300;
+
+// Stable instance ID for verification - generated once when first armed
+let ASR_INSTANCE_ID: string | null = null;
+
+/**
  * Main voice controller - orchestrates wake → ASR → NLU → action flow
- * Isolated from app internals via controller adapters
+ * Now implements singleton pattern with shared resources
  */
 export class VoiceController {
   private state: VoiceState = 'idle';
-  private wakeEngine: PorcupineWebEngine;
-  private asrEngine: WebSpeechAsr;
-  private ttsEngine: TtsEngine;
-  private earconPlayer: EarconPlayer;
   private stateChangeCallback: ((state: VoiceState) => void) | null = null;
-  private wakeEnabled = true; // Can be toggled via settings
+  private wakeEnabled = true;
+  private musicController: MusicController;
+  private navController: NavControllerAdapter;
+  private config: {
+    language: string;
+    wakeSensitivity: number;
+    ttsEnabled: boolean;
+    wakeEnabled?: boolean;
+  };
 
   constructor(
-    private musicController: MusicController,
-    private navController: NavControllerAdapter,
-    private config: {
+    musicController: MusicController,
+    navController: NavControllerAdapter,
+    config: {
       language: string;
       wakeSensitivity: number;
       ttsEnabled: boolean;
       wakeEnabled?: boolean;
     }
   ) {
-    this.wakeEngine = new PorcupineWebEngine();
-    this.asrEngine = new WebSpeechAsr(config.language);
-    this.ttsEngine = new TtsEngine();
-    this.earconPlayer = new EarconPlayer();
+    this.musicController = musicController;
+    this.navController = navController;
+    this.config = config;
     this.wakeEnabled = config.wakeEnabled !== false;
 
+    // Initialize shared resources if not already created
+    this.initializeSharedResources();
+  }
+
+  /**
+   * Initialize shared resources (singleton pattern)
+   * Called once by the first VoiceController instance
+   */
+  private initializeSharedResources(): void {
+    if (!sharedTtsEngine) {
+      sharedTtsEngine = new TtsEngine();
+      console.debug('[VoiceController] 🔊 Created shared TTS engine');
+    }
+
+    if (!sharedEarconPlayer) {
+      sharedEarconPlayer = new EarconPlayer();
+      console.debug('[VoiceController] 🔔 Created shared Earcon player');
+    }
+
+    if (!sharedWakeEngine) {
+      sharedWakeEngine = new PorcupineWebEngine(this);
+      console.debug('[VoiceController] 🎯 Created shared Wake engine');
+    }
+
+    // Setup engine callbacks
     this.setupEngines();
   }
 
+  /**
+   * Setup engine callbacks - called during initialization
+   */
   private setupEngines(): void {
-    // Wake word detection
-    this.wakeEngine.onDetection(() => {
-      console.log('[VoiceController] Wake word detected');
-      this.onWakeDetected();
-    });
-    this.wakeEngine.setSensitivity(this.config.wakeSensitivity);
+    // Wake word detection callback
+    if (sharedWakeEngine) {
+      sharedWakeEngine.onDetection(() => {
+        console.debug('[VoiceController] 🎤 Wake word "Hello Vibe" detected');
+        this.onWakeDetected();
+      });
+      sharedWakeEngine.setSensitivity(this.config.wakeSensitivity);
+    }
 
-    // ASR callbacks
-    this.asrEngine.onResult((transcript, isFinal) => {
+    // ASR callbacks will be set when ASR is armed
+  }
+
+  /**
+   * Setup ASR callbacks after arming
+   */
+  private setupAsrCallbacks(): void {
+    if (!sharedAsrEngine) return;
+
+    sharedAsrEngine.onResult((transcript, isFinal) => {
       if (isFinal) {
-        console.log('[VoiceController] Final transcript:', transcript);
+        console.debug('[VoiceController] Final transcript:', transcript);
         this.processTranscript(transcript);
       }
     });
 
-    this.asrEngine.onError((error) => {
-      console.error('[VoiceController] ASR error:', error);
+    sharedAsrEngine.onError((error) => {
+      console.error('[VoiceController] ❌ ASR error:', error);
       this.setState('error');
-      this.earconPlayer.play('error');
+      if (sharedEarconPlayer) {
+        sharedEarconPlayer.play('error');
+      }
       setTimeout(() => this.reset(), 2000);
     });
   }
 
   async initialize(): Promise<void> {
-    await this.earconPlayer.initialize();
-    console.log('[VoiceController] Initialized');
+    if (sharedEarconPlayer) {
+      await sharedEarconPlayer.initialize();
+    }
+    console.debug('[VoiceController] ✅ Initialized');
     
     // Mark player as ready
     setPlayerReady(true);
     
     // Log current configuration
-    console.log('[VoiceController] Config:', {
+    console.debug('[VoiceController] Config:', {
       language: this.config.language,
       wakeSensitivity: this.config.wakeSensitivity,
       ttsEnabled: this.config.ttsEnabled,
-      wakeEnabled: this.wakeEnabled
+      wakeEnabled: this.wakeEnabled,
+      asrArmed: isAsrArmed,
+      instanceId: ASR_INSTANCE_ID
     });
+  }
+
+  /**
+   * PUBLIC API: Check if microphone has been armed by user
+   * Returns true if user has granted permission and ASR instance is created
+   */
+  isMicArmed(): boolean {
+    return isAsrArmed && sharedAsrEngine !== null;
+  }
+
+  /**
+   * PUBLIC API: Get stable ASR instance ID for verification
+   * Returns the same ID across all activation paths if using shared instance
+   */
+  getAsrInstanceId(): string | null {
+    return ASR_INSTANCE_ID;
+  }
+
+  /**
+   * PUBLIC API: Arm microphone - requests permission and creates shared ASR instance
+   * This is the ONLY place where getUserMedia() may be called
+   * Called by Tap-Mic on first user interaction
+   */
+  async armMic(): Promise<void> {
+    // Already armed - reuse existing instance
+    if (isAsrArmed && sharedAsrEngine) {
+      console.debug('[VoiceController] ✅ Mic already armed, reusing instance', ASR_INSTANCE_ID);
+      return;
+    }
+
+    try {
+      console.debug('[VoiceController] 🎤 Arming mic - requesting permission...');
+      
+      // THIS IS THE ONLY getUserMedia() CALL IN THE ENTIRE VOICE SYSTEM
+      sharedMediaStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      
+      console.debug('[VoiceController] ✅ Microphone permission granted');
+
+      // Create shared ASR instance (singleton)
+      if (!sharedAsrEngine) {
+        sharedAsrEngine = new WebSpeechAsr(this.config.language);
+        
+        // Generate stable instance ID for verification
+        ASR_INSTANCE_ID = `ASR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        console.debug('[VoiceController] 🎤 Created shared ASR instance:', ASR_INSTANCE_ID);
+        
+        // Setup callbacks
+        this.setupAsrCallbacks();
+      }
+
+      isAsrArmed = true;
+      console.debug('[VoiceController] ✅ Mic armed successfully - ready for all activation paths');
+      
+    } catch (error) {
+      console.error('[VoiceController] ❌ Failed to arm mic:', error);
+      isAsrArmed = false;
+      throw error;
+    }
   }
 
   async start(): Promise<void> {
     try {
       // Start wake word detection only if enabled
-      if (this.wakeEnabled) {
-        await this.wakeEngine.start();
-        console.log('[VoiceController] ✅ Voice control ready');
-        console.log('[VoiceController] 🎤 Say "Hello Vibe" or tap microphone button');
+      if (this.wakeEnabled && sharedWakeEngine) {
+        await sharedWakeEngine.start();
+        console.debug('[VoiceController] ✅ Voice control ready');
+        console.debug('[VoiceController] 🎤 Say "Hello Vibe" or tap microphone button');
       } else {
-        console.log('[VoiceController] ✅ Voice control ready (Tap Mic only)');
+        console.debug('[VoiceController] ✅ Voice control ready (Tap Mic only)');
       }
       this.setState('idle');
     } catch (error) {
-      console.error('[VoiceController] Failed to start wake word:', error);
-      console.log('[VoiceController] ✅ Falling back to Tap Mic only');
+      console.error('[VoiceController] ❌ Failed to start wake word:', error);
+      console.debug('[VoiceController] ✅ Falling back to Tap Mic only');
       this.setState('idle'); // Still allow manual trigger
     }
   }
 
   async stop(): Promise<void> {
-    await this.wakeEngine.stop();
-    await this.asrEngine.stop();
-    this.ttsEngine.cancel();
+    if (sharedWakeEngine) {
+      await sharedWakeEngine.stop();
+    }
+    if (sharedAsrEngine && isListening) {
+      await sharedAsrEngine.stop();
+      isListening = false;
+    }
+    if (sharedTtsEngine) {
+      sharedTtsEngine.cancel();
+    }
     this.setState('idle');
-    console.log('[VoiceController] Stopped');
-  }
-
-  private async onWakeDetected(): Promise<void> {
-    console.log('[VoiceController] 🎤 Wake word detected - starting ASR directly');
-    await this.startListening();
+    console.debug('[VoiceController] Stopped');
   }
 
   /**
-   * Start listening with ASR (unified method for all triggers)
+   * Wake word detection callback - reuses shared ASR instance
    */
-  private async startListening(): Promise<void> {
-    console.log('[VoiceController] 🎤 startListening() called, current state:', this.state);
+  private async onWakeDetected(): Promise<void> {
+    console.debug('[VoiceController] 🎤 Wake word "Hello Vibe" detected');
     
-    if (this.state === 'listening' || this.state === 'processing') {
-      console.log('[VoiceController] ⚠️ Already listening or processing');
+    // Check if mic is armed before starting
+    if (!this.isMicArmed()) {
+      console.warn('[VoiceController] ⚠️ Wake word detected but mic not armed - ignoring');
+      console.warn('[VoiceController] 💡 User must tap mic button first to grant permission');
       return;
     }
 
-    console.log('[VoiceController] 🔄 Setting state to listening...');
-    this.setState('listening');
+    console.debug('[VoiceController] ✅ Mic armed, starting shared ASR instance:', ASR_INSTANCE_ID);
+    await this.startListeningFromArmedMic();
+  }
+
+  /**
+   * PUBLIC API: Start listening using the already-armed shared ASR instance
+   * 
+   * This is called by:
+   * - Tap-Mic button (after armMic())
+   * - Wake word detection (Porcupine)
+   * - Gesture control (open_hand)
+   * 
+   * CRITICAL: This method NEVER calls getUserMedia() or creates new SpeechRecognition
+   * It only starts the already-created shared ASR instance
+   */
+  async startListeningFromArmedMic(): Promise<void> {
+    const now = Date.now();
     
-    console.log('[VoiceController] 🔊 Playing earcon...');
-    this.earconPlayer.play('listen');
+    console.debug('[VoiceController] 🎤 startListeningFromArmedMic() called');
+    console.debug('[VoiceController] 📊 State:', {
+      currentState: this.state,
+      isArmed: isAsrArmed,
+      isListening,
+      instanceId: ASR_INSTANCE_ID,
+      timeSinceLastStart: now - lastStartTimestamp
+    });
+
+    // Guard: Mic must be armed first
+    if (!isAsrArmed || !sharedAsrEngine) {
+      console.error('[VoiceController] ❌ Cannot start listening - mic not armed!');
+      console.error('[VoiceController] 💡 Call armMic() first (via Tap-Mic button)');
+      return;
+    }
+
+    // Guard: Already listening or processing
+    if (this.state === 'listening' || this.state === 'processing') {
+      console.debug('[VoiceController] ⚠️ Already listening or processing - ignoring duplicate call');
+      return;
+    }
+
+    // Guard: Prevent rapid duplicate calls (debounce within 300ms)
+    if (now - lastStartTimestamp < DUPLICATE_SUPPRESSION_MS) {
+      console.debug('[VoiceController] ⚠️ Duplicate call suppressed (within 300ms window)');
+      return;
+    }
+
+    // Update timestamp
+    lastStartTimestamp = now;
+
+    console.debug('[VoiceController] ✅ All guards passed - starting shared ASR instance:', ASR_INSTANCE_ID);
+    console.debug('[VoiceController] 🔄 Setting state to listening...');
+    this.setState('listening');
+    isListening = true;
+    
+    // Play audio feedback
+    if (sharedEarconPlayer) {
+      console.debug('[VoiceController] 🔊 Playing earcon...');
+      sharedEarconPlayer.play('listen');
+    }
     
     try {
-      console.log('[VoiceController] 🎤 Starting ASR engine...');
-      await this.asrEngine.start();
-      console.log('[VoiceController] ✅ ASR started successfully, listening for command...');
+      console.debug('[VoiceController] 🎤 Starting shared ASR engine...', ASR_INSTANCE_ID);
+      await sharedAsrEngine.start();
+      console.debug('[VoiceController] ✅ ASR started successfully - listening for command');
     } catch (error) {
       console.error('[VoiceController] ❌ Failed to start ASR:', error);
       this.setState('error');
-      this.earconPlayer.play('error');
+      isListening = false;
+      if (sharedEarconPlayer) {
+        sharedEarconPlayer.play('error');
+      }
       setTimeout(() => this.reset(), 2000);
     }
   }
 
   private async processTranscript(transcript: string): Promise<void> {
     this.setState('processing');
-    await this.asrEngine.stop();
+    if (sharedAsrEngine) {
+      await sharedAsrEngine.stop();
+      isListening = false;
+    }
 
     try {
       const intent = parseIntent(transcript);
@@ -149,17 +352,23 @@ export class VoiceController {
 
       if (intent.confidence < 0.5) {
         await this.speak("Sorry, I didn't understand that.");
-        this.earconPlayer.play('error');
+        if (sharedEarconPlayer) {
+          sharedEarconPlayer.play('error');
+        }
         this.reset();
         return;
       }
 
       await this.executeIntent(intent);
-      this.earconPlayer.play('success');
+      if (sharedEarconPlayer) {
+        sharedEarconPlayer.play('success');
+      }
     } catch (error) {
       console.error('[VoiceController] Error processing command:', error);
       await this.speak('Sorry, something went wrong.');
-      this.earconPlayer.play('error');
+      if (sharedEarconPlayer) {
+        sharedEarconPlayer.play('error');
+      }
     }
 
     this.reset();
@@ -334,11 +543,11 @@ export class VoiceController {
   }
 
   private async speak(text: string): Promise<void> {
-    if (!this.config.ttsEnabled) return;
+    if (!this.config.ttsEnabled || !sharedTtsEngine) return;
 
     this.setState('speaking');
     try {
-      await this.ttsEngine.speak(text, this.config.language);
+      await sharedTtsEngine.speak(text, this.config.language);
     } catch (error) {
       console.error('[VoiceController] TTS error:', error);
     }
@@ -365,11 +574,11 @@ export class VoiceController {
 
   updateConfig(config: Partial<typeof this.config>): void {
     Object.assign(this.config, config);
-    if (config.wakeSensitivity !== undefined) {
-      this.wakeEngine.setSensitivity(config.wakeSensitivity);
+    if (config.wakeSensitivity !== undefined && sharedWakeEngine) {
+      sharedWakeEngine.setSensitivity(config.wakeSensitivity);
     }
-    if (config.language !== undefined) {
-      this.asrEngine.setLanguage(config.language);
+    if (config.language !== undefined && sharedAsrEngine) {
+      sharedAsrEngine.setLanguage(config.language);
     }
     if (config.wakeEnabled !== undefined) {
       this.wakeEnabled = config.wakeEnabled;
@@ -382,30 +591,43 @@ export class VoiceController {
 
   destroy(): void {
     this.stop();
-    this.wakeEngine.stop();
-    this.earconPlayer.destroy();
+    if (sharedWakeEngine) {
+      sharedWakeEngine.stop();
+    }
+    if (sharedEarconPlayer) {
+      sharedEarconPlayer.destroy();
+    }
     setPlayerReady(false);
   }
 
-  // Manual trigger for mobile/push-to-talk
+  /**
+   * PUBLIC API: Manual trigger for Tap-Mic button
+   * Arms mic on first call, then starts listening on subsequent calls
+   */
   async manualTrigger(): Promise<void> {
-    console.log('[VoiceController] 🎤 Manual voice trigger - tap to speak');
-    await this.startListening();
+    console.debug('[VoiceController] 🎤 Manual trigger (Tap-Mic button) - ASR_ID:', ASR_INSTANCE_ID);
+    
+    // Arm mic if not already armed (first tap)
+    if (!this.isMicArmed()) {
+      console.debug('[VoiceController] 🔓 First tap - arming mic and requesting permission...');
+      await this.armMic();
+      console.debug('[VoiceController] ✅ Mic armed, ready for voice input');
+    }
+    
+    // Start listening using shared instance
+    console.debug('[VoiceController] 🎤 Starting listening via shared ASR instance');
+    await this.startListeningFromArmedMic();
   }
 
   /**
-   * Start listening using the existing ASR instance (for gesture control)
-   * This reuses the same microphone/ASR instance as Tap-Mic
+   * DEPRECATED: Use startListeningFromArmedMic() directly
+   * Kept for backward compatibility
    */
-  async startListeningFromArmedMic(): Promise<void> {
-    console.log('[VoiceController] 🎤 Gesture-triggered voice control - reusing same mic instance');
-    await this.startListening();
-  }
-
-  /**
-   * Check if mic is currently armed and ready
-   */
-  isMicArmed(): boolean {
-    return this.state === 'idle';
+  async stopListening(): Promise<void> {
+    if (sharedAsrEngine && isListening) {
+      await sharedAsrEngine.stop();
+      isListening = false;
+      this.setState('idle');
+    }
   }
 }
