@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
     }),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'placeholder.svg'],
+      includeAssets: ['icon-16.png', 'icon-32.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'favicon.png'],
       manifest: {
         name: 'Vibe Scape Harmony Player',
         short_name: 'VibeScape',
@@ -34,15 +34,15 @@ export default defineConfig(({ mode }) => ({
         start_url: '/',
         icons: [
           {
-            src: '/placeholder.svg',
+            src: '/icon-192.png',
             sizes: '192x192',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: '/placeholder.svg',
+            src: '/icon-512.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ]
