@@ -36,13 +36,16 @@ const VoiceSettingsPage: React.FC = () => {
   const loadAccessKey = async () => {
     setIsLoadingKey(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data, error } = await supabase
-        .from('secrets')
-        .select('value')
-        .eq('key', 'PICOVOICE_ACCESS_KEY')
+        .from('profiles')
+        .select('picovoice_access_key')
+        .eq('id', user.id)
         .single();
       
-      if (data?.value) {
+      if (data?.picovoice_access_key) {
         setHasAccessKey(true);
         setAccessKey('••••••••••••••••'); // Masked display
       }
@@ -60,12 +63,16 @@ const VoiceSettingsPage: React.FC = () => {
     }
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please log in to save settings');
+        return;
+      }
+
       const { error } = await supabase
-        .from('secrets')
-        .upsert({ 
-          key: 'PICOVOICE_ACCESS_KEY', 
-          value: accessKey 
-        });
+        .from('profiles')
+        .update({ picovoice_access_key: accessKey })
+        .eq('id', user.id);
 
       if (error) throw error;
 
