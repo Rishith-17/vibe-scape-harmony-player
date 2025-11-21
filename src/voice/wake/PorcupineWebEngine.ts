@@ -29,15 +29,22 @@ export class PorcupineWebEngine implements WakeWordEngine {
     this.isRunning = true;
     
     try {
-      // Get access key from Supabase secrets
+      // Get access key from user profile
       const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.warn('[PorcupineWebEngine] ⚠️ No user logged in');
+        return;
+      }
+
       const { data, error } = await supabase
-        .from('secrets')
-        .select('value')
-        .eq('key', 'PICOVOICE_ACCESS_KEY')
+        .from('profiles')
+        .select('picovoice_access_key')
+        .eq('id', user.id)
         .single();
       
-      const accessKey = data?.value;
+      const accessKey = data?.picovoice_access_key;
       console.debug('[PorcupineWebEngine] Access key check:', {
         available: !!accessKey,
         length: accessKey?.length
