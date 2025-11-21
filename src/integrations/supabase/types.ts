@@ -166,7 +166,6 @@ export type Database = {
           email: string | null
           gesture_controls: boolean | null
           id: string
-          picovoice_access_key: string | null
           updated_at: string
           username: string | null
         }
@@ -176,7 +175,6 @@ export type Database = {
           email?: string | null
           gesture_controls?: boolean | null
           id: string
-          picovoice_access_key?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -186,7 +184,6 @@ export type Database = {
           email?: string | null
           gesture_controls?: boolean | null
           id?: string
-          picovoice_access_key?: string | null
           updated_at?: string
           username?: string | null
         }
