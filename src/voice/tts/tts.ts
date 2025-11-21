@@ -7,11 +7,22 @@ export class TtsEngine {
   private currentUtterance: SpeechSynthesisUtterance | null = null;
 
   constructor() {
-    this.synth = window.speechSynthesis;
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      this.synth = window.speechSynthesis;
+    } else {
+      console.warn('[TtsEngine] Speech synthesis not available');
+      this.synth = null as any;
+    }
   }
 
   speak(text: string, language: string = 'en-IN'): Promise<void> {
     return new Promise((resolve, reject) => {
+      if (!this.synth) {
+        console.warn('[TtsEngine] Speech synthesis not available');
+        resolve(); // Silently resolve
+        return;
+      }
+      
       // Cancel any ongoing speech
       this.cancel();
 
@@ -36,13 +47,13 @@ export class TtsEngine {
   }
 
   cancel(): void {
-    if (this.synth.speaking) {
+    if (this.synth && this.synth.speaking) {
       this.synth.cancel();
     }
     this.currentUtterance = null;
   }
 
   isSpeaking(): boolean {
-    return this.synth.speaking;
+    return this.synth ? this.synth.speaking : false;
   }
 }
