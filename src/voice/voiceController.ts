@@ -256,12 +256,16 @@ export class VoiceController {
    */
   private async onWakeDetected(): Promise<void> {
     console.debug('[VoiceController] 🎤 Wake word "Hello Vibe" detected');
-    
-    // Check if mic is armed before starting
+
+    // If mic is not armed yet, automatically arm it (requests permission once)
     if (!this.isMicArmed()) {
-      console.warn('[VoiceController] ⚠️ Wake word detected but mic not armed - ignoring');
-      console.warn('[VoiceController] 💡 User must tap mic button first to grant permission');
-      return;
+      console.debug('[VoiceController] 🔐 Mic not armed yet - auto-arming due to wake word');
+      try {
+        await this.armMic();
+      } catch (error) {
+        console.error('[VoiceController] ❌ Failed to auto-arm mic after wake word:', error);
+        return;
+      }
     }
 
     console.debug('[VoiceController] ✅ Mic armed, starting shared ASR instance:', ASR_INSTANCE_ID);
