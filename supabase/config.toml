@@ -1,6 +1,9 @@
 
 project_id = "zchhecueiqpqhvrnnmsm"
 
+[functions.picovoice-key]
+verify_jwt = false  # Edge function handles auth internally
+
 [api]
 enabled = true
 port = 54321

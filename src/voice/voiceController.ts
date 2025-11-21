@@ -1,7 +1,7 @@
 import { VoiceState, MusicController, NavControllerAdapter } from './types';
 import { parseIntent, HELP_TEXT } from './nlu/intentParser';
 import { WebSpeechAsr } from './asr/WebSpeechAsr';
-import { PorcupineWebEngine } from './wake/PorcupineWebEngine';
+import { PorcupineWebEngine } from './wake/PorcupineWeb';
 import { TtsEngine } from './tts/tts';
 import { EarconPlayer } from './EarconPlayer';
 import { runCommand } from './commandRunner';
