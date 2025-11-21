@@ -143,19 +143,31 @@ const VoiceIntegration = () => {
       const handleGestureTrigger = async (event: Event) => {
         const customEvent = event as CustomEvent;
         const source = customEvent.detail?.source || 'unknown';
+        
+        console.log('[App] ========== VOICE TRIGGER EVENT ==========');
         console.log('[App] 🤙 Voice triggered by:', source);
+        console.log('[App] Voice controller exists:', !!voiceController);
+        console.log('[App] Voice settings enabled:', voiceSettings.enabled);
+        console.log('[App] Feature enabled:', isFeatureEnabled('VOICE_CONTROL_ENABLED'));
         
         if (!voiceController) {
-          console.error('[App] ❌ Voice controller not initialized');
+          console.error('[App] ❌ Voice controller not initialized!');
+          console.error('[App] This usually means voice control is disabled in settings');
+          console.error('[App] Or the controller failed to initialize');
           return;
         }
         
+        console.log('[App] ✅ Voice controller is ready');
+        
         // Check if mic is armed - if not, gesture should arm it first
-        if (!voiceController.isMicArmed()) {
+        const micArmed = voiceController.isMicArmed();
+        console.log('[App] Mic armed status:', micArmed);
+        
+        if (!micArmed) {
           console.log('[App] 🔓 Gesture trigger - arming mic first...');
           try {
             await voiceController.armMic();
-            console.log('[App] ✅ Mic armed by gesture, now starting listening...');
+            console.log('[App] ✅ Mic armed successfully by gesture');
           } catch (error) {
             console.error('[App] ❌ Failed to arm mic from gesture:', error);
             return;
@@ -163,22 +175,25 @@ const VoiceIntegration = () => {
         }
         
         try {
-          console.log('[App] ✅ Calling voiceController.startListeningFromArmedMic() with source: gesture');
+          console.log('[App] 🎤 Calling startListeningFromArmedMic("gesture")...');
           await voiceController.startListeningFromArmedMic('gesture');
           console.log('[App] ✅ Voice ASR started successfully from gesture');
           console.log('[App] 🔍 ASR Instance ID:', voiceController.getAsrInstanceId());
         } catch (error) {
           console.error('[App] ❌ Failed to start voice ASR from gesture:', error);
         }
+        
+        console.log('[App] ==========================================');
       };
 
+      console.log('[App] 🎤 Registering event listener for vibescape:trigger-voice');
+      console.log('[App] Voice controller ready:', !!voiceController);
       window.addEventListener('vibescape:trigger-voice', handleGestureTrigger);
-      console.log('[App] 🎤 Event listener registered for vibescape:trigger-voice');
       
       return () => {
         window.removeEventListener('vibescape:trigger-voice', handleGestureTrigger);
       };
-    }, [voiceController]);
+    }, [voiceController, voiceSettings.enabled]);
 
   return (
     <VoiceChipLazy 

@@ -106,21 +106,27 @@ export const useUnifiedMusicControls = () => {
     // Execute the command - EXACT 4-gesture mapping
     switch (command.toLowerCase()) {
       case 'thumbs_up':
-        // 👍 Thumbs Up → Activate THE SAME mic instance as Tap-Mic button
-        console.log('👍 [GESTURE] Thumbs up detected - triggering VoiceController');
-        console.log('👍 [GESTURE] Dispatching vibescape:trigger-voice event');
-        console.log('👍 [GESTURE] This will call VoiceController.startListeningFromArmedMic("gesture")');
-        console.log('👍 [GESTURE] Using SAME shared ASR instance as Tap-Mic and Wake-word');
+        // 👍 Thumbs Up → Activate voice mic
+        console.log('👍 [GESTURE] ========== THUMBS UP DETECTED ==========');
+        console.log('👍 [GESTURE] Triggering voice control via event dispatch');
         
-        // Dispatch event that App.tsx listens for to trigger VoiceController.startListeningFromArmedMic('gesture')
+        // Dispatch event with proper detail object
         const voiceEvent = new CustomEvent('vibescape:trigger-voice', {
-          detail: { source: 'thumbs_up_gesture' }
+          detail: { source: 'thumbs_up_gesture' },
+          bubbles: true
         });
-        window.dispatchEvent(voiceEvent);
-        console.log('🤚 [GESTURE] Event dispatched - VoiceChip will show listening overlay');
         
-        // NO toast or feedback - let VoiceChip component handle all UI
-        // This ensures the SAME UI experience as clicking the Tap-Mic button
+        console.log('👍 [GESTURE] Dispatching vibescape:trigger-voice event...');
+        window.dispatchEvent(voiceEvent);
+        console.log('👍 [GESTURE] Event dispatched successfully');
+        console.log('👍 [GESTURE] ========================================');
+        
+        // Show brief feedback
+        toast({
+          title: "🎤 Voice Activated",
+          description: "Listening...",
+          duration: 2000,
+        });
         break;
         
       case 'fist':
