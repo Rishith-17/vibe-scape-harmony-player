@@ -61,7 +61,8 @@ export class PorcupineWebEngine implements WakeWordEngine {
       console.debug('[PorcupineWeb] ✅ Access key retrieved from server');
 
       // Step 2: Initialize Porcupine with Hello Vibe keyword model
-      const modelPath = `${window.location.origin}/models/Hello-vibe_en_wasm_v3_0_0.ppn`;
+      // Path is relative to public directory
+      const modelPath = '/models/Hello-vibe_en_wasm_v3_0_0.ppn';
       console.debug('[PorcupineWeb] 📦 Loading keyword model:', modelPath);
 
       this.porcupine = await PorcupineWorker.create(
