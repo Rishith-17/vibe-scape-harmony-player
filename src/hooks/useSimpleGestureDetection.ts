@@ -122,10 +122,19 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
 
 
   /**
-   * Initialize when enabled
+   * Initialize when enabled - only track enabled state, not whole options object
    */
+  const enabledRef = useRef(options.enabled);
+  const onGestureRef = useRef(options.onGesture);
+  
+  // Update refs when props change
   useEffect(() => {
-    if (options.enabled && !isActive) {
+    enabledRef.current = options.enabled;
+    onGestureRef.current = options.onGesture;
+  }, [options.enabled, options.onGesture]);
+  
+  useEffect(() => {
+    if (options.enabled && !isActive && !handDetectorRef.current) {
       console.log('🚀 [useSimpleGestureDetection] Enabled - starting detection...');
       startSimpleDetection();
     }

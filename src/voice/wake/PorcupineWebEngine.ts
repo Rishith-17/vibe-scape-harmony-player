@@ -47,15 +47,14 @@ export class PorcupineWebEngine implements WakeWordEngine {
       console.debug('[PorcupineWebEngine] 💡 This is separate from the shared ASR mic instance');
 
       // Initialize Porcupine with the custom "Hello Vibe" model
-      // Use relative path for proper model loading (Vite handles public folder)
-      const modelPath = '/models/Hello-vibe_en_wasm_v3_0_0.ppn';
+      // Use full URL for reliable model loading
+      const modelPath = `${window.location.origin}/models/Hello-vibe_en_wasm_v3_0_0.ppn`;
       console.debug('[PorcupineWebEngine] Loading model from:', modelPath);
       
       this.porcupine = await PorcupineWorker.create(
         accessKey,
         [{ 
           publicPath: modelPath,
-          forceWrite: true, // Force model to be written to IndexedDB
           label: 'Hello Vibe', 
           sensitivity: this.sensitivity 
         }],
