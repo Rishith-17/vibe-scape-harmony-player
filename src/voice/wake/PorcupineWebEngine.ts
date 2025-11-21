@@ -29,16 +29,22 @@ export class PorcupineWebEngine implements WakeWordEngine {
     this.isRunning = true;
     
     try {
-      // Get access key from environment
-      const accessKey = import.meta.env.VITE_PICOVOICE_ACCESS_KEY;
+      // Get access key from Supabase secrets
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data, error } = await supabase
+        .from('secrets')
+        .select('value')
+        .eq('key', 'PICOVOICE_ACCESS_KEY')
+        .single();
+      
+      const accessKey = data?.value;
       console.debug('[PorcupineWebEngine] Access key check:', {
         available: !!accessKey,
         length: accessKey?.length
       });
       
       if (!accessKey || accessKey.trim() === '') {
-        console.warn('[PorcupineWebEngine] ⚠️ No access key found - manual trigger only');
-        console.warn('[PorcupineWebEngine] Set VITE_PICOVOICE_ACCESS_KEY in .env file');
+        console.warn('[PorcupineWebEngine] ⚠️ No access key found - configure in Voice Settings');
         return;
       }
 
