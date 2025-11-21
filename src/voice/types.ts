@@ -14,7 +14,16 @@ export type VoiceAction =
   | 'play_liked_songs'
   | 'play_playlist'
   | 'search_and_play'
+  | 'play_item_in_section'
+  | 'open_and_play'
   | 'navigate'
+  | 'navigate_back'
+  | 'scroll_down'
+  | 'scroll_up'
+  | 'scroll_to_section'
+  | 'scroll_to_top'
+  | 'scroll_to_bottom'
+  | 'stop_listening'
   | 'help'
   | 'unknown';
 
@@ -31,6 +40,8 @@ export interface VoiceIntent {
     navigation?: NavigationTarget;
     trackNumber?: number;
     playlistName?: string;
+    sectionId?: string;
+    amount?: 'small' | 'medium' | 'large' | 'page';
   };
   raw: string;
   confidence: number;
@@ -50,6 +61,7 @@ export interface MusicController {
   searchAndPlay(query: string): Promise<void>;
   setVolume(percent: number): void; // 0..100
   adjustVolume(delta: number): void; // +/-
+  isPlaying(): boolean;
 }
 
 export interface NavControllerAdapter {
