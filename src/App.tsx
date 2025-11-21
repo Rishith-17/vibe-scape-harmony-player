@@ -61,7 +61,7 @@ const VoiceIntegration = () => {
     
     (async () => {
       try {
-        const { VoiceController } = await import('./voice/voiceController');
+        const { VoiceController, setGlobalVoiceController } = await import('./voice/voiceController');
         const { MusicControllerImpl } = await import('./controllers/MusicControllerImpl');
         const { NavControllerImpl } = await import('./controllers/NavControllerImpl');
 
@@ -87,6 +87,7 @@ const VoiceIntegration = () => {
         await controller.start();
         
         setVoiceController(controller);
+        setGlobalVoiceController(controller); // Register globally for gesture access
         console.log('[App] Voice controller initialized and started');
       } catch (error) {
         console.error('[App] Failed to initialize voice controller:', error);
@@ -104,6 +105,11 @@ const VoiceIntegration = () => {
       if (controller) {
         controller.destroy();
       }
+      // Clean up global reference
+      (async () => {
+        const { setGlobalVoiceController } = await import('./voice/voiceController');
+        setGlobalVoiceController(null);
+      })();
     };
   }, [voiceSettings.enabled, voiceSettings.language, voiceSettings.wakeSensitivity, voiceSettings.ttsEnabled, musicPlayer, navigate]);
 

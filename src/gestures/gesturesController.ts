@@ -10,6 +10,7 @@ export interface GestureConfig {
   debounceMs: number;
   stabilityFrames: {
     thumbs_up: number;
+    open_hand: number;
     fist: number;
     rock: number;
     peace: number;
@@ -20,7 +21,8 @@ const DEFAULT_CONFIG: GestureConfig = {
   confidenceThreshold: 0.80, // Lower for faster response
   debounceMs: 300, // Cooldown between gestures
   stabilityFrames: {
-    thumbs_up: 1, // Instant for voice control
+    thumbs_up: 1, // Legacy - not used
+    open_hand: 1, // Instant for voice control
     fist: 1, // Instant for play/pause
     rock: 2, // Require 2 frames for volume
     peace: 2, // Require 2 frames for volume

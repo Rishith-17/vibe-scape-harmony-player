@@ -115,8 +115,8 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
         localStorage.setItem('vibescape_gesture_tutorial_seen', 'true');
       }
       
-      console.log('🤚 Active gesture controls (4 gestures only):');
-      console.log('👍 Thumbs Up → Start Voice Control (reuses same mic instance as Tap-Mic)');
+      console.log('🤚 Active gesture controls:');
+      console.log('🖐️ Open Hand → Start Voice Control (reuses same mic instance as Tap-Mic)');
       console.log('✊ Fist → Toggle Play/Pause (3s cooldown)');
       console.log('🤘 Rock → Volume Down (-10%)');
       console.log('✌️ Peace → Volume Up (+10%)');

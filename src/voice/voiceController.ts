@@ -34,6 +34,9 @@ const DUPLICATE_SUPPRESSION_MS = 300;
 // Stable instance ID for verification - generated once when first armed
 let ASR_INSTANCE_ID: string | null = null;
 
+// Global singleton voice controller instance (set by App.tsx after initialization)
+let globalVoiceController: VoiceController | null = null;
+
 /**
  * Main voice controller - orchestrates wake → ASR → NLU → action flow
  * Now implements singleton pattern with shared resources
@@ -636,4 +639,19 @@ export class VoiceController {
       this.setState('idle');
     }
   }
+}
+
+/**
+ * Set the global voice controller instance (called by App.tsx after initialization)
+ */
+export function setGlobalVoiceController(controller: VoiceController | null): void {
+  globalVoiceController = controller;
+  console.debug('[VoiceController] Global instance set:', !!controller);
+}
+
+/**
+ * Get the global voice controller instance (for use by gesture controls)
+ */
+export function getGlobalVoiceController(): VoiceController | null {
+  return globalVoiceController;
 }
