@@ -10,7 +10,7 @@ interface SimpleGestureOptions {
 
 /**
  * Optimized gesture detection hook using HandDetector + GesturesController
- * Fast detection for thumbs_up (voice) and fist (play/pause)
+ * Fast detection for open_hand (voice) and fist (play/pause)
  */
 export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
   const [status, setStatus] = useState('Ready');
@@ -49,7 +49,8 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         confidenceThreshold: 0.80, // Lower for faster response
         debounceMs: 300,
         stabilityFrames: {
-          thumbs_up: 1, // Instant for voice
+          thumbs_up: 1, // Legacy - not used
+          open_hand: 1, // Instant for voice
           fist: 1, // Instant for play/pause
           rock: 2, // Stable for volume
           peace: 2, // Stable for volume
@@ -100,7 +101,7 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
       
       toast({
         title: "🤚 Gesture Control Ready!",
-        description: "👍 Thumbs up = Voice | ✊ Fist = Play/Pause | 🤘 Rock = Vol- | ✌️ Peace = Vol+",
+        description: "🖐️ Open Hand = Voice | ✊ Fist = Play/Pause | 🤘 Rock = Vol- | ✌️ Peace = Vol+",
         duration: 5000,
       });
       

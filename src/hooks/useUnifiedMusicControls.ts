@@ -3,6 +3,7 @@ import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useToast } from '@/hooks/use-toast';
 import { runCommand } from '@/voice/commandRunner';
 import { musicController } from '@/controllers/MusicControllerImpl';
+import { getGlobalVoiceController } from '@/voice/voiceController';
 
 interface ControlAction {
   type: 'gesture' | 'voice';
@@ -19,7 +20,9 @@ export const useUnifiedMusicControls = () => {
   
   const lastActionRef = useRef<ControlAction | null>(null);
   const lastFistGestureRef = useRef<number>(0);
+  const lastOpenHandGestureRef = useRef<number>(0);
   const FIST_COOLDOWN_MS = 3000; // 3-second cooldown for fist gesture
+  const OPEN_HAND_DEBOUNCE_MS = 400; // 400ms debounce for open_hand mic activation
   const {
     togglePlayPause, 
     skipNext, 
@@ -97,36 +100,72 @@ export const useUnifiedMusicControls = () => {
 
   const executeCommandInternal = async (command: string, commandType: 'gesture' | 'voice', gestureIcon?: string) => {
 
-    // Show feedback ONLY for non-voice gestures
-    // Voice control (open_hand) feedback is handled by VoiceChip component
+    // Show feedback for gestures (open_hand feedback is handled by VoiceChip)
     if (commandType === 'gesture' && gestureIcon && command.toLowerCase() !== 'open_hand') {
       setFeedback({ gestureIcon, show: true });
     }
 
-    // Execute the command - EXACT 4-gesture mapping
+    // Execute the command - ONLY open_hand activates mic, others do nothing with mic
     switch (command.toLowerCase()) {
-      case 'thumbs_up':
-        // 👍 Thumbs Up → Activate voice mic
-        console.log('👍 [GESTURE] ========== THUMBS UP DETECTED ==========');
-        console.log('👍 [GESTURE] Triggering voice control via event dispatch');
+      case 'open_hand':
+        // 🖐️ Open Hand → Activate voice mic using SAME ASR instance as Tap-Mic
+        const nowOpenHand = Date.now();
+        const timeSinceLastOpenHand = nowOpenHand - lastOpenHandGestureRef.current;
         
-        // Dispatch event with proper detail object
-        const voiceEvent = new CustomEvent('vibescape:trigger-voice', {
-          detail: { source: 'thumbs_up_gesture' },
-          bubbles: true
-        });
+        // Debounce to prevent duplicate triggers
+        if (timeSinceLastOpenHand < OPEN_HAND_DEBOUNCE_MS) {
+          console.log(`🖐️ [Gesture] open_hand debounced - ${timeSinceLastOpenHand}ms since last`);
+          return;
+        }
         
-        console.log('👍 [GESTURE] Dispatching vibescape:trigger-voice event...');
-        window.dispatchEvent(voiceEvent);
-        console.log('👍 [GESTURE] Event dispatched successfully');
-        console.log('👍 [GESTURE] ========================================');
+        console.log('🖐️ [Gesture] ========== OPEN HAND DETECTED ==========');
+        console.log('🖐️ [Gesture] Checking if mic is armed...');
         
-        // Show brief feedback
-        toast({
-          title: "🎤 Voice Activated",
-          description: "Listening...",
-          duration: 2000,
-        });
+        lastOpenHandGestureRef.current = nowOpenHand;
+        
+        const voiceController = getGlobalVoiceController();
+        
+        if (!voiceController) {
+          console.log('🖐️ [Gesture] ❌ Voice controller not initialized');
+          toast({
+            title: "Voice Not Ready",
+            description: "Voice control is not available",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (voiceController.isMicArmed()) {
+          console.log('🖐️ [Gesture] ✅ Mic armed - triggering shared ASR instance');
+          console.log('🖐️ [Gesture] ASR Instance ID:', voiceController.getAsrInstanceId());
+          
+          try {
+            await voiceController.startListeningFromArmedMic('gesture');
+            console.log('🖐️ [Gesture] Successfully started listening from armed mic');
+            
+            toast({
+              title: "🎤 Voice Activated",
+              description: "Listening via gesture...",
+              duration: 2000,
+            });
+          } catch (error) {
+            console.error('🖐️ [Gesture] Failed to start listening:', error);
+            toast({
+              title: "Mic Error",
+              description: "Could not activate voice control",
+              variant: "destructive",
+            });
+          }
+        } else {
+          console.log('🖐️ [Gesture] ❌ Mic not armed - tap mic button first to enable gesture activation');
+          toast({
+            title: "Mic Not Ready",
+            description: "Tap the mic button first to enable gesture control",
+            variant: "destructive",
+          });
+        }
+        
+        console.log('🖐️ [Gesture] ========================================');
         break;
         
       case 'fist':
@@ -279,15 +318,15 @@ export const useUnifiedMusicControls = () => {
 
 
   const handleGestureCommand = async (gesture: string, confidence: number) => {
-    // Only allow the 4 specified gestures
-    const allowedGestures = ['thumbs_up', 'fist', 'rock', 'peace'];
+    // Only allow these gestures: open_hand (mic), fist (play/pause), rock (vol-), peace (vol+)
+    const allowedGestures = ['open_hand', 'fist', 'rock', 'peace'];
     if (!allowedGestures.includes(gesture)) {
       console.log('🚫 Gesture not in allowed list:', gesture);
       return;
     }
 
     const gestureIcons: Record<string, string> = {
-      thumbs_up: '👍',
+      open_hand: '🖐️',
       fist: '✊',
       rock: '🤘',
       peace: '✌️'

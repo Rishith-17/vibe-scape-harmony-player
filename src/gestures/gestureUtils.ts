@@ -66,8 +66,51 @@ export function detectThumbsUp(landmarks: Landmark[]): { detected: boolean; conf
 }
 
 /**
- * Fast fist detection using simple geometric rules
+ * Fast open_hand detection using simple geometric rules
+ * Open hand: All fingers extended upward
  */
+export function detectOpenHand(landmarks: Landmark[]): { detected: boolean; confidence: number } {
+  if (!landmarks || landmarks.length < 21) {
+    return { detected: false, confidence: 0 };
+  }
+
+  const thumb_tip = landmarks[4];
+  const thumb_mcp = landmarks[2];
+  const index_tip = landmarks[8];
+  const index_mcp = landmarks[5];
+  const middle_tip = landmarks[12];
+  const middle_mcp = landmarks[9];
+  const ring_tip = landmarks[16];
+  const ring_mcp = landmarks[13];
+  const pinky_tip = landmarks[20];
+  const pinky_mcp = landmarks[17];
+
+  // All fingers must be extended (tips above their MCP joints)
+  const thumbExtended = Math.abs(thumb_tip.x - thumb_mcp.x) > 0.06; // Thumb extends sideways
+  const indexExtended = index_tip.y < (index_mcp.y - 0.06);
+  const middleExtended = middle_tip.y < (middle_mcp.y - 0.06);
+  const ringExtended = ring_tip.y < (ring_mcp.y - 0.06);
+  const pinkyExtended = pinky_tip.y < (pinky_mcp.y - 0.06);
+
+  const allFingersExtended = thumbExtended && indexExtended && middleExtended && ringExtended && pinkyExtended;
+
+  // Fingers should be somewhat spread out (not tightly together)
+  const fingerSpread = Math.abs(index_tip.x - pinky_tip.x);
+  const wellSpread = fingerSpread > 0.12;
+
+  const detected = allFingersExtended && wellSpread;
+  const confidence = detected ? 0.88 : 0;
+
+  if (detected) {
+    console.log('🖐️ [FastHeuristic] OPEN_HAND detected:', {
+      allFingersExtended,
+      wellSpread,
+      confidence
+    });
+  }
+
+  return { detected, confidence };
+}
 export function detectFist(landmarks: Landmark[]): { detected: boolean; confidence: number } {
   if (!landmarks || landmarks.length < 21) {
     return { detected: false, confidence: 0 };
@@ -105,17 +148,17 @@ export function detectFist(landmarks: Landmark[]): { detected: boolean; confiden
 
 /**
  * Analyze gesture from MediaPipe hand landmarks
- * Uses fast heuristics for thumbs_up and fist, fallback to full analysis for others
+ * Uses fast heuristics for open_hand, fist, and legacy thumbs_up, fallback to full analysis for others
  */
 export function analyzeGestureFromLandmarks(landmarks: Landmark[]): GestureAnalysis {
   if (!landmarks || landmarks.length < 21) {
     return { label: null, confidence: 0, stableFrames: 0 };
   }
 
-  // Fast path: Check thumbs_up first (highest priority for voice control)
-  const thumbsUp = detectThumbsUp(landmarks);
-  if (thumbsUp.detected) {
-    return { label: 'thumbs_up', confidence: thumbsUp.confidence, stableFrames: 1, landmarks };
+  // Fast path: Check open_hand first (highest priority for voice control)
+  const openHand = detectOpenHand(landmarks);
+  if (openHand.detected) {
+    return { label: 'open_hand', confidence: openHand.confidence, stableFrames: 1, landmarks };
   }
 
   // Fast path: Check fist (play/pause)
