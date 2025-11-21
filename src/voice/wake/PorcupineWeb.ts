@@ -65,19 +65,23 @@ export class PorcupineWebEngine implements WakeWordEngine {
       const modelPath = '/models/Hello-vibe_en_wasm_v3_0_0.ppn';
       console.debug('[PorcupineWeb] 📦 Loading keyword model:', modelPath);
 
+      const porcupineModel = {
+        publicPath: '/models/porcupine_params.pv',
+      };
+
       this.porcupine = await PorcupineWorker.create(
         accessKey,
-        [{ 
+        [{
           publicPath: modelPath,
-          label: 'Hello Vibe', 
-          sensitivity: this.sensitivity 
+          label: 'Hello Vibe',
+          sensitivity: this.sensitivity,
         }],
         (detection) => {
           if (detection.label === 'Hello Vibe') {
             this.handleWakeDetection();
           }
         },
-        undefined as any // Use default Porcupine model (no custom .pv file)
+        porcupineModel
       );
 
       // Step 3: Subscribe to audio stream (for wake detection only)
