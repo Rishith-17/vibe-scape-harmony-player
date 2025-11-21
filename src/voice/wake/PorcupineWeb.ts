@@ -77,7 +77,7 @@ export class PorcupineWebEngine implements WakeWordEngine {
             this.handleWakeDetection();
           }
         },
-        {} // Model parameters (using defaults)
+        undefined as any // Use default Porcupine model (no custom .pv file)
       );
 
       // Step 3: Subscribe to audio stream (for wake detection only)
