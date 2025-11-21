@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Mic, Volume2, Globe, Settings } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Mic, Volume2, Globe, Settings, Key } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useVoiceSettings } from '@/store/voiceSettings';
 import { Switch } from '@/components/ui/switch';
@@ -7,7 +7,9 @@ import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +25,58 @@ const VoiceSettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const settings = useVoiceSettings();
   const [showConsentDialog, setShowConsentDialog] = useState(false);
+  const [accessKey, setAccessKey] = useState('');
+  const [hasAccessKey, setHasAccessKey] = useState(false);
+  const [isLoadingKey, setIsLoadingKey] = useState(true);
+
+  useEffect(() => {
+    loadAccessKey();
+  }, []);
+
+  const loadAccessKey = async () => {
+    setIsLoadingKey(true);
+    try {
+      const { data, error } = await supabase
+        .from('secrets')
+        .select('value')
+        .eq('key', 'PICOVOICE_ACCESS_KEY')
+        .single();
+      
+      if (data?.value) {
+        setHasAccessKey(true);
+        setAccessKey('••••••••••••••••'); // Masked display
+      }
+    } catch (error) {
+      console.error('Error loading access key:', error);
+    } finally {
+      setIsLoadingKey(false);
+    }
+  };
+
+  const saveAccessKey = async () => {
+    if (!accessKey || accessKey === '••••••••••••••••') {
+      toast.error('Please enter a valid access key');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('secrets')
+        .upsert({ 
+          key: 'PICOVOICE_ACCESS_KEY', 
+          value: accessKey 
+        });
+
+      if (error) throw error;
+
+      setHasAccessKey(true);
+      toast.success('Access key saved successfully');
+      setAccessKey('••••••••••••••••'); // Mask after saving
+    } catch (error) {
+      console.error('Error saving access key:', error);
+      toast.error('Failed to save access key');
+    }
+  };
 
   const handleEnableToggle = (checked: boolean) => {
     if (checked && !settings.consentGiven) {
@@ -94,6 +148,32 @@ const VoiceSettingsPage: React.FC = () => {
             
             {settings.enabled && (
               <div className="mt-4 pt-4 border-t space-y-4">
+                {/* Access Key Configuration */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Key className="w-4 h-4" />
+                    Picovoice Access Key
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Required for "Hello Vibe" wake word. Get your free key at picovoice.ai
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      placeholder="Enter your Picovoice access key"
+                      value={accessKey}
+                      onChange={(e) => setAccessKey(e.target.value)}
+                      disabled={isLoadingKey}
+                    />
+                    <Button onClick={saveAccessKey} disabled={isLoadingKey}>
+                      Save
+                    </Button>
+                  </div>
+                  {hasAccessKey && (
+                    <p className="text-xs text-green-600">✓ Access key configured</p>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <p className="font-medium">Enable "Hello Vibe" Wake Word</p>
@@ -104,6 +184,7 @@ const VoiceSettingsPage: React.FC = () => {
                   <Switch
                     checked={settings.wakeEnabled}
                     onCheckedChange={settings.setWakeEnabled}
+                    disabled={!hasAccessKey}
                   />
                 </div>
 
