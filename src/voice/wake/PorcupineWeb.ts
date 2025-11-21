@@ -98,17 +98,9 @@ export class PorcupineWebEngine implements WakeWordEngine {
   private handleWakeDetection(): void {
     console.debug('[PorcupineWeb] 🎤 Wake word "Hello Vibe" detected!');
 
-    // Check if mic is armed before triggering
-    if (this.voiceController && !this.voiceController.isMicArmed()) {
-      console.warn('[PorcupineWeb] ⚠️ Wake detected but mic not armed');
-      console.warn('[PorcupineWeb] 💡 User must tap mic button first to grant permission');
-      return;
-    }
-
     // CRITICAL: Only signal the controller - do NOT create mic resources here
-    // VoiceController will use its SHARED ASR instance (same one as Tap-Mic)
+    // VoiceController decides how to handle mic arming and ASR startup
     console.debug('[PorcupineWeb] 🔔 Signaling VoiceController (NO new mic created)');
-    console.debug('[PorcupineWeb] 💡 VoiceController will use shared ASR instance');
     
     if (this.detectionCallback) {
       this.detectionCallback();
