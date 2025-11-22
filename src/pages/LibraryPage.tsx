@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Music, MoreHorizontal, Play, Trash2, Edit, ArrowLeft, Shuffle, ArrowUpDown, Sparkles } from 'lucide-react';
-import { motion, useMotionValue } from 'framer-motion';
+import { motion, useMotionValue, PanInfo } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
@@ -59,6 +59,7 @@ const LibraryPage = () => {
   const [recommendedSongs, setRecommendedSongs] = useState<any[]>([]);
   const [isLoadingSongs, setIsLoadingSongs] = useState(false);
   const [hoveredPlaylistId, setHoveredPlaylistId] = useState<string | null>(null);
+  const [focusedIndex, setFocusedIndex] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -652,6 +653,55 @@ const LibraryPage = () => {
     ...playlists.map(p => ({ ...p, type: 'regular' as const }))
   ];
 
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (allPlaylists.length === 0) return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setFocusedIndex((prev) => (prev - 1 + allPlaylists.length) % allPlaylists.length);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setFocusedIndex((prev) => (prev + 1) % allPlaylists.length);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [allPlaylists.length]);
+
+  // Swipe handlers
+  const handleDragEnd = useCallback((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (allPlaylists.length === 0) return;
+    
+    const swipeThreshold = 50;
+    if (info.offset.x > swipeThreshold) {
+      // Swipe right -> go to previous
+      setFocusedIndex((prev) => (prev - 1 + allPlaylists.length) % allPlaylists.length);
+    } else if (info.offset.x < -swipeThreshold) {
+      // Swipe left -> go to next
+      setFocusedIndex((prev) => (prev + 1) % allPlaylists.length);
+    }
+  }, [allPlaylists.length]);
+
+  // Handle clicking a playlist
+  const handlePlaylistClick = useCallback((playlist: any, index: number) => {
+    const isEmotion = playlist.type === 'emotion';
+    
+    // If clicking the focused card, open it
+    if (index === focusedIndex) {
+      if (isEmotion) {
+        setSelectedEmotionPlaylist(playlist);
+      } else {
+        setSelectedPlaylist(playlist);
+      }
+    } else {
+      // If clicking a side card, rotate it to center
+      setFocusedIndex(index);
+    }
+  }, [focusedIndex]);
+
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white pb-32 relative overflow-hidden">
       {/* Animated Background Grid */}
@@ -816,29 +866,26 @@ const LibraryPage = () => {
             </motion.div>
           </div>
         ) : (
-          /* Circular 3D Playlist Arrangement */
+          /* Circular 3D Playlist Arrangement - Controllable Carousel */
           <div className="relative w-full min-h-[700px] flex items-center justify-center perspective-[2000px]">
             <motion.div
               className="relative w-full max-w-5xl aspect-square"
-              animate={{
-                rotateY: [0, 360],
-              }}
-              transition={{
-                duration: 80,
-                repeat: Infinity,
-                ease: 'linear',
-              }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.1}
+              onDragEnd={handleDragEnd}
               style={{ transformStyle: 'preserve-3d' }}
             >
               {allPlaylists.map((playlist, index) => {
-                const angle = (index / allPlaylists.length) * 2 * Math.PI;
-                const radius = 320;
+                const numPlaylists = allPlaylists.length;
+                const angle = ((index - focusedIndex) / numPlaylists) * 2 * Math.PI;
+                const radius = 380;
                 const x = Math.cos(angle) * radius;
                 const z = Math.sin(angle) * radius;
                 const isEmotion = playlist.type === 'emotion';
                 const playlistKey = `${playlist.type}-${playlist.id}`;
+                const isFocused = index === focusedIndex;
                 const isHovered = hoveredPlaylistId === playlistKey;
-                const isOtherHovered = hoveredPlaylistId !== null && !isHovered;
                 const glowColor = getPlaylistGlowColor(playlist, index);
 
                 return (
@@ -846,29 +893,25 @@ const LibraryPage = () => {
                     key={playlistKey}
                     className="absolute top-1/2 left-1/2 cursor-pointer"
                     style={{
-                      transform: `translate(-50%, -50%) translate3d(${x}px, 0, ${z}px) rotateY(${-angle * (180 / Math.PI)}deg)`,
                       transformStyle: 'preserve-3d',
                     }}
                     animate={{
-                      scale: isHovered ? 1.6 : isOtherHovered ? 0.65 : 1,
-                      z: isHovered ? 150 : 0,
+                      x: x,
+                      z: z,
+                      y: isFocused ? -30 : 0,
+                      scale: isFocused ? 1.4 : 0.75,
+                      rotateY: -angle * (180 / Math.PI),
                     }}
                     transition={{
-                      duration: 0.4,
-                      ease: 'easeOut',
+                      duration: 0.6,
+                      ease: [0.25, 0.46, 0.45, 0.94],
                     }}
                     onHoverStart={() => setHoveredPlaylistId(playlistKey)}
                     onHoverEnd={() => setHoveredPlaylistId(null)}
-                    onClick={() => {
-                      if (isEmotion) {
-                        setSelectedEmotionPlaylist(playlist);
-                      } else {
-                        setSelectedPlaylist(playlist);
-                      }
-                    }}
+                    onClick={() => handlePlaylistClick(playlist, index)}
                   >
                     <motion.div
-                      className="relative w-48 h-60 rounded-3xl overflow-hidden"
+                      className="relative w-56 h-72 rounded-3xl overflow-hidden group"
                       style={{
                         background: isEmotion 
                           ? `linear-gradient(135deg, ${
@@ -881,24 +924,32 @@ const LibraryPage = () => {
                               '#9ca3af, #6b7280'
                             })`
                           : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                        boxShadow: `0 0 50px ${glowColor}, inset 0 0 30px ${glowColor}`,
+                        boxShadow: isFocused 
+                          ? `0 0 80px ${glowColor}, inset 0 0 50px ${glowColor}, 0 20px 60px rgba(0,0,0,0.6)` 
+                          : `0 0 40px ${glowColor}, inset 0 0 20px ${glowColor}`,
                         border: `3px solid ${glowColor}`,
                       }}
                       animate={{
-                        boxShadow: isHovered 
+                        boxShadow: isFocused 
                           ? [
-                              `0 0 60px ${glowColor}, inset 0 0 40px ${glowColor}`,
-                              `0 0 100px ${glowColor}, inset 0 0 60px ${glowColor}`,
-                              `0 0 60px ${glowColor}, inset 0 0 40px ${glowColor}`,
+                              `0 0 80px ${glowColor}, inset 0 0 50px ${glowColor}, 0 20px 60px rgba(0,0,0,0.6)`,
+                              `0 0 120px ${glowColor}, inset 0 0 70px ${glowColor}, 0 20px 60px rgba(0,0,0,0.6)`,
+                              `0 0 80px ${glowColor}, inset 0 0 50px ${glowColor}, 0 20px 60px rgba(0,0,0,0.6)`,
+                            ]
+                          : isHovered
+                          ? [
+                              `0 0 50px ${glowColor}, inset 0 0 30px ${glowColor}`,
+                              `0 0 70px ${glowColor}, inset 0 0 40px ${glowColor}`,
+                              `0 0 50px ${glowColor}, inset 0 0 30px ${glowColor}`,
                             ]
                           : [
-                              `0 0 40px ${glowColor}, inset 0 0 20px ${glowColor}`,
-                              `0 0 60px ${glowColor}, inset 0 0 30px ${glowColor}`,
-                              `0 0 40px ${glowColor}, inset 0 0 20px ${glowColor}`,
+                              `0 0 30px ${glowColor}, inset 0 0 15px ${glowColor}`,
+                              `0 0 45px ${glowColor}, inset 0 0 25px ${glowColor}`,
+                              `0 0 30px ${glowColor}, inset 0 0 15px ${glowColor}`,
                             ],
                       }}
                       transition={{
-                        duration: 1.5,
+                        duration: isFocused ? 1.2 : 1.8,
                         repeat: Infinity,
                         ease: 'easeInOut',
                       }}
@@ -909,225 +960,157 @@ const LibraryPage = () => {
                         style={{
                           background: `linear-gradient(45deg, ${glowColor}, rgba(255,255,255,0.4), ${glowColor})`,
                           backgroundSize: '200% 200%',
-                          opacity: 0.6,
+                          opacity: isFocused ? 0.8 : 0.5,
                           mixBlendMode: 'overlay',
                         }}
                         animate={{
                           backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-                          opacity: isHovered ? [0.6, 1, 0.6] : [0.4, 0.7, 0.4],
                         }}
                         transition={{
-                          backgroundPosition: {
-                            duration: 3,
-                            repeat: Infinity,
-                            ease: 'linear',
-                          },
-                          opacity: {
-                            duration: 1.5,
-                            repeat: Infinity,
-                            ease: 'easeInOut',
-                          }
+                          duration: 3,
+                          repeat: Infinity,
+                          ease: 'linear',
                         }}
                       />
 
-                      {/* Sparkle Effects on Hover */}
-                      {isHovered && (
-                        <>
-                          {[...Array(6)].map((_, i) => (
-                            <motion.div
-                              key={`sparkle-${i}`}
-                              className="absolute"
-                              style={{
-                                left: `${20 + Math.random() * 60}%`,
-                                top: `${20 + Math.random() * 60}%`,
-                              }}
-                              initial={{ scale: 0, rotate: 0 }}
-                              animate={{
-                                scale: [0, 1, 0],
-                                rotate: [0, 180, 360],
-                                opacity: [0, 1, 0],
-                              }}
-                              transition={{
-                                duration: 1,
-                                repeat: Infinity,
-                                delay: i * 0.2,
-                              }}
-                            >
-                              <Sparkles size={12} className="text-white" />
-                            </motion.div>
-                          ))}
-                        </>
-                      )}
-
-                      {/* Card Content */}
-                      <div className="relative z-10 h-full p-6 flex flex-col items-center justify-between">
-                        <div className="flex-1 flex items-center justify-center">
-                          {isEmotion ? (
-                            <div className="text-7xl mb-2">{getEmotionEmoji(playlist.emotion)}</div>
-                          ) : (
-                            <Music size={60} className="text-white/90" />
-                          )}
-                        </div>
-                        
-                        <div className="text-center space-y-2 w-full">
-                          <h3 className="text-white font-bold text-lg line-clamp-1 capitalize">
-                            {isEmotion ? playlist.emotion : playlist.name}
-                          </h3>
-                          {isEmotion && playlist.description && (
-                            <p className="text-white/70 text-xs line-clamp-2">{playlist.description}</p>
-                          )}
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center space-x-3 mt-4">
-                          <motion.button
-                            className="relative p-3 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full shadow-2xl"
-                            style={{
-                              boxShadow: '0 0 25px rgba(34, 197, 94, 0.7), inset 0 0 15px rgba(255, 255, 255, 0.3)',
-                            }}
-                            whileHover={{ 
-                              scale: 1.3, 
-                              boxShadow: '0 0 40px rgba(34, 197, 94, 1), inset 0 0 20px rgba(255, 255, 255, 0.5)',
-                              rotate: [0, -10, 10, 0],
-                            }}
-                            whileTap={{ scale: 0.85 }}
-                            animate={{
-                              boxShadow: [
-                                '0 0 25px rgba(34, 197, 94, 0.7), inset 0 0 15px rgba(255, 255, 255, 0.3)',
-                                '0 0 35px rgba(34, 197, 94, 0.9), inset 0 0 20px rgba(255, 255, 255, 0.4)',
-                                '0 0 25px rgba(34, 197, 94, 0.7), inset 0 0 15px rgba(255, 255, 255, 0.3)',
-                              ],
-                            }}
-                            transition={{
-                              boxShadow: {
-                                duration: 2,
-                                repeat: Infinity,
-                                ease: 'easeInOut',
-                              },
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (isEmotion) {
-                                handlePlayEmotionPlaylist(playlist.emotion);
-                              } else {
-                                handlePlayPlaylist(playlist.id);
-                              }
-                            }}
-                          >
-                            <Play size={20} className="text-white fill-white" />
-                            {/* Pulsing ring effect */}
-                            <motion.div
-                              className="absolute inset-0 rounded-full border-2 border-green-300"
-                              animate={{
-                                scale: [1, 1.5],
-                                opacity: [0.8, 0],
-                              }}
-                              transition={{
-                                duration: 1.5,
-                                repeat: Infinity,
-                              }}
-                            />
-                          </motion.button>
-                          
-                          {!isEmotion && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <motion.button
-                                  className="p-2 bg-gray-700/80 rounded-full"
-                                  whileHover={{ scale: 1.1, backgroundColor: 'rgba(55, 65, 81, 1)' }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MoreHorizontal size={16} className="text-white" />
-                                </motion.button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent className="bg-gray-900 border-cyan-500/30">
-                                <DropdownMenuItem 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startEditPlaylist(playlist);
-                                  }}
-                                  className="text-white hover:bg-gray-800"
-                                >
-                                  <Edit size={16} className="mr-2" />
-                                  Rename
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeletePlaylist(playlist.id, playlist.name);
-                                  }}
-                                  className="text-red-400 hover:bg-gray-800"
-                                >
-                                  <Trash2 size={16} className="mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Data Stream Particles */}
-                      {[...Array(3)].map((_, i) => (
+                      {/* Animated Pulsing Orbs */}
+                      <div className="absolute inset-0 opacity-30 pointer-events-none">
                         <motion.div
-                          key={i}
-                          className="absolute w-1 h-1 bg-cyan-400 rounded-full"
-                          style={{
-                            left: `${20 + i * 30}%`,
-                            top: '10%',
-                          }}
+                          className="absolute top-4 right-4 w-12 h-12 rounded-full"
+                          style={{ backgroundColor: `${glowColor}` }}
                           animate={{
-                            y: [0, 200],
-                            opacity: [0, 1, 0],
+                            scale: [1, 1.5, 1],
+                            opacity: [0.3, 0.6, 0.3],
                           }}
                           transition={{
                             duration: 2,
                             repeat: Infinity,
-                            delay: i * 0.3,
+                            ease: 'easeInOut',
                           }}
                         />
-                      ))}
+                        <motion.div
+                          className="absolute bottom-8 left-8 w-16 h-16 rounded-full"
+                          style={{ backgroundColor: `${glowColor}` }}
+                          animate={{
+                            scale: [1, 1.8, 1],
+                            opacity: [0.2, 0.5, 0.2],
+                          }}
+                          transition={{
+                            duration: 3,
+                            repeat: Infinity,
+                            ease: 'easeInOut',
+                            delay: 0.5,
+                          }}
+                        />
+                      </div>
+
+                      {/* Center Play Button */}
+                      <motion.div
+                        className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
+                        initial={{ opacity: 0 }}
+                        whileHover={{ opacity: 1 }}
+                      >
+                        <div className="flex items-center justify-center h-full">
+                          <motion.div
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className="pointer-events-auto"
+                          >
+                            <Play 
+                              size={isFocused ? 48 : 36} 
+                              fill="white" 
+                              className="text-white drop-shadow-2xl" 
+                            />
+                          </motion.div>
+                        </div>
+                      </motion.div>
+
+                      {/* Playlist Content */}
+                      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/95 via-black/70 to-transparent">
+                        <h3 className="text-white text-2xl font-bold mb-2 line-clamp-1">
+                          {playlist.name}
+                        </h3>
+                        <div className="flex items-center space-x-2">
+                          {isEmotion && (
+                            <span className="text-3xl">{getEmotionEmoji(playlist.emotion)}</span>
+                          )}
+                          <Music size={16} className="text-gray-300" />
+                          <span className="text-gray-300 text-sm">Playlist</span>
+                        </div>
+                      </div>
+
+                      {/* Dropdown Menu */}
+                      {!isEmotion && (
+                        <div className="absolute top-4 right-4 z-20">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-white hover:bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                }}
+                              >
+                                <MoreHorizontal size={20} />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="bg-gray-900 border-cyan-500/30 text-white">
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePlayPlaylist(playlist.id);
+                                }}
+                                className="hover:bg-gray-800 cursor-pointer"
+                              >
+                                <Play size={16} className="mr-2" />
+                                Play
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startEditPlaylist(playlist);
+                                }}
+                                className="hover:bg-gray-800 cursor-pointer"
+                              >
+                                <Edit size={16} className="mr-2" />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeletePlaylist(playlist.id, playlist.name);
+                                }}
+                                className="hover:bg-gray-800 text-red-400 cursor-pointer"
+                              >
+                                <Trash2 size={16} className="mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      )}
                     </motion.div>
                   </motion.div>
                 );
               })}
 
-              {/* Connecting Lines */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ transform: 'translateZ(-50px)' }}>
-                {allPlaylists.map((_, index) => {
-                  const nextIndex = (index + 1) % allPlaylists.length;
-                  const angle1 = (index / allPlaylists.length) * 2 * Math.PI;
-                  const angle2 = (nextIndex / allPlaylists.length) * 2 * Math.PI;
-                  const radius = 280;
-                  const centerX = 50;
-                  const centerY = 50;
-                  const x1 = centerX + (Math.cos(angle1) * radius) / 8;
-                  const y1 = centerY + (Math.sin(angle1) * radius) / 8;
-                  const x2 = centerX + (Math.cos(angle2) * radius) / 8;
-                  const y2 = centerY + (Math.sin(angle2) * radius) / 8;
-
-                  return (
-                    <motion.line
-                      key={`line-${index}`}
-                      x1={`${x1}%`}
-                      y1={`${y1}%`}
-                      x2={`${x2}%`}
-                      y2={`${y2}%`}
-                      stroke="rgba(0, 255, 200, 0.3)"
-                      strokeWidth="2"
-                      animate={{
-                        opacity: [0.2, 0.5, 0.2],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        delay: index * 0.1,
-                      }}
-                    />
-                  );
-                })}
-              </svg>
             </motion.div>
+
+            {/* Navigation Hints */}
+            {allPlaylists.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center space-x-6 text-gray-400 text-sm">
+                <div className="flex items-center space-x-2">
+                  <kbd className="px-2 py-1 bg-gray-800/50 rounded border border-gray-700">←</kbd>
+                  <kbd className="px-2 py-1 bg-gray-800/50 rounded border border-gray-700">→</kbd>
+                  <span>Arrow Keys</span>
+                </div>
+                <span>or</span>
+                <div className="flex items-center space-x-2">
+                  <span>Swipe</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
