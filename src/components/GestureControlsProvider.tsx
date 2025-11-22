@@ -51,11 +51,13 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     const fetchGesturePreference = async () => {
       if (!user) {
         // Disable when no user (auth page)
+        console.log('🤚 No user - disabling gesture controls');
         setGestureControlsEnabled(false);
         setIsLoading(false);
         return;
       }
 
+      console.log('🤚 User logged in - fetching gesture preference for:', user.id);
       try {
         const { data, error } = await supabase
           .from('profiles')
@@ -66,15 +68,20 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
         if (error) {
           console.error('Error fetching gesture controls preference:', error);
           // Default to true if error
+          console.log('🤚 Error fetching preference - defaulting to ENABLED');
           setGestureControlsEnabled(true);
         } else {
-          setGestureControlsEnabled((data as any)?.gesture_controls ?? true);
+          const enabled = (data as any)?.gesture_controls ?? true;
+          console.log('🤚 Fetched gesture preference:', enabled);
+          setGestureControlsEnabled(enabled);
         }
       } catch (error) {
         console.error('Unexpected error fetching gesture preference:', error);
+        console.log('🤚 Unexpected error - defaulting to ENABLED');
         setGestureControlsEnabled(true);
       } finally {
         setIsLoading(false);
+        console.log('🤚 Gesture preference fetch complete');
       }
     };
 
