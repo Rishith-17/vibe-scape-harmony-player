@@ -685,22 +685,20 @@ const LibraryPage = () => {
     }
   }, [allPlaylists.length]);
 
-  // Handle clicking a playlist
+  // Handle clicking a playlist - always open its detail view and center it
   const handlePlaylistClick = useCallback((playlist: any, index: number) => {
     const isEmotion = playlist.type === 'emotion';
-    
-    // If clicking the focused card, open it
-    if (index === focusedIndex) {
-      if (isEmotion) {
-        setSelectedEmotionPlaylist(playlist);
-      } else {
-        setSelectedPlaylist(playlist);
-      }
+
+    // Center the clicked card in the carousel for visual consistency
+    setFocusedIndex(index);
+
+    // Open the corresponding playlist detail view
+    if (isEmotion) {
+      setSelectedEmotionPlaylist(playlist);
     } else {
-      // If clicking a side card, rotate it to center
-      setFocusedIndex(index);
+      setSelectedPlaylist(playlist);
     }
-  }, [focusedIndex]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white pb-32 relative overflow-hidden">
