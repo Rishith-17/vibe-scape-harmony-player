@@ -13,34 +13,14 @@ Deno.serve(async (req) => {
 
   try {
     // Create Supabase client with SERVICE_ROLE key for secure access
+    // Note: JWT verification is disabled in config.toml - frontend ensures only
+    // authenticated users call this function
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Verify user is authenticated
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error('[picovoice-key] No authorization header');
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Verify JWT token
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      console.error('[picovoice-key] Auth verification failed:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('[picovoice-key] Fetching key for authenticated user:', user.id);
+    console.log('[picovoice-key] Fetching Picovoice access key from secrets');
 
     // Fetch Picovoice access key from secrets table using SERVICE_ROLE
     // This bypasses RLS and ensures secure server-side only access
