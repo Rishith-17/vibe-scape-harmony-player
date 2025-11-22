@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Music, MoreHorizontal, Play, Trash2, Edit, ArrowLeft, Shuffle, ArrowUpDown, Heart, Brain } from 'lucide-react';
+import { Plus, Music, MoreHorizontal, Play, Trash2, Edit, ArrowLeft, Shuffle, ArrowUpDown } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
@@ -18,7 +19,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface PlaylistSong {
   id: string;
@@ -306,7 +306,6 @@ const LibraryPage = () => {
       if (selectedPlaylist) {
         await removeFromPlaylist(selectedPlaylist.id, songId);
       } else if (selectedEmotionPlaylist) {
-        // Remove from emotion playlist
         const { error } = await supabase
           .from('emotion_playlist_songs')
           .delete()
@@ -398,7 +397,6 @@ const LibraryPage = () => {
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white pb-32">
-        {/* Header */}
         <div className="p-6">
           <Button
             variant="ghost"
@@ -413,10 +411,8 @@ const LibraryPage = () => {
           </Button>
         </div>
 
-        {/* Playlist Details Section */}
         <div className="px-6 mb-8">
           <div className="flex flex-col md:flex-row items-start md:items-end space-y-6 md:space-y-0 md:space-x-6">
-            {/* Playlist Cover */}
             <div className="flex-shrink-0">
               {generatePlaylistCover(currentPlaylistData) || (
                 <div className={`w-48 h-48 bg-gradient-to-br ${
@@ -429,7 +425,6 @@ const LibraryPage = () => {
               )}
             </div>
 
-            {/* Playlist Info */}
             <div className="flex-1 min-w-0">
               <p className="text-sm text-gray-400 mb-2">
                 {isEmotionPlaylist ? 'Emotion Playlist' : 'Playlist'}
@@ -446,7 +441,6 @@ const LibraryPage = () => {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex items-center space-x-4 mt-8">
             <Button
               onClick={handleShufflePlay}
@@ -480,7 +474,6 @@ const LibraryPage = () => {
           </div>
         </div>
 
-        {/* Song List */}
         <div className="px-6 mb-8">
           {isLoadingSongs ? (
             <div className="text-center py-16">
@@ -507,7 +500,6 @@ const LibraryPage = () => {
                   }`}
                   onClick={() => handlePlaySong(song, index)}
                 >
-                  {/* Track Number / Play Indicator */}
                   <div className="w-6 text-center">
                     {isCurrentlyPlaying(song) ? (
                       <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
@@ -517,7 +509,6 @@ const LibraryPage = () => {
                     <Play size={16} className="text-gray-400 hidden group-hover:block" />
                   </div>
 
-                  {/* Thumbnail */}
                   <div className="w-12 h-9 rounded overflow-hidden flex-shrink-0">
                     <img
                       src={`https://img.youtube.com/vi/${song.song_id}/hqdefault.jpg`}
@@ -530,7 +521,6 @@ const LibraryPage = () => {
                     />
                   </div>
 
-                  {/* Song Info */}
                   <div className="flex-1 min-w-0">
                     <h4 className={`font-medium line-clamp-1 ${
                       isCurrentlyPlaying(song) ? 'text-green-400' : 'text-white'
@@ -540,7 +530,6 @@ const LibraryPage = () => {
                     <p className="text-gray-400 text-sm line-clamp-1">{song.artist}</p>
                   </div>
 
-                  {/* Options Menu */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button 
@@ -570,7 +559,6 @@ const LibraryPage = () => {
           )}
         </div>
 
-        {/* Recommended Songs Section */}
         {recommendedSongs.length > 0 && (
           <div className="px-6">
             <h2 className="text-2xl font-bold mb-6">Recommended Songs</h2>
@@ -599,7 +587,6 @@ const LibraryPage = () => {
           </div>
         )}
 
-        {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="bg-gray-800 text-white border-gray-700">
             <DialogHeader>
@@ -635,44 +622,97 @@ const LibraryPage = () => {
     );
   }
 
+  // Combine all playlists for circular arrangement
+  const allPlaylists = [
+    ...emotionPlaylists.map(p => ({ ...p, type: 'emotion' as const })),
+    ...playlists.map(p => ({ ...p, type: 'regular' as const }))
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white pb-32">
-      <div className="pt-8 px-6">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-teal-400 bg-clip-text text-transparent">
+    <div className="min-h-screen bg-[#0a0e1a] text-white pb-32 relative overflow-hidden">
+      {/* Animated Background Grid */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'linear-gradient(rgba(0, 255, 200, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 200, 0.1) 1px, transparent 1px)',
+          backgroundSize: '50px 50px',
+          animation: 'grid-flow 20s linear infinite'
+        }} />
+      </div>
+
+      {/* Floating Particles */}
+      {[...Array(20)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1 h-1 bg-cyan-400 rounded-full"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+          }}
+          animate={{
+            y: [0, -30, 0],
+            opacity: [0.2, 0.8, 0.2],
+            scale: [1, 1.5, 1],
+          }}
+          transition={{
+            duration: 3 + Math.random() * 2,
+            repeat: Infinity,
+            delay: Math.random() * 2,
+          }}
+        />
+      ))}
+
+      <div className="pt-8 px-6 relative z-10">
+        <div className="flex items-center justify-between mb-16">
+          <motion.h1 
+            className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-green-400 to-cyan-400 bg-clip-text text-transparent"
+            animate={{
+              backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+            }}
+            transition={{
+              duration: 5,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+            style={{ backgroundSize: '200% 200%' }}
+          >
             Your Library
-          </h1>
+          </motion.h1>
           
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-green-600 hover:bg-green-700 text-white">
-                <Plus size={20} className="mr-2" />
-                Create Playlist
-              </Button>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-600 hover:to-cyan-600 text-white shadow-lg shadow-green-500/50">
+                  <Plus size={20} className="mr-2" />
+                  Create Playlist
+                </Button>
+              </motion.div>
             </DialogTrigger>
-            <DialogContent className="bg-gray-800 text-white border-gray-700">
+            <DialogContent className="bg-gray-900 text-white border-cyan-500/30 shadow-2xl shadow-cyan-500/20">
               <DialogHeader>
-                <DialogTitle>Create New Playlist</DialogTitle>
+                <DialogTitle className="text-2xl font-bold text-cyan-400">Create New Playlist</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <Input
                   placeholder="Enter playlist name"
                   value={newPlaylistName}
                   onChange={(e) => setNewPlaylistName(e.target.value)}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-gray-800 border-cyan-500/30 text-white focus:border-cyan-400 focus:ring-cyan-400"
                   onKeyPress={(e) => e.key === 'Enter' && handleCreatePlaylist()}
                 />
                 <div className="flex justify-end space-x-2">
                   <Button 
                     variant="outline" 
                     onClick={() => setIsCreateDialogOpen(false)}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                    className="border-gray-600 text-gray-300 hover:bg-gray-800"
                   >
                     Cancel
                   </Button>
                   <Button 
                     onClick={handleCreatePlaylist}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-600 hover:to-cyan-600"
                   >
                     Create
                   </Button>
@@ -682,278 +722,301 @@ const LibraryPage = () => {
           </Dialog>
         </div>
 
-        {/* Tabs for different playlist types */}
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800/50">
-            <TabsTrigger value="all" className="data-[state=active]:bg-gray-700">All</TabsTrigger>
-            <TabsTrigger value="regular" className="data-[state=active]:bg-gray-700">My Playlists</TabsTrigger>
-            <TabsTrigger value="emotions" className="data-[state=active]:bg-gray-700">
-              <Brain size={16} className="mr-2" />
-              Emotions
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="all" className="space-y-4 mt-6">
-            {/* Emotion Playlists Section */}
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <Brain size={20} className="mr-2" />
-                Emotion Playlists
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {emotionPlaylists.map((playlist) => (
-                  <div
-                    key={playlist.id}
-                    className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 cursor-pointer"
-                    onClick={() => setSelectedEmotionPlaylist(playlist)}
-                  >
-                    <div className={`w-full aspect-square bg-gradient-to-br ${getEmotionColor(playlist.emotion)} rounded-lg flex items-center justify-center mb-3`}>
-                      <div className="text-white text-4xl">{getEmotionEmoji(playlist.emotion)}</div>
-                    </div>
-                    <h3 className="text-white font-semibold text-center capitalize">{playlist.emotion}</h3>
-                    <p className="text-gray-400 text-sm text-center mt-1">{playlist.description}</p>
-                    <div className="flex justify-center mt-3">
-                      <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePlayEmotionPlaylist(playlist.emotion);
-                        }}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <Play size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Regular Playlists */}
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Your Playlists</h2>
-              <div className="space-y-4">
-                {playlists.map((playlist) => (
-                  <div
-                    key={playlist.id}
-                    className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 flex items-center justify-between cursor-pointer"
-                    onClick={() => setSelectedPlaylist(playlist)}
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                        <Music size={20} className="text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-white font-semibold">{playlist.name}</h3>
-                        <p className="text-gray-400 text-sm">Playlist</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePlayPlaylist(playlist.id);
-                        }}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <Play size={16} />
-                      </Button>
-                      
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-gray-400 hover:text-white"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreHorizontal size={16} />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="bg-gray-800 border-gray-700">
-                          <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEditPlaylist(playlist);
-                            }}
-                            className="text-white hover:bg-gray-700"
-                          >
-                            <Edit size={16} className="mr-2" />
-                            Rename
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeletePlaylist(playlist.id, playlist.name);
-                            }}
-                            className="text-red-400 hover:bg-gray-700"
-                          >
-                            <Trash2 size={16} className="mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="regular" className="space-y-4 mt-6">
-            {/* Regular Playlists */}
-            <div className="space-y-4">
-              {playlists.map((playlist) => (
-                <div
-                  key={playlist.id}
-                  className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 flex items-center justify-between cursor-pointer"
-                  onClick={() => setSelectedPlaylist(playlist)}
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                      <Music size={20} className="text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-white font-semibold">{playlist.name}</h3>
-                      <p className="text-gray-400 text-sm">Playlist</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePlayPlaylist(playlist.id);
-                      }}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      <Play size={16} />
-                    </Button>
-                    
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-gray-400 hover:text-white"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreHorizontal size={16} />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="bg-gray-800 border-gray-700">
-                        <DropdownMenuItem 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startEditPlaylist(playlist);
-                          }}
-                          className="text-white hover:bg-gray-700"
-                        >
-                          <Edit size={16} className="mr-2" />
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeletePlaylist(playlist.id, playlist.name);
-                          }}
-                          className="text-red-400 hover:bg-gray-700"
-                        >
-                          <Trash2 size={16} className="mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="emotions" className="space-y-4 mt-6">
-            {/* Emotion Playlists Only */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {emotionPlaylists.map((playlist) => (
-                <div
-                  key={playlist.id}
-                  className="bg-gray-800/50 rounded-xl p-4 backdrop-blur-sm hover:bg-gray-700/60 transition-all duration-300 cursor-pointer"
-                  onClick={() => setSelectedEmotionPlaylist(playlist)}
-                >
-                  <div className={`w-full aspect-square bg-gradient-to-br ${getEmotionColor(playlist.emotion)} rounded-lg flex items-center justify-center mb-3`}>
-                    <div className="text-white text-4xl">{getEmotionEmoji(playlist.emotion)}</div>
-                  </div>
-                  <h3 className="text-white font-semibold text-center capitalize">{playlist.emotion}</h3>
-                  <p className="text-gray-400 text-sm text-center mt-1">{playlist.description}</p>
-                  <div className="flex justify-center mt-3">
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePlayEmotionPlaylist(playlist.emotion);
-                      }}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      <Play size={16} />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {playlists.length === 0 && emotionPlaylists.length === 0 && (
+        {/* Empty State */}
+        {allPlaylists.length === 0 ? (
           <div className="text-center py-16">
-            <Music size={64} className="text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl text-gray-400 mb-2">No playlists yet</h3>
-            <p className="text-gray-500 mb-6">Create your first playlist to get started</p>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-green-600 hover:bg-green-700 text-white">
-                  <Plus size={20} className="mr-2" />
-                  Create Your First Playlist
-                </Button>
-              </DialogTrigger>
-            </Dialog>
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="text-gray-400 text-xl mb-4">Your library is empty</div>
+              <p className="text-gray-500 mb-6">Create your first playlist to get started</p>
+              <Button
+                onClick={() => setIsCreateDialogOpen(true)}
+                className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-600 hover:to-cyan-600 text-white"
+              >
+                <Plus size={20} className="mr-2" />
+                Create Playlist
+              </Button>
+            </motion.div>
+          </div>
+        ) : (
+          /* Circular 3D Playlist Arrangement */
+          <div className="relative w-full min-h-[600px] flex items-center justify-center perspective-[2000px]">
+            <motion.div
+              className="relative w-full max-w-4xl aspect-square"
+              animate={{
+                rotateY: [0, 360],
+              }}
+              transition={{
+                duration: 60,
+                repeat: Infinity,
+                ease: 'linear',
+              }}
+              style={{ transformStyle: 'preserve-3d' }}
+            >
+              {allPlaylists.map((playlist, index) => {
+                const angle = (index / allPlaylists.length) * 2 * Math.PI;
+                const radius = 280;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                const isEmotion = playlist.type === 'emotion';
+
+                return (
+                  <motion.div
+                    key={`${playlist.type}-${playlist.id}`}
+                    className="absolute top-1/2 left-1/2 cursor-pointer"
+                    style={{
+                      transform: `translate(-50%, -50%) translate3d(${x}px, 0, ${z}px) rotateY(${-angle * (180 / Math.PI)}deg)`,
+                      transformStyle: 'preserve-3d',
+                    }}
+                    whileHover={{
+                      scale: 1.3,
+                      z: 100,
+                      rotateY: 15,
+                      transition: { duration: 0.3 },
+                    }}
+                    onClick={() => {
+                      if (isEmotion) {
+                        setSelectedEmotionPlaylist(playlist);
+                      } else {
+                        setSelectedPlaylist(playlist);
+                      }
+                    }}
+                  >
+                    <motion.div
+                      className="relative w-44 h-56 rounded-3xl overflow-hidden"
+                      style={{
+                        background: isEmotion 
+                          ? `linear-gradient(135deg, ${
+                              playlist.emotion === 'happy' ? '#fbbf24, #f59e0b' : 
+                              playlist.emotion === 'sad' ? '#60a5fa, #3b82f6' :
+                              playlist.emotion === 'angry' ? '#f87171, #dc2626' :
+                              playlist.emotion === 'fear' ? '#a78bfa, #8b5cf6' :
+                              playlist.emotion === 'surprise' ? '#f472b6, #ec4899' :
+                              playlist.emotion === 'disgust' ? '#34d399, #10b981' :
+                              '#9ca3af, #6b7280'
+                            })`
+                          : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                        boxShadow: '0 0 40px rgba(0, 255, 200, 0.6), inset 0 0 20px rgba(0, 255, 200, 0.2)',
+                        border: '2px solid rgba(0, 255, 200, 0.5)',
+                      }}
+                      animate={{
+                        boxShadow: [
+                          '0 0 40px rgba(0, 255, 200, 0.6), inset 0 0 20px rgba(0, 255, 200, 0.2)',
+                          '0 0 60px rgba(0, 255, 200, 0.8), inset 0 0 30px rgba(0, 255, 200, 0.3)',
+                          '0 0 40px rgba(0, 255, 200, 0.6), inset 0 0 20px rgba(0, 255, 200, 0.2)',
+                        ],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                    >
+                      {/* Glowing Border Animation */}
+                      <motion.div
+                        className="absolute inset-0 rounded-3xl"
+                        style={{
+                          border: '3px solid transparent',
+                          background: 'linear-gradient(45deg, #00ffcc, #00ff88, #00ffcc) border-box',
+                          WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)',
+                          WebkitMaskComposite: 'destination-out',
+                          maskComposite: 'exclude',
+                        }}
+                        animate={{
+                          opacity: [0.5, 1, 0.5],
+                        }}
+                        transition={{
+                          duration: 1.5,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                        }}
+                      />
+
+                      {/* Card Content */}
+                      <div className="relative z-10 h-full p-6 flex flex-col items-center justify-between">
+                        <div className="flex-1 flex items-center justify-center">
+                          {isEmotion ? (
+                            <div className="text-7xl mb-2">{getEmotionEmoji(playlist.emotion)}</div>
+                          ) : (
+                            <Music size={60} className="text-white/90" />
+                          )}
+                        </div>
+                        
+                        <div className="text-center space-y-2 w-full">
+                          <h3 className="text-white font-bold text-lg line-clamp-1 capitalize">
+                            {isEmotion ? playlist.emotion : playlist.name}
+                          </h3>
+                          {isEmotion && playlist.description && (
+                            <p className="text-white/70 text-xs line-clamp-2">{playlist.description}</p>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center space-x-2 mt-3">
+                          <motion.button
+                            className="p-2 bg-green-500 rounded-full shadow-lg shadow-green-500/50"
+                            whileHover={{ scale: 1.2, boxShadow: '0 0 20px rgba(34, 197, 94, 0.8)' }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isEmotion) {
+                                handlePlayEmotionPlaylist(playlist.emotion);
+                              } else {
+                                handlePlayPlaylist(playlist.id);
+                              }
+                            }}
+                          >
+                            <Play size={16} className="text-white fill-white" />
+                          </motion.button>
+                          
+                          {!isEmotion && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <motion.button
+                                  className="p-2 bg-gray-700/80 rounded-full"
+                                  whileHover={{ scale: 1.1, backgroundColor: 'rgba(55, 65, 81, 1)' }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreHorizontal size={16} className="text-white" />
+                                </motion.button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="bg-gray-900 border-cyan-500/30">
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startEditPlaylist(playlist);
+                                  }}
+                                  className="text-white hover:bg-gray-800"
+                                >
+                                  <Edit size={16} className="mr-2" />
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeletePlaylist(playlist.id, playlist.name);
+                                  }}
+                                  className="text-red-400 hover:bg-gray-800"
+                                >
+                                  <Trash2 size={16} className="mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Data Stream Particles */}
+                      {[...Array(3)].map((_, i) => (
+                        <motion.div
+                          key={i}
+                          className="absolute w-1 h-1 bg-cyan-400 rounded-full"
+                          style={{
+                            left: `${20 + i * 30}%`,
+                            top: '10%',
+                          }}
+                          animate={{
+                            y: [0, 200],
+                            opacity: [0, 1, 0],
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            delay: i * 0.3,
+                          }}
+                        />
+                      ))}
+                    </motion.div>
+                  </motion.div>
+                );
+              })}
+
+              {/* Connecting Lines */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ transform: 'translateZ(-50px)' }}>
+                {allPlaylists.map((_, index) => {
+                  const nextIndex = (index + 1) % allPlaylists.length;
+                  const angle1 = (index / allPlaylists.length) * 2 * Math.PI;
+                  const angle2 = (nextIndex / allPlaylists.length) * 2 * Math.PI;
+                  const radius = 280;
+                  const centerX = 50;
+                  const centerY = 50;
+                  const x1 = centerX + (Math.cos(angle1) * radius) / 8;
+                  const y1 = centerY + (Math.sin(angle1) * radius) / 8;
+                  const x2 = centerX + (Math.cos(angle2) * radius) / 8;
+                  const y2 = centerY + (Math.sin(angle2) * radius) / 8;
+
+                  return (
+                    <motion.line
+                      key={`line-${index}`}
+                      x1={`${x1}%`}
+                      y1={`${y1}%`}
+                      x2={`${x2}%`}
+                      y2={`${y2}%`}
+                      stroke="rgba(0, 255, 200, 0.3)"
+                      strokeWidth="2"
+                      animate={{
+                        opacity: [0.2, 0.5, 0.2],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        delay: index * 0.1,
+                      }}
+                    />
+                  );
+                })}
+              </svg>
+            </motion.div>
           </div>
         )}
-
-        {/* Edit Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="bg-gray-800 text-white border-gray-700">
-            <DialogHeader>
-              <DialogTitle>Rename Playlist</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                placeholder="Enter new playlist name"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                className="bg-gray-700 border-gray-600 text-white"
-                onKeyPress={(e) => e.key === 'Enter' && saveEditPlaylist()}
-              />
-              <div className="flex justify-end space-x-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsEditDialogOpen(false)}
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={saveEditPlaylist}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  Save
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="bg-gray-900 text-white border-cyan-500/30 shadow-2xl shadow-cyan-500/20">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-cyan-400">Rename Playlist</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Enter new playlist name"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="bg-gray-800 border-cyan-500/30 text-white focus:border-cyan-400 focus:ring-cyan-400"
+              onKeyPress={(e) => e.key === 'Enter' && saveEditPlaylist()}
+            />
+            <div className="flex justify-end space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsEditDialogOpen(false)}
+                className="border-gray-600 text-gray-300 hover:bg-gray-800"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={saveEditPlaylist}
+                className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-600 hover:to-cyan-600"
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <style>{`
+        @keyframes grid-flow {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(50px); }
+        }
+        .perspective-\\[2000px\\] {
+          perspective: 2000px;
+        }
+      `}</style>
     </div>
   );
 };
