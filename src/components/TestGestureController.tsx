@@ -26,10 +26,10 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
         });
         break;
         
-      case 'thumbs_up':
+      case 'open_hand':
         toast({
           title: "🎵 Test Gesture",
-          description: "👍 Voice Control (Key: T)",
+          description: "🖐️ Voice Control (Key: O)",
         });
         // Dispatch voice control event
         const voiceEvent = new CustomEvent('vibescape:trigger-voice');
@@ -37,7 +37,7 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
         break;
         
       case 'peace':
-        const newVolumeUp = Math.min(100, currentVolume + 5);
+        const newVolumeUp = Math.min(100, currentVolume + 10);
         setCurrentVolume(newVolumeUp);
         setVolume(newVolumeUp);
         toast({
@@ -47,12 +47,12 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
         break;
         
       case 'rock':
-        const newVolumeDown = Math.max(0, currentVolume - 5);
+        const newVolumeDown = Math.max(0, currentVolume - 10);
         setCurrentVolume(newVolumeDown);
         setVolume(newVolumeDown);
         toast({
           title: "🎵 Test Gesture",
-          description: `🤟 Volume down: ${newVolumeDown}% (Key: R)`,
+          description: `🤘 Volume down: ${newVolumeDown}% (Key: R)`,
         });
         break;
     }
@@ -64,7 +64,7 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
     const handleKeyPress = (event: KeyboardEvent) => {
       switch(event.key.toLowerCase()) {
         case 'f': handleGesture('fist'); break;
-        case 't': handleGesture('thumbs_up'); break;
+        case 'o': handleGesture('open_hand'); break;
         case 'p': handleGesture('peace'); break;
         case 'r': handleGesture('rock'); break;
       }
@@ -80,7 +80,7 @@ export const TestGestureController: React.FC<TestGestureControllerProps> = ({ en
     <div className="fixed bottom-4 left-4 z-50 bg-yellow-100 border border-yellow-300 rounded-lg p-3 max-w-xs">
       <div className="text-sm font-medium text-yellow-800">⚠️ {status}</div>
       <div className="text-xs text-yellow-700 mt-1">
-        Test with keyboard: F=✊ T=👍 P=✌️ R=🤘
+        Test with keyboard: F=✊ O=🖐️ P=✌️ R=🤘
       </div>
       <div className="text-xs text-yellow-600 mt-1">
         Camera gesture detection will replace this when ready
