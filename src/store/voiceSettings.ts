@@ -26,12 +26,12 @@ interface VoiceSettingsStore extends VoiceSettings {
 
 const DEFAULT_SETTINGS: VoiceSettings = {
   enabled: true,
-  wakeEnabled: true, // "Hello Vibe" wake word enabled by default
-  pttOnly: false, // Allow both wake and tap
+  wakeEnabled: false, // Disabled by default (Porcupine has compatibility issues)
+  pttOnly: true, // Push-to-talk mode (Tap-Mic button) for better performance
   useOfflineAsr: false,
   language: 'en-IN',
-  wakeSensitivity: 0.7, // Slightly higher for better wake detection
-  ttsEnabled: true,
+  wakeSensitivity: 0.7,
+  ttsEnabled: false, // Disabled for better performance
   consentGiven: true,
 };
 
