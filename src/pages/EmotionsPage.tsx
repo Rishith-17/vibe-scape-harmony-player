@@ -1,12 +1,12 @@
 
 import React, { useState, useRef } from 'react';
-import { Upload, Camera, Image as ImageIcon, Brain, Sparkles, Palette, Zap } from 'lucide-react';
+import { Upload, Camera, Image as ImageIcon, Brain, Sparkles, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import EmotionResult from '@/components/EmotionResult';
 import ImageUploader from '@/components/ImageUploader';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { motion } from 'framer-motion';
 
 const EmotionDetector = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -112,130 +112,179 @@ const EmotionDetector = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white pb-32 relative overflow-hidden">
-      {/* Enhanced 3D Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-20 -right-20 sm:-top-40 sm:-right-40 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-primary to-accent rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse transform-gpu animate-[pulse_3s_ease-in-out_infinite]"></div>
-        <div className="absolute -bottom-20 -left-20 sm:-bottom-40 sm:-left-40 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-secondary to-primary rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse delay-1000 transform-gpu animate-[pulse_4s_ease-in-out_infinite]"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-r from-accent to-muted rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-pulse delay-500 transform-gpu animate-[pulse_5s_ease-in-out_infinite]"></div>
-        
-        {/* Additional floating 3D spheres with enhanced animations */}
-        <div className="absolute top-20 left-20 w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-primary to-accent/80 rounded-full opacity-30 animate-bounce transform-gpu shadow-2xl hover:scale-110 transition-transform duration-300" style={{ animationDuration: '3s', filter: 'drop-shadow(0 0 20px hsla(var(--primary), 0.5))' }}></div>
-        <div className="absolute bottom-32 right-32 w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-secondary to-primary/80 rounded-full opacity-40 animate-bounce delay-700 transform-gpu shadow-2xl hover:scale-110 transition-transform duration-300" style={{ animationDuration: '4s', filter: 'drop-shadow(0 0 15px hsla(var(--secondary), 0.5))' }}></div>
-        <div className="absolute top-1/3 right-20 w-12 h-12 sm:w-20 sm:h-20 bg-gradient-to-br from-accent to-muted/80 rounded-full opacity-50 animate-bounce delay-300 transform-gpu shadow-2xl hover:scale-110 transition-transform duration-300" style={{ animationDuration: '2.5s', filter: 'drop-shadow(0 0 10px hsla(var(--accent), 0.5))' }}></div>
-        
-        {/* Rotating gradient orbs */}
-        <div className="absolute top-16 right-1/4 w-8 h-8 sm:w-16 sm:h-16 bg-gradient-conic from-primary via-secondary to-accent rounded-full opacity-60 animate-spin" style={{ animationDuration: '8s' }}></div>
-        <div className="absolute bottom-16 left-1/4 w-6 h-6 sm:w-12 sm:h-12 bg-gradient-conic from-accent via-primary to-secondary rounded-full opacity-40 animate-spin" style={{ animationDuration: '6s', animationDirection: 'reverse' }}></div>
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a1a] via-[#0f0f28] to-[#050510] text-white pb-32 relative overflow-hidden">
+      {/* Animated Grid Background */}
+      <div className="absolute inset-0 opacity-20">
+        <div 
+          className="absolute inset-0" 
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, rgba(0, 255, 170, 0.1) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(0, 255, 170, 0.1) 1px, transparent 1px)
+            `,
+            backgroundSize: '50px 50px',
+            animation: 'gridFlow 20s linear infinite'
+          }}
+        />
       </div>
 
-      {/* Enhanced Floating Particles with 3D effect and gradient colors */}
-      <div className="absolute inset-0">
-        {[...Array(30)].map((_, i) => (
-          <div
+      {/* Floating Data Stream Particles */}
+      <div className="absolute inset-0 overflow-hidden">
+        {[...Array(40)].map((_, i) => (
+          <motion.div
             key={i}
-            className={`absolute w-2 h-2 ${i % 3 === 0 ? 'bg-primary' : i % 3 === 1 ? 'bg-secondary' : 'bg-accent'} rounded-full opacity-20 animate-ping transform-gpu shadow-lg`}
+            className="absolute w-1 h-1 rounded-full"
             style={{
+              background: i % 3 === 0 ? '#00ffaa' : i % 3 === 1 ? '#00d4ff' : '#7000ff',
+              boxShadow: `0 0 ${4 + Math.random() * 8}px currentColor`,
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 2}s`,
-              animationDuration: `${2 + Math.random() * 2}s`,
-              transform: `perspective(1000px) rotateX(${Math.random() * 360}deg) rotateY(${Math.random() * 360}deg) translateZ(${Math.random() * 50}px)`,
-              filter: `drop-shadow(0 0 ${2 + Math.random() * 4}px currentColor)`
             }}
-          ></div>
+            animate={{
+              y: [0, -100, 0],
+              opacity: [0, 1, 0],
+              scale: [0, 1.5, 0]
+            }}
+            transition={{
+              duration: 3 + Math.random() * 3,
+              repeat: Infinity,
+              delay: Math.random() * 2,
+              ease: "easeInOut"
+            }}
+          />
         ))}
       </div>
 
-      {/* Animated Neural Network Lines with gradient strokes */}
-      <div className="absolute inset-0 opacity-15">
-        <svg className="w-full h-full">
-          <defs>
-            <linearGradient id="neuralGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="hsla(var(--primary), 0.8)" />
-              <stop offset="100%" stopColor="hsla(var(--accent), 0.8)" />
-            </linearGradient>
-            <linearGradient id="neuralGradient2" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="hsla(var(--secondary), 0.8)" />
-              <stop offset="100%" stopColor="hsla(var(--primary), 0.8)" />
-            </linearGradient>
-          </defs>
-          {[...Array(12)].map((_, i) => (
-            <line
-              key={i}
-              x1={`${Math.random() * 100}%`}
-              y1={`${Math.random() * 100}%`}
-              x2={`${Math.random() * 100}%`}
-              y2={`${Math.random() * 100}%`}
-              stroke={i % 2 === 0 ? "url(#neuralGradient1)" : "url(#neuralGradient2)"}
-              strokeWidth="2"
-              className="animate-pulse"
-              style={{ 
-                animationDelay: `${i * 0.3}s`,
-                animationDuration: `${3 + Math.random() * 2}s`,
-                filter: 'drop-shadow(0 0 3px currentColor)'
-              }}
-            />
-          ))}
-        </svg>
+      {/* Ambient Lighting Effects */}
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.div
+          className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute bottom-0 right-1/4 w-96 h-96 bg-green-500/20 rounded-full blur-3xl"
+          animate={{
+            scale: [1.3, 1, 1.3],
+            opacity: [0.5, 0.3, 0.5],
+          }}
+          transition={{
+            duration: 5,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
       </div>
 
       <div className="relative z-10 container mx-auto px-4 sm:px-6 py-6 sm:py-12">
-        {/* Header - Mobile optimized */}
-        <div className="text-center mb-8 sm:mb-16">
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 rounded-full blur-lg opacity-75 animate-pulse"></div>
-              <div className="relative p-4 sm:p-6 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white transform hover:scale-110 transition-all duration-300 shadow-2xl">
-                <Brain className="w-8 h-8 sm:w-12 sm:h-12 animate-bounce" />
+        {/* Add grid animation keyframes */}
+        <style>{`
+          @keyframes gridFlow {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(50px); }
+          }
+        `}</style>
+
+        {/* Header */}
+        <motion.div 
+          className="text-center mb-12"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="flex justify-center items-center gap-4 mb-6">
+            <motion.div 
+              className="relative"
+              animate={{
+                rotate: [0, 360],
+              }}
+              transition={{
+                duration: 20,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-green-500 rounded-full blur-xl opacity-60"></div>
+              <div className="relative p-6 rounded-full bg-gradient-to-br from-cyan-500 to-green-500 text-black">
+                <Brain className="w-12 h-12" />
               </div>
-            </div>
-            <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold bg-gradient-to-r from-cyan-400 via-pink-400 to-purple-400 bg-clip-text text-transparent animate-pulse transform hover:scale-105 transition-all duration-500 text-center">
+            </motion.div>
+            <h1 className="text-6xl font-bold bg-gradient-to-r from-cyan-400 via-green-400 to-cyan-400 bg-clip-text text-transparent">
               Emotion Detector
             </h1>
           </div>
-          <p className="text-lg sm:text-2xl text-gray-200 max-w-4xl mx-auto mb-6 sm:mb-8 leading-relaxed px-4">
-            🎨 Discover the magic of AI-powered emotion recognition
+          <p className="text-xl text-cyan-300/80 max-w-3xl mx-auto">
+            AI-powered facial emotion recognition with neural network analysis
           </p>
-          
-          {/* Feature Pills - Mobile responsive */}
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
-            {[
-              { icon: Sparkles, text: "AI Powered", color: "from-yellow-400 to-orange-500" },
-              { icon: Zap, text: "Real-time", color: "from-cyan-400 to-teal-500" },
-              { icon: Palette, text: "Advanced", color: "from-purple-400 to-pink-500" }
-            ].map((feature, index) => (
-              <div
-                key={index}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r ${feature.color} rounded-full text-white text-sm sm:text-base font-medium shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300 animate-fade-in`}
-                style={{ animationDelay: `${index * 0.2}s` }}
-              >
-                <feature.icon className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>{feature.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        </motion.div>
 
-        {/* Main Content - Mobile first layout */}
-        <div className="max-w-6xl mx-auto space-y-6 lg:space-y-0 lg:grid lg:gap-8 lg:grid-cols-2">
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8">
           {/* Upload Section */}
-          <div className="order-1">
-            <Card className="border-0 shadow-2xl bg-gradient-to-br from-emerald-500/20 via-teal-600/15 to-cyan-500/20 backdrop-blur-xl border border-emerald-400/30 hover:shadow-emerald-500/40 transition-all duration-500 hover:scale-[1.05] hover:border-emerald-400/60 transform-gpu animate-pulse hover:animate-none relative overflow-hidden group"
-                  style={{
-                    background: 'linear-gradient(135deg, hsla(160, 84%, 39%, 0.25), hsla(173, 58%, 39%, 0.15), hsla(188, 78%, 41%, 0.25))',
-                    boxShadow: '0 20px 40px -10px hsla(160, 84%, 39%, 0.3), inset 0 1px 0 hsla(160, 84%, 60%, 0.4)',
-                    transform: 'perspective(1000px) rotateX(2deg) rotateY(-2deg)',
-                  }}>
-              {/* Animated gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 via-teal-500/10 to-cyan-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse"></div>
-              <CardContent className="p-4 sm:p-6 lg:p-8 relative z-10">
-                <div className="flex items-center gap-3 mb-6 sm:mb-8">
-                  <div className="p-2 sm:p-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-xl animate-bounce hover:animate-spin transition-all duration-300"
-                       style={{ filter: 'drop-shadow(0 0 15px hsla(160, 84%, 39%, 0.6))' }}>
-                    <Upload className="w-4 h-4 sm:w-6 sm:h-6" />
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground animate-pulse">Upload Image</h2>
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <motion.div 
+              className="relative p-8 rounded-[2rem] overflow-hidden"
+              style={{
+                background: 'linear-gradient(145deg, rgba(10, 10, 26, 0.8), rgba(15, 15, 40, 0.9))',
+                backdropFilter: 'blur(20px)',
+                border: '2px solid transparent',
+                backgroundClip: 'padding-box',
+                transform: 'perspective(1000px) rotateY(-2deg)',
+              }}
+              whileHover={{
+                scale: 1.02,
+                rotateY: 0,
+                transition: { duration: 0.3 }
+              }}
+            >
+              {/* Glowing Border Effect */}
+              <motion.div
+                className="absolute inset-0 rounded-[2rem] opacity-60"
+                style={{
+                  background: 'linear-gradient(145deg, #00ffaa, #00d4ff, #00ffaa)',
+                  filter: 'blur(8px)',
+                }}
+                animate={{
+                  opacity: [0.4, 0.8, 0.4],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              
+              {/* Content */}
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <motion.div 
+                    className="p-3 rounded-xl bg-gradient-to-br from-cyan-500 to-green-500"
+                    animate={{
+                      boxShadow: [
+                        '0 0 20px rgba(0, 255, 170, 0.5)',
+                        '0 0 40px rgba(0, 255, 170, 0.8)',
+                        '0 0 20px rgba(0, 255, 170, 0.5)',
+                      ]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                    }}
+                  >
+                    <Upload className="w-6 h-6 text-black" />
+                  </motion.div>
+                  <h2 className="text-2xl font-bold text-cyan-300">Upload Image</h2>
                 </div>
                 
                 <ImageUploader
@@ -248,55 +297,45 @@ const EmotionDetector = () => {
                 <div className="flex gap-3 mt-6">
                   <Button
                     onClick={handleCameraCapture}
-                    className="flex-1 h-12 bg-gradient-to-r from-violet-500 via-purple-600 to-indigo-600 hover:from-violet-600 hover:via-purple-700 hover:to-indigo-700 text-white font-medium transition-all duration-300 shadow-2xl hover:shadow-violet-500/60 transform hover:scale-110 border-0 animate-pulse hover:animate-none relative overflow-hidden group"
-                    style={{
-                      background: 'linear-gradient(135deg, hsla(258, 90%, 66%, 1), hsla(275, 54%, 53%, 1), hsla(239, 84%, 67%, 1))',
-                      boxShadow: '0 15px 30px -5px hsla(258, 90%, 66%, 0.4), inset 0 1px 0 hsla(258, 90%, 80%, 0.6)',
-                      filter: 'drop-shadow(0 4px 12px hsla(258, 90%, 66%, 0.4))',
-                      transform: 'perspective(500px) rotateX(5deg) rotateY(-3deg)',
-                    }}
+                    className="flex-1 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium transition-all duration-300 border-0 relative overflow-hidden group"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 via-indigo-500/20 to-violet-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-pulse"></div>
-                    <Camera className="w-4 h-4 mr-2 relative z-10 animate-bounce" />
-                    <span className="hidden sm:inline relative z-10">Take Photo</span>
-                    <span className="sm:hidden relative z-10">Camera</span>
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-purple-400 to-indigo-400 opacity-0 group-hover:opacity-30"
+                      whileHover={{ opacity: 0.3 }}
+                    />
+                    <Camera className="w-4 h-4 mr-2 relative z-10" />
+                    <span className="relative z-10">Take Photo</span>
                   </Button>
                   
                   <Button
                     onClick={() => fileInputRef.current?.click()}
                     variant="outline"
-                    className="flex-1 h-12 border-2 border-orange-400/60 hover:bg-gradient-to-r hover:from-orange-500/20 hover:to-red-500/20 text-foreground hover:text-orange-100 backdrop-blur-sm transition-all duration-300 transform hover:scale-110 bg-gradient-to-r from-orange-400/10 to-red-500/10 shadow-lg hover:shadow-orange-500/40 animate-pulse hover:animate-none relative overflow-hidden group"
-                    style={{
-                      borderColor: 'hsla(25, 95%, 53%, 0.6)',
-                      background: 'linear-gradient(135deg, hsla(25, 95%, 53%, 0.15), hsla(0, 84%, 60%, 0.15))',
-                      boxShadow: '0 10px 25px -5px hsla(25, 95%, 53%, 0.3), inset 0 1px 0 hsla(25, 95%, 70%, 0.4)',
-                      transform: 'perspective(500px) rotateX(-3deg) rotateY(3deg)',
-                    }}
+                    className="flex-1 h-12 border-2 border-cyan-500/60 hover:bg-cyan-500/20 text-cyan-300 backdrop-blur-sm transition-all duration-300"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-orange-300/20 to-red-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <ImageIcon className="w-4 h-4 mr-2 relative z-10 animate-bounce" />
-                    <span className="hidden sm:inline relative z-10">Gallery</span>
-                    <span className="sm:hidden relative z-10">Upload</span>
+                    <ImageIcon className="w-4 h-4 mr-2" />
+                    Gallery
                   </Button>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8">
+                <div className="flex gap-4 mt-6">
                   <Button
                     onClick={analyzeEmotion}
                     disabled={!selectedImage || isAnalyzing}
-                    className="flex-1 h-12 sm:h-14 text-base sm:text-lg bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 text-white font-bold transition-all duration-300 shadow-2xl hover:shadow-purple-500/50 transform hover:scale-105 border-0"
+                    className="flex-1 h-14 text-lg bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-600 hover:to-green-600 text-black font-bold transition-all duration-300 border-0 relative overflow-hidden group"
                   >
                     {isAnalyzing ? (
                       <>
-                        <div className="w-4 h-4 sm:w-5 sm:h-5 border-3 border-white border-t-transparent rounded-full animate-spin mr-2 sm:mr-3" />
-                        <span className="hidden sm:inline">Analyzing Magic...</span>
-                        <span className="sm:hidden">Analyzing...</span>
+                        <motion.div 
+                          className="w-5 h-5 border-3 border-black border-t-transparent rounded-full mr-3"
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        />
+                        Analyzing...
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 animate-pulse" />
-                        <span className="hidden sm:inline">Detect Emotions ✨</span>
-                        <span className="sm:hidden">Detect ✨</span>
+                        <Sparkles className="w-5 h-5 mr-3" />
+                        Detect Emotions
                       </>
                     )}
                   </Button>
@@ -305,85 +344,126 @@ const EmotionDetector = () => {
                     <Button
                       variant="outline"
                       onClick={resetDetector}
-                      className="px-4 sm:px-8 h-12 sm:h-14 border-2 border-white/30 hover:bg-white/10 text-white hover:text-white backdrop-blur-sm transition-all duration-300 transform hover:scale-105"
+                      className="px-8 h-14 border-2 border-red-500/60 hover:bg-red-500/20 text-red-400 backdrop-blur-sm transition-all duration-300"
                     >
                       Reset
                     </Button>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </motion.div>
+          </motion.div>
 
           {/* Results Section */}
-          <div className="order-2">
-            <Card className="border-0 shadow-2xl bg-gradient-to-br from-rose-500/20 via-pink-600/15 to-fuchsia-500/20 backdrop-blur-xl border border-rose-400/30 hover:shadow-rose-500/40 transition-all duration-500 hover:scale-[1.05] hover:border-rose-400/60 transform-gpu animate-pulse hover:animate-none relative overflow-hidden group"
-                  style={{
-                    background: 'linear-gradient(135deg, hsla(330, 81%, 60%, 0.25), hsla(328, 85%, 70%, 0.15), hsla(292, 84%, 61%, 0.25))',
-                    boxShadow: '0 20px 40px -10px hsla(330, 81%, 60%, 0.3), inset 0 1px 0 hsla(330, 81%, 75%, 0.4)',
-                    transform: 'perspective(1000px) rotateX(-2deg) rotateY(2deg)',
-                  }}>
-              {/* Animated gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-r from-rose-400/10 via-pink-500/10 to-fuchsia-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse"></div>
-              <CardContent className="p-4 sm:p-6 lg:p-8 relative z-10">
-                <div className="flex items-center gap-3 mb-6 sm:mb-8">
-                  <div className="p-2 sm:p-3 rounded-full bg-gradient-to-r from-rose-500 to-fuchsia-600 text-white shadow-xl animate-pulse hover:animate-spin transition-all duration-300"
-                       style={{ filter: 'drop-shadow(0 0 15px hsla(330, 81%, 60%, 0.6))' }}>
-                    <Brain className="w-4 h-4 sm:w-6 sm:h-6" />
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground animate-pulse">AI Results</h2>
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <motion.div 
+              className="relative p-8 rounded-[2rem] overflow-hidden min-h-[500px]"
+              style={{
+                background: 'linear-gradient(145deg, rgba(10, 10, 26, 0.8), rgba(15, 15, 40, 0.9))',
+                backdropFilter: 'blur(20px)',
+                border: '2px solid transparent',
+                backgroundClip: 'padding-box',
+                transform: 'perspective(1000px) rotateY(2deg)',
+              }}
+              whileHover={{
+                scale: 1.02,
+                rotateY: 0,
+                transition: { duration: 0.3 }
+              }}
+            >
+              {/* Glowing Border Effect */}
+              <motion.div
+                className="absolute inset-0 rounded-[2rem] opacity-60"
+                style={{
+                  background: 'linear-gradient(145deg, #7000ff, #00d4ff, #7000ff)',
+                  filter: 'blur(8px)',
+                }}
+                animate={{
+                  opacity: [0.4, 0.8, 0.4],
+                }}
+                transition={{
+                  duration: 2.5,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              
+              {/* Content */}
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <motion.div 
+                    className="p-3 rounded-xl bg-gradient-to-br from-purple-600 to-cyan-500"
+                    animate={{
+                      boxShadow: [
+                        '0 0 20px rgba(112, 0, 255, 0.5)',
+                        '0 0 40px rgba(112, 0, 255, 0.8)',
+                        '0 0 20px rgba(112, 0, 255, 0.5)',
+                      ]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                    }}
+                  >
+                    <Brain className="w-6 h-6 text-white" />
+                  </motion.div>
+                  <h2 className="text-2xl font-bold text-purple-300">AI Results</h2>
                 </div>
 
                 {emotionResult ? (
-                  <div className="animate-fade-in">
-                    <EmotionResult emotions={emotionResult} />
-                  </div>
+                  <EmotionResult emotions={emotionResult} />
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-12 sm:py-16 text-foreground/80 text-center">
-                    <div className="relative mb-4 sm:mb-6">
-                      <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-500 rounded-full blur-lg opacity-50 animate-pulse"
-                           style={{ filter: 'drop-shadow(0 0 20px hsla(200, 98%, 60%, 0.4))' }}></div>
-                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-500 flex items-center justify-center shadow-2xl animate-bounce transform-gpu"
-                           style={{
-                             background: 'linear-gradient(135deg, hsla(188, 78%, 41%, 1), hsla(221, 83%, 53%, 1), hsla(271, 91%, 65%, 1))',
-                             boxShadow: '0 15px 30px -5px hsla(200, 80%, 50%, 0.4), inset 0 2px 0 hsla(200, 80%, 70%, 0.6)',
-                             transform: 'perspective(500px) rotateX(10deg) rotateY(-10deg)',
-                           }}>
-                        <Brain className="w-8 h-8 sm:w-10 sm:h-10 text-white animate-bounce" />
-                      </div>
-                    </div>
-                    <p className="text-lg sm:text-xl font-medium px-4 animate-pulse">
-                      {isAnalyzing
-                        ? '🔮 Analyzing emotions...'
-                        : '📸 Upload an image to discover emotions'}
+                  <div className="flex flex-col items-center justify-center h-[400px] text-center">
+                    <motion.div
+                      animate={{
+                        scale: [1, 1.1, 1],
+                        opacity: [0.5, 0.8, 0.5]
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                      }}
+                    >
+                      <Brain className="w-24 h-24 text-cyan-500/30 mb-4" />
+                    </motion.div>
+                    <p className="text-xl text-cyan-300/50">
+                      {isAnalyzing ? 'Analyzing emotion patterns...' : 'Upload an image to detect emotions'}
                     </p>
-                    {!isAnalyzing && (
-                      <p className="text-sm text-muted-foreground mt-3 sm:mt-4 px-4 animate-pulse">
-                        ✨ Experience AI emotion recognition
-                      </p>
+                    
+                    {/* Floating Data Indicators */}
+                    {isAnalyzing && (
+                      <div className="mt-8 relative w-full h-32">
+                        {[...Array(8)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="absolute w-2 h-2 bg-cyan-400 rounded-full"
+                            style={{
+                              left: `${10 + i * 10}%`,
+                              boxShadow: '0 0 10px currentColor'
+                            }}
+                            animate={{
+                              y: [0, -60, 0],
+                              opacity: [0, 1, 0],
+                            }}
+                            transition={{
+                              duration: 1.5,
+                              repeat: Infinity,
+                              delay: i * 0.15,
+                              ease: "easeInOut"
+                            }}
+                          />
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Bottom Feature Pills - Mobile optimized */}
-        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mt-12 sm:mt-16 px-4">
-          {[
-            { icon: Camera, text: "Camera", color: "from-green-400 to-blue-500" },
-            { icon: ImageIcon, text: "Gallery", color: "from-pink-400 to-purple-500" }
-          ].map((feature, index) => (
-            <div
-              key={index}
-              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r ${feature.color} rounded-full text-white text-sm sm:text-base font-medium shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300 animate-fade-in`}
-              style={{ animationDelay: `${index * 0.2}s` }}
-            >
-              <feature.icon className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span>{feature.text}</span>
-            </div>
-          ))}
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
     </div>
@@ -391,4 +471,3 @@ const EmotionDetector = () => {
 };
 
 export default EmotionDetector;
-            
