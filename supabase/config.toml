@@ -72,3 +72,6 @@ verify_jwt = false
 
 [functions.emotion-detection]
 verify_jwt = false
+
+[functions.gemini-query]
+verify_jwt = true  # Requires authentication for security

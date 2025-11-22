@@ -25,6 +25,7 @@ export type VoiceAction =
   | 'scroll_to_bottom'
   | 'stop_listening'
   | 'help'
+  | 'song_info'
   | 'unknown';
 
 export type MoodType = 'happy' | 'calm' | 'focus' | 'chill' | 'romantic' | 'energetic' | 'sad';
@@ -42,6 +43,7 @@ export interface VoiceIntent {
     playlistName?: string;
     sectionId?: string;
     amount?: 'small' | 'medium' | 'large' | 'page';
+    songTitle?: string;
   };
   raw: string;
   confidence: number;
