@@ -16,7 +16,7 @@ interface GestureControlsProviderProps {
 }
 
 export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const musicPlayer = useMusicPlayer();
   const [gestureControlsEnabled, setGestureControlsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,12 +46,12 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     onDoubleClap: activateVoiceControl
   });
 
-  // Fetch user's gesture controls preference (default to true if no user)
+  // Fetch user's gesture controls preference (disabled when no user)
   useEffect(() => {
     const fetchGesturePreference = async () => {
       if (!user) {
-        // Enable by default when no user (for testing)
-        setGestureControlsEnabled(true);
+        // Disable when no user (auth page)
+        setGestureControlsEnabled(false);
         setIsLoading(false);
         return;
       }
@@ -81,11 +81,11 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     fetchGesturePreference();
   }, [user]);
 
-  // Enable gesture detection when enabled (works with or without music)
+  // Enable gesture detection only when user is logged in and auth is not loading
   const { isPlaying } = useMusicPlayer();
   
   const gestureDetection = useSimpleGestureDetection({
-    enabled: gestureControlsEnabled,
+    enabled: !authLoading && !!user && gestureControlsEnabled,
     onGesture: handleGestureCommand
   });
 
@@ -156,16 +156,16 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   return (
     <>
       {children}
-      {user && (
+      {user && gestureControlsEnabled && (
         <>
           <GestureStatusIndicator
-            isEnabled={gestureControlsEnabled && !isLoading}
+            isEnabled={!isLoading}
             status={gestureDetection.status}
             isActive={gestureDetection.isActive}
             lastGesture={gestureDetection.lastGesture}
           />
           <TestGestureController 
-            enabled={gestureControlsEnabled && !isLoading && !gestureDetection.isActive}
+            enabled={!isLoading && !gestureDetection.isActive}
           />
           <GestureTutorial
             isOpen={showTutorial}
