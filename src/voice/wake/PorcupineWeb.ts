@@ -38,18 +38,8 @@ export class PorcupineWebEngine implements WakeWordEngine {
     try {
       // Step 1: Fetch access key from secure server-side endpoint
       console.debug('[PorcupineWeb] 🔐 Fetching access key from server...');
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.warn('[PorcupineWeb] ⚠️ No authenticated session - cannot fetch key');
-        return;
-      }
 
-      const { data, error } = await supabase.functions.invoke('picovoice-key', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
+      const { data, error } = await supabase.functions.invoke('picovoice-key');
 
       if (error || !data?.accessKey) {
         console.error('[PorcupineWeb] ❌ Failed to fetch access key:', error);
