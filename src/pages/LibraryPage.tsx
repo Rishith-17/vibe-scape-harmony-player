@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Music, MoreHorizontal, Play, Trash2, Edit, ArrowLeft, Shuffle, ArrowUpDown } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Plus, Music, MoreHorizontal, Play, Trash2, Edit, ArrowLeft, Shuffle, ArrowUpDown, Sparkles } from 'lucide-react';
+import { motion, useMotionValue } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
@@ -58,6 +58,7 @@ const LibraryPage = () => {
   const [playlistSongs, setPlaylistSongs] = useState<PlaylistSong[]>([]);
   const [recommendedSongs, setRecommendedSongs] = useState<any[]>([]);
   const [isLoadingSongs, setIsLoadingSongs] = useState(false);
+  const [hoveredPlaylistId, setHoveredPlaylistId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -391,6 +392,29 @@ const LibraryPage = () => {
     return colorMap[emotion] || 'from-gray-400 to-gray-600';
   };
 
+  const getPlaylistGlowColor = (playlist: any, index: number) => {
+    if (playlist.type === 'emotion') {
+      const glowMap: { [key: string]: string } = {
+        happy: 'rgba(251, 191, 36, 0.8)',
+        sad: 'rgba(96, 165, 250, 0.8)',
+        angry: 'rgba(248, 113, 113, 0.8)',
+        fear: 'rgba(167, 139, 250, 0.8)',
+        surprise: 'rgba(244, 114, 182, 0.8)',
+        disgust: 'rgba(52, 211, 153, 0.8)',
+        neutral: 'rgba(156, 163, 175, 0.8)'
+      };
+      return glowMap[playlist.emotion] || 'rgba(0, 255, 200, 0.8)';
+    }
+    // Cycle through vibrant colors for regular playlists
+    const colors = [
+      'rgba(168, 85, 247, 0.8)', // purple
+      'rgba(236, 72, 153, 0.8)', // pink
+      'rgba(34, 197, 94, 0.8)', // green
+      'rgba(6, 182, 212, 0.8)', // cyan
+    ];
+    return colors[index % colors.length];
+  };
+
   if (selectedPlaylist || selectedEmotionPlaylist) {
     const currentPlaylistData = selectedPlaylist || selectedEmotionPlaylist;
     const isEmotionPlaylist = !!selectedEmotionPlaylist;
@@ -639,24 +663,74 @@ const LibraryPage = () => {
         }} />
       </div>
 
-      {/* Floating Particles */}
-      {[...Array(20)].map((_, i) => (
+      {/* Floating Particles and Stars */}
+      {[...Array(30)].map((_, i) => (
         <motion.div
-          key={i}
-          className="absolute w-1 h-1 bg-cyan-400 rounded-full"
+          key={`particle-${i}`}
+          className="absolute rounded-full"
+          style={{
+            width: i % 3 === 0 ? '3px' : '1px',
+            height: i % 3 === 0 ? '3px' : '1px',
+            backgroundColor: i % 2 === 0 ? '#00ffcc' : '#a78bfa',
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+          }}
+          animate={{
+            y: [0, -40, 0],
+            x: [0, Math.random() * 20 - 10, 0],
+            opacity: [0.1, 1, 0.1],
+            scale: [1, 1.8, 1],
+          }}
+          transition={{
+            duration: 4 + Math.random() * 3,
+            repeat: Infinity,
+            delay: Math.random() * 3,
+            ease: 'easeInOut',
+          }}
+        />
+      ))}
+
+      {/* Twinkling Stars */}
+      {[...Array(50)].map((_, i) => (
+        <motion.div
+          key={`star-${i}`}
+          className="absolute w-0.5 h-0.5 bg-white rounded-full"
           style={{
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
           }}
           animate={{
-            y: [0, -30, 0],
-            opacity: [0.2, 0.8, 0.2],
-            scale: [1, 1.5, 1],
+            opacity: [0, 1, 0],
+            scale: [0, 1.5, 0],
           }}
           transition={{
-            duration: 3 + Math.random() * 2,
+            duration: 2 + Math.random() * 2,
             repeat: Infinity,
-            delay: Math.random() * 2,
+            delay: Math.random() * 4,
+          }}
+        />
+      ))}
+
+      {/* Data Stream Lines */}
+      {[...Array(8)].map((_, i) => (
+        <motion.div
+          key={`line-${i}`}
+          className="absolute h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+          style={{
+            width: '200px',
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            opacity: 0.3,
+          }}
+          animate={{
+            x: [-200, window.innerWidth + 200],
+            opacity: [0, 0.6, 0],
+          }}
+          transition={{
+            duration: 8 + Math.random() * 4,
+            repeat: Infinity,
+            delay: Math.random() * 5,
+            ease: 'linear',
           }}
         />
       ))}
@@ -743,14 +817,14 @@ const LibraryPage = () => {
           </div>
         ) : (
           /* Circular 3D Playlist Arrangement */
-          <div className="relative w-full min-h-[600px] flex items-center justify-center perspective-[2000px]">
+          <div className="relative w-full min-h-[700px] flex items-center justify-center perspective-[2000px]">
             <motion.div
-              className="relative w-full max-w-4xl aspect-square"
+              className="relative w-full max-w-5xl aspect-square"
               animate={{
                 rotateY: [0, 360],
               }}
               transition={{
-                duration: 60,
+                duration: 80,
                 repeat: Infinity,
                 ease: 'linear',
               }}
@@ -758,25 +832,33 @@ const LibraryPage = () => {
             >
               {allPlaylists.map((playlist, index) => {
                 const angle = (index / allPlaylists.length) * 2 * Math.PI;
-                const radius = 280;
+                const radius = 320;
                 const x = Math.cos(angle) * radius;
                 const z = Math.sin(angle) * radius;
                 const isEmotion = playlist.type === 'emotion';
+                const playlistKey = `${playlist.type}-${playlist.id}`;
+                const isHovered = hoveredPlaylistId === playlistKey;
+                const isOtherHovered = hoveredPlaylistId !== null && !isHovered;
+                const glowColor = getPlaylistGlowColor(playlist, index);
 
                 return (
                   <motion.div
-                    key={`${playlist.type}-${playlist.id}`}
+                    key={playlistKey}
                     className="absolute top-1/2 left-1/2 cursor-pointer"
                     style={{
                       transform: `translate(-50%, -50%) translate3d(${x}px, 0, ${z}px) rotateY(${-angle * (180 / Math.PI)}deg)`,
                       transformStyle: 'preserve-3d',
                     }}
-                    whileHover={{
-                      scale: 1.3,
-                      z: 100,
-                      rotateY: 15,
-                      transition: { duration: 0.3 },
+                    animate={{
+                      scale: isHovered ? 1.6 : isOtherHovered ? 0.65 : 1,
+                      z: isHovered ? 150 : 0,
                     }}
+                    transition={{
+                      duration: 0.4,
+                      ease: 'easeOut',
+                    }}
+                    onHoverStart={() => setHoveredPlaylistId(playlistKey)}
+                    onHoverEnd={() => setHoveredPlaylistId(null)}
                     onClick={() => {
                       if (isEmotion) {
                         setSelectedEmotionPlaylist(playlist);
@@ -786,7 +868,7 @@ const LibraryPage = () => {
                     }}
                   >
                     <motion.div
-                      className="relative w-44 h-56 rounded-3xl overflow-hidden"
+                      className="relative w-48 h-60 rounded-3xl overflow-hidden"
                       style={{
                         background: isEmotion 
                           ? `linear-gradient(135deg, ${
@@ -799,41 +881,83 @@ const LibraryPage = () => {
                               '#9ca3af, #6b7280'
                             })`
                           : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                        boxShadow: '0 0 40px rgba(0, 255, 200, 0.6), inset 0 0 20px rgba(0, 255, 200, 0.2)',
-                        border: '2px solid rgba(0, 255, 200, 0.5)',
+                        boxShadow: `0 0 50px ${glowColor}, inset 0 0 30px ${glowColor}`,
+                        border: `3px solid ${glowColor}`,
                       }}
                       animate={{
-                        boxShadow: [
-                          '0 0 40px rgba(0, 255, 200, 0.6), inset 0 0 20px rgba(0, 255, 200, 0.2)',
-                          '0 0 60px rgba(0, 255, 200, 0.8), inset 0 0 30px rgba(0, 255, 200, 0.3)',
-                          '0 0 40px rgba(0, 255, 200, 0.6), inset 0 0 20px rgba(0, 255, 200, 0.2)',
-                        ],
+                        boxShadow: isHovered 
+                          ? [
+                              `0 0 60px ${glowColor}, inset 0 0 40px ${glowColor}`,
+                              `0 0 100px ${glowColor}, inset 0 0 60px ${glowColor}`,
+                              `0 0 60px ${glowColor}, inset 0 0 40px ${glowColor}`,
+                            ]
+                          : [
+                              `0 0 40px ${glowColor}, inset 0 0 20px ${glowColor}`,
+                              `0 0 60px ${glowColor}, inset 0 0 30px ${glowColor}`,
+                              `0 0 40px ${glowColor}, inset 0 0 20px ${glowColor}`,
+                            ],
                       }}
                       transition={{
-                        duration: 2,
+                        duration: 1.5,
                         repeat: Infinity,
                         ease: 'easeInOut',
                       }}
                     >
                       {/* Glowing Border Animation */}
                       <motion.div
-                        className="absolute inset-0 rounded-3xl"
+                        className="absolute inset-0 rounded-3xl pointer-events-none"
                         style={{
-                          border: '3px solid transparent',
-                          background: 'linear-gradient(45deg, #00ffcc, #00ff88, #00ffcc) border-box',
-                          WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)',
-                          WebkitMaskComposite: 'destination-out',
-                          maskComposite: 'exclude',
+                          background: `linear-gradient(45deg, ${glowColor}, rgba(255,255,255,0.4), ${glowColor})`,
+                          backgroundSize: '200% 200%',
+                          opacity: 0.6,
+                          mixBlendMode: 'overlay',
                         }}
                         animate={{
-                          opacity: [0.5, 1, 0.5],
+                          backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                          opacity: isHovered ? [0.6, 1, 0.6] : [0.4, 0.7, 0.4],
                         }}
                         transition={{
-                          duration: 1.5,
-                          repeat: Infinity,
-                          ease: 'easeInOut',
+                          backgroundPosition: {
+                            duration: 3,
+                            repeat: Infinity,
+                            ease: 'linear',
+                          },
+                          opacity: {
+                            duration: 1.5,
+                            repeat: Infinity,
+                            ease: 'easeInOut',
+                          }
                         }}
                       />
+
+                      {/* Sparkle Effects on Hover */}
+                      {isHovered && (
+                        <>
+                          {[...Array(6)].map((_, i) => (
+                            <motion.div
+                              key={`sparkle-${i}`}
+                              className="absolute"
+                              style={{
+                                left: `${20 + Math.random() * 60}%`,
+                                top: `${20 + Math.random() * 60}%`,
+                              }}
+                              initial={{ scale: 0, rotate: 0 }}
+                              animate={{
+                                scale: [0, 1, 0],
+                                rotate: [0, 180, 360],
+                                opacity: [0, 1, 0],
+                              }}
+                              transition={{
+                                duration: 1,
+                                repeat: Infinity,
+                                delay: i * 0.2,
+                              }}
+                            >
+                              <Sparkles size={12} className="text-white" />
+                            </motion.div>
+                          ))}
+                        </>
+                      )}
 
                       {/* Card Content */}
                       <div className="relative z-10 h-full p-6 flex flex-col items-center justify-between">
@@ -855,11 +979,32 @@ const LibraryPage = () => {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex items-center space-x-2 mt-3">
+                        <div className="flex items-center space-x-3 mt-4">
                           <motion.button
-                            className="p-2 bg-green-500 rounded-full shadow-lg shadow-green-500/50"
-                            whileHover={{ scale: 1.2, boxShadow: '0 0 20px rgba(34, 197, 94, 0.8)' }}
-                            whileTap={{ scale: 0.9 }}
+                            className="relative p-3 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full shadow-2xl"
+                            style={{
+                              boxShadow: '0 0 25px rgba(34, 197, 94, 0.7), inset 0 0 15px rgba(255, 255, 255, 0.3)',
+                            }}
+                            whileHover={{ 
+                              scale: 1.3, 
+                              boxShadow: '0 0 40px rgba(34, 197, 94, 1), inset 0 0 20px rgba(255, 255, 255, 0.5)',
+                              rotate: [0, -10, 10, 0],
+                            }}
+                            whileTap={{ scale: 0.85 }}
+                            animate={{
+                              boxShadow: [
+                                '0 0 25px rgba(34, 197, 94, 0.7), inset 0 0 15px rgba(255, 255, 255, 0.3)',
+                                '0 0 35px rgba(34, 197, 94, 0.9), inset 0 0 20px rgba(255, 255, 255, 0.4)',
+                                '0 0 25px rgba(34, 197, 94, 0.7), inset 0 0 15px rgba(255, 255, 255, 0.3)',
+                              ],
+                            }}
+                            transition={{
+                              boxShadow: {
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: 'easeInOut',
+                              },
+                            }}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (isEmotion) {
@@ -869,7 +1014,19 @@ const LibraryPage = () => {
                               }
                             }}
                           >
-                            <Play size={16} className="text-white fill-white" />
+                            <Play size={20} className="text-white fill-white" />
+                            {/* Pulsing ring effect */}
+                            <motion.div
+                              className="absolute inset-0 rounded-full border-2 border-green-300"
+                              animate={{
+                                scale: [1, 1.5],
+                                opacity: [0.8, 0],
+                              }}
+                              transition={{
+                                duration: 1.5,
+                                repeat: Infinity,
+                              }}
+                            />
                           </motion.button>
                           
                           {!isEmotion && (
