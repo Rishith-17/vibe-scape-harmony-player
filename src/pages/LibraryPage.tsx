@@ -785,7 +785,7 @@ const LibraryPage = () => {
         />
       ))}
 
-      <div className="pt-8 px-6 relative z-10">
+      <div className="pt-8 px-6 relative z-10 min-h-screen">
         <div className="flex items-center justify-between mb-16">
           <motion.h1 
             className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-green-400 to-cyan-400 bg-clip-text text-transparent"
@@ -848,11 +848,12 @@ const LibraryPage = () => {
 
         {/* Empty State */}
         {allPlaylists.length === 0 ? (
-          <div className="text-center py-16">
+          <div className="absolute inset-0 flex items-center justify-center">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5 }}
+              className="text-center"
             >
               <div className="text-gray-400 text-xl mb-4">Your library is empty</div>
               <p className="text-gray-500 mb-6">Create your first playlist to get started</p>
@@ -867,7 +868,7 @@ const LibraryPage = () => {
           </div>
         ) : (
           /* Circular 3D Playlist Arrangement - Controllable Carousel */
-          <div className="relative w-full min-h-[700px] flex items-center justify-center perspective-[2000px]">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[80vh] flex items-center justify-center perspective-[2000px]">
             <motion.div
               className="relative w-full max-w-5xl aspect-square"
               drag="x"
