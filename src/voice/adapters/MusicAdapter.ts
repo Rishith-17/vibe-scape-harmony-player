@@ -62,4 +62,25 @@ export class MusicAdapter {
   isPlaying(): boolean {
     return this.musicController.isPlaying();
   }
+
+  /**
+   * Get current playing track for context (used by Gemini song info)
+   */
+  getCurrentTrack(): { title: string; channelTitle: string } | null {
+    try {
+      const playbackState = localStorage.getItem('vibescape_playback_state');
+      if (playbackState) {
+        const state = JSON.parse(playbackState);
+        if (state.currentTrack) {
+          return {
+            title: state.currentTrack.title,
+            channelTitle: state.currentTrack.channelTitle
+          };
+        }
+      }
+    } catch (error) {
+      console.error('[MusicAdapter] Error getting current track:', error);
+    }
+    return null;
+  }
 }

@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-route
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MusicPlayerProvider, useMusicPlayer } from "@/contexts/MusicPlayerContext";
 import { GestureControlsProvider } from "@/components/GestureControlsProvider";
+import { SongInfoCardContainer } from "@/components/SongInfoCardContainer";
 import { useMobileAudio } from "@/hooks/useMobileAudio";
 import BackgroundAudioManager from "@/services/BackgroundAudioManager";
 import PWAInstallPrompt from "@/services/PWAInstallPrompt";
@@ -331,6 +332,7 @@ const AppContent = () => {
               <BottomNavigation />
               <MiniPlayer />
               <VoiceIntegration />
+              <SongInfoCardContainer />
             </>
           )}
         </div>

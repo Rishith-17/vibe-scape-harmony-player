@@ -3,6 +3,7 @@ import { MusicAdapter } from './adapters/MusicAdapter';
 import { NavigationAdapter } from './adapters/NavigationAdapter';
 import { ScrollAdapter } from './adapters/ScrollAdapter';
 import { UiAdapter } from './adapters/UiAdapter';
+import { GeminiAdapter } from './adapters/GeminiAdapter';
 import { runCommand } from './commandRunner';
 import { ENHANCED_HELP_TEXT } from './nlu/intentParser.enhanced';
 
@@ -13,6 +14,7 @@ import { ENHANCED_HELP_TEXT } from './nlu/intentParser.enhanced';
 export class VoiceCommandRunner {
   private lastSection: string | null = null;
   private lastQuery: string | null = null;
+  private geminiAdapter: GeminiAdapter;
 
   constructor(
     private musicAdapter: MusicAdapter,
@@ -20,7 +22,9 @@ export class VoiceCommandRunner {
     private scrollAdapter: ScrollAdapter,
     private uiAdapter: UiAdapter,
     private ttsEnabled = false
-  ) {}
+  ) {
+    this.geminiAdapter = new GeminiAdapter();
+  }
 
   /**
    * Execute a parsed voice intent
@@ -177,6 +181,11 @@ export class VoiceCommandRunner {
           this.uiAdapter.showSuccess('Stopped listening', !this.ttsEnabled);
           break;
 
+        // Song information via Gemini
+        case 'song_info':
+          await this.handleSongInfo(intent);
+          break;
+
         case 'unknown':
           this.uiAdapter.showLowConfidence('Try "play", "next", or "scroll down"');
           break;
@@ -282,5 +291,57 @@ export class VoiceCommandRunner {
    */
   getLastQuery(): string | null {
     return this.lastQuery;
+  }
+
+  /**
+   * Handle song information request via Gemini
+   */
+  private async handleSongInfo(intent: VoiceIntent): Promise<void> {
+    console.log('[VoiceCommandRunner] 🎵 Handling song info request:', intent);
+
+    // Get current track context from music adapter
+    const currentTrack = this.musicAdapter.getCurrentTrack();
+    
+    if (!currentTrack && !intent.slots.songTitle) {
+      this.uiAdapter.showError('No song is currently playing');
+      return;
+    }
+
+    const context = intent.slots.songTitle 
+      ? { title: intent.slots.songTitle }
+      : { title: currentTrack?.title, artist: currentTrack?.channelTitle };
+
+    this.uiAdapter.showSuccess('Getting song information...', true);
+
+    try {
+      // Call Gemini via secure adapter
+      const response = await this.geminiAdapter.askAboutSong(intent.raw, context);
+      
+      // Dispatch event to show song info card
+      const event = new CustomEvent('vibescape:song-info', {
+        detail: { info: response }
+      });
+      window.dispatchEvent(event);
+
+      // Speak response if TTS enabled
+      if (this.ttsEnabled && window.speechSynthesis) {
+        // Pause ASR while speaking to prevent echo/retriggering
+        const utterance = new SpeechSynthesisUtterance(response);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 0.8;
+        
+        // Resume ASR after speech ends (if needed)
+        utterance.onend = () => {
+          console.log('[VoiceCommandRunner] TTS finished');
+        };
+        
+        window.speechSynthesis.speak(utterance);
+      }
+
+    } catch (error) {
+      console.error('[VoiceCommandRunner] Error getting song info:', error);
+      this.uiAdapter.showError('Could not get song information');
+    }
   }
 }
