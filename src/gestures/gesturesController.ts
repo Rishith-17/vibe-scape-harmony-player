@@ -18,14 +18,14 @@ export interface GestureConfig {
 }
 
 const DEFAULT_CONFIG: GestureConfig = {
-  confidenceThreshold: 0.80, // Lower for faster response
+  confidenceThreshold: 0.75, // More lenient for reliable detection
   debounceMs: 300, // Cooldown between gestures
   stabilityFrames: {
     thumbs_up: 1, // Legacy - not used
     open_hand: 1, // Instant for voice control
-    fist: 1, // Instant for play/pause
-    rock: 2, // Require 2 frames for volume
-    peace: 2, // Require 2 frames for volume
+    fist: 2, // 2 frames for stability
+    rock: 2, // 2 frames for volume
+    peace: 2, // 2 frames for volume
   },
 };
 
