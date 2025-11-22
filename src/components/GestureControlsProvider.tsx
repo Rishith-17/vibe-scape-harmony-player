@@ -156,24 +156,28 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   return (
     <>
       {children}
-      <GestureStatusIndicator
-        isEnabled={gestureControlsEnabled && !isLoading}
-        status={gestureDetection.status}
-        isActive={gestureDetection.isActive}
-        lastGesture={gestureDetection.lastGesture}
-      />
-      <TestGestureController 
-        enabled={gestureControlsEnabled && !isLoading && !gestureDetection.isActive}
-      />
-      <GestureTutorial
-        isOpen={showTutorial}
-        onClose={() => setShowTutorial(false)}
-      />
-      <ControlFeedback
-        gestureIcon={feedback.gestureIcon}
-        show={feedback.show}
-        onComplete={clearFeedback}
-      />
+      {user && (
+        <>
+          <GestureStatusIndicator
+            isEnabled={gestureControlsEnabled && !isLoading}
+            status={gestureDetection.status}
+            isActive={gestureDetection.isActive}
+            lastGesture={gestureDetection.lastGesture}
+          />
+          <TestGestureController 
+            enabled={gestureControlsEnabled && !isLoading && !gestureDetection.isActive}
+          />
+          <GestureTutorial
+            isOpen={showTutorial}
+            onClose={() => setShowTutorial(false)}
+          />
+          <ControlFeedback
+            gestureIcon={feedback.gestureIcon}
+            show={feedback.show}
+            onComplete={clearFeedback}
+          />
+        </>
+      )}
     </>
   );
 };

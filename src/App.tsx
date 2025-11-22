@@ -5,7 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MusicPlayerProvider, useMusicPlayer } from "@/contexts/MusicPlayerContext";
 import { GestureControlsProvider } from "@/components/GestureControlsProvider";
 import { useMobileAudio } from "@/hooks/useMobileAudio";
@@ -238,6 +238,7 @@ const VoiceChipLazy = ({ state, onManualTrigger, voiceController }: {
 };
 
 const AppContent = () => {
+  const { user } = useAuth();
   useMobileAudio(); // Initialize mobile audio service
   
   // Initialize PWA install prompt and Chrome optimizations
@@ -325,9 +326,13 @@ const AppContent = () => {
             )}
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <BottomNavigation />
-          <MiniPlayer />
-          <VoiceIntegration />
+          {user && (
+            <>
+              <BottomNavigation />
+              <MiniPlayer />
+              <VoiceIntegration />
+            </>
+          )}
         </div>
       </GestureControlsProvider>
     </BrowserRouter>
