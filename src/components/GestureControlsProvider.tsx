@@ -81,11 +81,11 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     fetchGesturePreference();
   }, [user]);
 
-  // Enable gesture detection only when user is logged in and auth is not loading
+  // Enable gesture detection only when user is logged in
   const { isPlaying } = useMusicPlayer();
   
   const gestureDetection = useSimpleGestureDetection({
-    enabled: !authLoading && !!user && gestureControlsEnabled,
+    enabled: !!user && gestureControlsEnabled && !isLoading,
     onGesture: handleGestureCommand
   });
 
