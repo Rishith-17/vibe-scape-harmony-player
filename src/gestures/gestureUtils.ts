@@ -120,27 +120,34 @@ export function detectFist(landmarks: Landmark[]): { detected: boolean; confiden
   const index_tip = landmarks[8];
   const index_mcp = landmarks[5];
   const middle_tip = landmarks[12];
+  const middle_mcp = landmarks[9];
   const ring_tip = landmarks[16];
+  const ring_mcp = landmarks[13];
   const pinky_tip = landmarks[20];
+  const pinky_mcp = landmarks[17];
   const wrist = landmarks[0];
 
-  // Fist: ALL fingers curled with thumb tucked
-  const allFingersCurled = 
-    thumb_tip.y >= (wrist.y - 0.04) &&  // Thumb at or below wrist
-    index_tip.y > (index_mcp.y - 0.02) &&
-    middle_tip.y > (index_mcp.y - 0.02) &&
-    ring_tip.y > (index_mcp.y - 0.02) &&
-    pinky_tip.y > (index_mcp.y - 0.02);
+  // Fist: ALL fingers curled - tips NOT above MCPs
+  // More lenient check - just verify fingers aren't extended
+  const indexCurled = index_tip.y >= (index_mcp.y - 0.04);
+  const middleCurled = middle_tip.y >= (middle_mcp.y - 0.04);
+  const ringCurled = ring_tip.y >= (ring_mcp.y - 0.04);
+  const pinkyCurled = pinky_tip.y >= (pinky_mcp.y - 0.04);
+  
+  const allFingersCurled = indexCurled && middleCurled && ringCurled && pinkyCurled;
 
-  // Verify fist is compact (fingertips close to wrist)
+  // Hand should be somewhat compact (not spread out)
   const avgTipY = (index_tip.y + middle_tip.y + ring_tip.y + pinky_tip.y) / 4;
-  const compact = Math.abs(avgTipY - wrist.y) < 0.15;
+  const compact = Math.abs(avgTipY - wrist.y) < 0.18; // More lenient
 
   const detected = allFingersCurled && compact;
-  const confidence = detected ? 0.90 : 0;
+  const confidence = detected ? 0.88 : 0;
 
   if (detected) {
-    console.log('✊ [FastHeuristic] FIST detected:', { allFingersCurled, compact, confidence });
+    console.log('✊ [FastHeuristic] FIST detected:', { 
+      indexCurled, middleCurled, ringCurled, pinkyCurled, 
+      allFingersCurled, compact, confidence 
+    });
   }
 
   return { detected, confidence };
@@ -186,32 +193,39 @@ function analyzeComplexGestures(landmarks: Landmark[]): GestureAnalysis {
   const middle_mcp = landmarks[9];
   const ring_tip = landmarks[16];
   const ring_pip = landmarks[14];
+  const ring_mcp = landmarks[13];
   const pinky_tip = landmarks[20];
   const pinky_pip = landmarks[18];
+  const pinky_mcp = landmarks[17];
 
-  const fingerTolerance = 0.06;
+  // More lenient tolerance for finger detection
+  const fingerTolerance = 0.05;
 
-  // Finger extended checks
+  // Finger extended checks (tips above MCPs)
   const thumb_up = thumb_tip.y < (thumb_mcp.y - 0.04);
-  const index_up = index_tip.y < (index_pip.y - fingerTolerance) && 
-                   index_tip.y < (index_mcp.y - fingerTolerance);
-  const middle_up = middle_tip.y < (middle_pip.y - fingerTolerance) && 
-                    middle_tip.y < (middle_mcp.y - fingerTolerance);
-  const ring_up = ring_tip.y < (ring_pip.y - fingerTolerance);
-  const pinky_up = pinky_tip.y < (pinky_pip.y - fingerTolerance);
+  const index_up = index_tip.y < (index_mcp.y - fingerTolerance);
+  const middle_up = middle_tip.y < (middle_mcp.y - fingerTolerance);
+  const ring_up = ring_tip.y < (ring_mcp.y - fingerTolerance);
+  const pinky_up = pinky_tip.y < (pinky_mcp.y - fingerTolerance);
+  
+  // Finger curled checks (tips NOT above MCPs)
+  const ring_down = !ring_up;
+  const middle_down = !middle_up;
 
-  const fingersUp = [index_up, middle_up, ring_up, pinky_up].filter(Boolean).length;
-
-  // 🤘 Rock: index + pinky up, rest down
-  if (!thumb_up && index_up && !middle_up && !ring_up && pinky_up && fingersUp === 2) {
-    console.log('🤘 [ComplexAnalysis] ROCK detected');
-    return { label: 'rock', confidence: 0.87, stableFrames: 2, landmarks };
+  // 🤘 Rock: index + pinky up, middle + ring down
+  if (index_up && pinky_up && ring_down && middle_down) {
+    console.log('🤘 [ComplexAnalysis] ROCK detected:', {
+      index_up, pinky_up, ring_down, middle_down
+    });
+    return { label: 'rock', confidence: 0.85, stableFrames: 2, landmarks };
   }
 
-  // ✌️ Peace: index + middle up, rest down
-  if (!thumb_up && index_up && middle_up && !ring_up && !pinky_up && fingersUp === 2) {
-    console.log('✌️ [ComplexAnalysis] PEACE detected');
-    return { label: 'peace', confidence: 0.87, stableFrames: 2, landmarks };
+  // ✌️ Peace: index + middle up, ring + pinky down
+  if (index_up && middle_up && !ring_up && !pinky_up) {
+    console.log('✌️ [ComplexAnalysis] PEACE detected:', {
+      index_up, middle_up, ring_down: !ring_up, pinky_down: !pinky_up
+    });
+    return { label: 'peace', confidence: 0.85, stableFrames: 2, landmarks };
   }
 
   return { label: null, confidence: 0, stableFrames: 0 };
