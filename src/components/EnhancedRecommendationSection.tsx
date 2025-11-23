@@ -1,6 +1,6 @@
-
 import { Play, Pause, Volume2 } from 'lucide-react';
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
+import { motion } from 'framer-motion';
 
 interface Song {
   id: string;
@@ -41,107 +41,181 @@ const EnhancedRecommendationSection = ({
   isPlaying,
   gradient = "from-gray-500/20 to-gray-600/20"
 }: EnhancedRecommendationSectionProps) => {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
   const isCurrentlyPlaying = (song: Song) => {
     return currentTrack?.id === song.id && isPlaying;
   };
 
   return (
-    <div className="mb-12 animate-fade-in">
-      <div className={`mb-6 p-6 rounded-2xl bg-gradient-to-r ${gradient} backdrop-blur-lg border border-white/10`}>
+    <motion.div 
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="mb-12"
+    >
+      {/* Section Header with Neon Border */}
+      <motion.div 
+        whileHover={{ 
+          boxShadow: '0 0 30px hsl(180 100% 50% / 0.8), 0 0 60px hsl(180 100% 50% / 0.5), inset 0 0 20px hsl(180 100% 50% / 0.15)',
+          scale: 1.01
+        }}
+        transition={{ type: "spring", stiffness: 300 }}
+        className={`mb-6 p-6 rounded-2xl bg-gradient-to-r ${gradient} backdrop-blur-lg`}
+        style={{
+          border: '2px solid hsl(180 100% 50%)',
+          boxShadow: '0 0 20px hsl(180 100% 50% / 0.5), 0 0 40px hsl(180 100% 50% / 0.3), inset 0 0 15px hsl(180 100% 50% / 0.1)'
+        }}
+      >
         <div className="flex items-center gap-3 mb-2">
           {icon}
-          <h2 className="text-3xl font-bold text-white">{title}</h2>
+          <h2 className="text-3xl font-bold text-cyan-300">{title}</h2>
         </div>
         <p className="text-gray-300 text-base">{subtitle}</p>
-      </div>
+      </motion.div>
       
+      {/* Music Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {songs.map((song, index) => (
-          <div
+          <motion.div
             key={`${song.id}-${index}`}
-            className="group relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-4 hover:from-gray-700/50 hover:to-gray-800/70 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-2xl backdrop-blur-lg border border-gray-700/30 hover:border-gray-600/50"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ 
+              opacity: hoveredIndex === null || hoveredIndex === index ? 1 : 0.5,
+              scale: hoveredIndex === index ? 1.05 : hoveredIndex === null ? 1 : 0.95,
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            onHoverStart={() => setHoveredIndex(index)}
+            onHoverEnd={() => setHoveredIndex(null)}
             onClick={() => onPlaySong(song)}
+            className="group relative cursor-pointer"
+            style={{
+              transformStyle: 'preserve-3d',
+              perspective: '1000px'
+            }}
           >
-            {/* 3D Card Effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-purple-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10 blur-xl transform translate-y-2"></div>
-            
-            {/* Thumbnail Container with 3D Effect */}
-            <div className="relative mb-4 overflow-hidden rounded-xl shadow-2xl">
-              <img
-                src={song.thumbnail}
-                alt={song.title}
-                className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  // Try alternative thumbnail sources
-                  if (target.src.includes('hqdefault')) {
-                    target.src = target.src.replace('hqdefault', 'maxresdefault');
-                  } else if (target.src.includes('maxresdefault')) {
-                    target.src = target.src.replace('maxresdefault', 'sddefault');
-                  } else {
-                    target.src = "https://via.placeholder.com/480x360/1a1a1a/ffffff?text=♪";
-                  }
-                }}
-                onLoad={() => console.log(`Thumbnail loaded for: ${song.title}`)}
+            {/* Card Container with Thick Neon Border */}
+            <motion.div
+              whileHover={{ 
+                boxShadow: '0 0 40px hsl(180 100% 50% / 0.9), 0 0 80px hsl(180 100% 50% / 0.6), inset 0 0 30px hsl(180 100% 50% / 0.2)',
+                y: -10
+              }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="relative bg-slate-900/60 rounded-2xl p-4 backdrop-blur-lg"
+              style={{
+                border: '3px solid hsl(180 100% 50%)',
+                boxShadow: '0 0 20px hsl(180 100% 50% / 0.6), 0 0 40px hsl(180 100% 50% / 0.4), inset 0 0 20px hsl(180 100% 50% / 0.1)'
+              }}
+            >
+              {/* 3D Lift Shadow */}
+              <div 
+                className="absolute inset-0 bg-cyan-500/20 rounded-2xl blur-2xl -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ transform: 'translateY(20px)' }}
               />
               
-              {/* Audio-Only Indicator */}
-              <div className="absolute top-2 left-2 bg-black/70 rounded-full px-2 py-1 flex items-center gap-1">
-                <Volume2 size={12} className="text-green-400" />
-                <span className="text-xs text-white font-medium">Audio</span>
-              </div>
-              
-              {/* Play/Pause Overlay with 3D Effect */}
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-full p-4 shadow-2xl transform scale-90 group-hover:scale-100 transition-all duration-200 hover:shadow-green-500/50">
-                  {isCurrentlyPlaying(song) ? (
-                    <Pause size={24} className="text-white" />
-                  ) : (
-                    <Play size={24} className="text-white ml-1" />
-                  )}
+              {/* Thumbnail Container */}
+              <div className="relative mb-4 overflow-hidden rounded-xl">
+                <motion.img
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ duration: 0.3 }}
+                  src={song.thumbnail}
+                  alt={song.title}
+                  className="w-full h-48 object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (target.src.includes('hqdefault')) {
+                      target.src = target.src.replace('hqdefault', 'maxresdefault');
+                    } else if (target.src.includes('maxresdefault')) {
+                      target.src = target.src.replace('maxresdefault', 'sddefault');
+                    } else {
+                      target.src = "https://via.placeholder.com/480x360/1a1a1a/ffffff?text=♪";
+                    }
+                  }}
+                />
+                
+                {/* Audio Indicator */}
+                <div className="absolute top-2 left-2 bg-black/80 rounded-full px-2 py-1 flex items-center gap-1">
+                  <Volume2 size={12} className="text-cyan-400" />
+                  <span className="text-xs text-white font-medium">Audio</span>
                 </div>
-              </div>
+                
+                {/* Play/Pause Overlay */}
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                  <motion.div 
+                    whileHover={{ scale: 1.2 }}
+                    className="rounded-full p-4"
+                    style={{
+                      background: 'hsl(180 100% 50%)',
+                      boxShadow: '0 0 30px hsl(180 100% 50% / 0.8), 0 0 60px hsl(180 100% 50% / 0.5)'
+                    }}
+                  >
+                    {isCurrentlyPlaying(song) ? (
+                      <Pause size={24} className="text-slate-900" />
+                    ) : (
+                      <Play size={24} className="text-slate-900 ml-1" />
+                    )}
+                  </motion.div>
+                </div>
 
-              {/* Currently Playing Indicator */}
-              {isCurrentlyPlaying(song) && (
-                <div className="absolute top-2 right-2">
-                  <div className="bg-green-500 rounded-full p-2 shadow-lg">
+                {/* Currently Playing Indicator */}
+                {isCurrentlyPlaying(song) && (
+                  <motion.div 
+                    animate={{ 
+                      boxShadow: [
+                        '0 0 20px hsl(180 100% 50% / 0.8)',
+                        '0 0 40px hsl(180 100% 50% / 1)',
+                        '0 0 20px hsl(180 100% 50% / 0.8)'
+                      ]
+                    }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="absolute top-2 right-2 bg-cyan-500 rounded-full p-2"
+                  >
                     <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                  </motion.div>
+                )}
+
+                {/* Category Badge */}
+                {song.category && (
+                  <div 
+                    className="absolute bottom-2 right-2 rounded-full px-2 py-1 backdrop-blur-lg"
+                    style={{
+                      background: 'hsl(270 100% 60% / 0.8)',
+                      boxShadow: '0 0 15px hsl(270 100% 60% / 0.6)'
+                    }}
+                  >
+                    <span className="text-xs text-white font-medium">{song.category}</span>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
-              {/* Category Badge */}
-              {song.category && (
-                <div className="absolute bottom-2 right-2 bg-purple-600/90 rounded-full px-2 py-1">
-                  <span className="text-xs text-white font-medium">{song.category}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Song Info with Enhanced Typography */}
-            <div className="space-y-2">
-              <h3 className="text-white font-bold text-sm line-clamp-2 group-hover:text-green-400 transition-colors leading-tight">
-                {song.title}
-              </h3>
-              <p className="text-gray-400 text-xs line-clamp-1 group-hover:text-gray-300 transition-colors">
-                {song.artist}
-              </p>
-              {song.language && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 bg-gray-700/50 rounded-full px-2 py-1">
-                    {song.language}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* 3D Glow Effect */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-green-500/20 via-purple-500/20 to-blue-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-20 blur-xl"></div>
-          </div>
+              {/* Song Info */}
+              <div className="space-y-2">
+                <h3 className="text-white font-bold text-sm line-clamp-2 group-hover:text-cyan-300 transition-colors leading-tight">
+                  {song.title}
+                </h3>
+                <p className="text-gray-400 text-xs line-clamp-1 group-hover:text-gray-300 transition-colors">
+                  {song.artist}
+                </p>
+                {song.language && (
+                  <div className="flex items-center gap-2">
+                    <span 
+                      className="text-xs rounded-full px-2 py-1"
+                      style={{
+                        background: 'hsl(180 100% 50% / 0.2)',
+                        color: 'hsl(180 100% 80%)',
+                        border: '1px solid hsl(180 100% 50% / 0.4)'
+                      }}
+                    >
+                      {song.language}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

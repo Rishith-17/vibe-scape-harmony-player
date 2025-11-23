@@ -26,6 +26,13 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+    
+    /* Neon Theme Colors */
+    --neon-cyan: 180 100% 50%;
+    --neon-blue: 210 100% 60%;
+    --neon-purple: 270 100% 60%;
+    --neon-green: 120 100% 50%;
+    --neon-pink: 330 100% 60%;
   }
 
   .dark {
@@ -48,6 +55,13 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+    
+    /* Neon Theme Colors */
+    --neon-cyan: 180 100% 50%;
+    --neon-blue: 210 100% 60%;
+    --neon-purple: 270 100% 60%;
+    --neon-green: 120 100% 50%;
+    --neon-pink: 330 100% 60%;
   }
 }
 
@@ -99,6 +113,30 @@ html, body {
   to { transform: rotate(360deg); }
 }
 
+@keyframes neon-pulse {
+  0%, 100% { 
+    box-shadow: 0 0 20px hsl(var(--neon-cyan) / 0.5), 
+                0 0 40px hsl(var(--neon-cyan) / 0.3),
+                0 0 60px hsl(var(--neon-cyan) / 0.2);
+  }
+  50% { 
+    box-shadow: 0 0 30px hsl(var(--neon-cyan) / 0.8), 
+                0 0 60px hsl(var(--neon-cyan) / 0.5),
+                0 0 80px hsl(var(--neon-cyan) / 0.3);
+  }
+}
+
+@keyframes neon-glow-green {
+  0%, 100% { 
+    box-shadow: 0 0 20px hsl(var(--neon-green) / 0.5), 
+                0 0 40px hsl(var(--neon-green) / 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 30px hsl(var(--neon-green) / 0.8), 
+                0 0 60px hsl(var(--neon-green) / 0.5);
+  }
+}
+
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
@@ -117,6 +155,36 @@ html, body {
 
 .animate-spin-slow {
   animation: spin-slow 10s linear infinite;
+}
+
+.animate-neon-pulse {
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+.animate-neon-glow-green {
+  animation: neon-glow-green 2s ease-in-out infinite;
+}
+
+/* Neon Border Utilities */
+.neon-border-cyan {
+  border: 2px solid hsl(var(--neon-cyan));
+  box-shadow: 0 0 10px hsl(var(--neon-cyan) / 0.5),
+              0 0 20px hsl(var(--neon-cyan) / 0.3),
+              inset 0 0 10px hsl(var(--neon-cyan) / 0.1);
+}
+
+.neon-border-green {
+  border: 2px solid hsl(var(--neon-green));
+  box-shadow: 0 0 10px hsl(var(--neon-green) / 0.5),
+              0 0 20px hsl(var(--neon-green) / 0.3),
+              inset 0 0 10px hsl(var(--neon-green) / 0.1);
+}
+
+.neon-border-purple {
+  border: 2px solid hsl(var(--neon-purple));
+  box-shadow: 0 0 10px hsl(var(--neon-purple) / 0.5),
+              0 0 20px hsl(var(--neon-purple) / 0.3),
+              inset 0 0 10px hsl(var(--neon-purple) / 0.1);
 }
 
 /* 3D Card effects */
