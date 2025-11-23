@@ -58,6 +58,9 @@ const LibraryPage = () => {
   const [playlistSongs, setPlaylistSongs] = useState<PlaylistSong[]>([]);
   const [recommendedSongs, setRecommendedSongs] = useState<any[]>([]);
   const [isLoadingSongs, setIsLoadingSongs] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -217,7 +220,7 @@ const LibraryPage = () => {
     }
   };
 
-  const handlePlayPlaylist = async (playlistId: string) => {
+  const handlePlayPlaylist = async (playlistId: string, type?: 'emotion' | 'regular') => {
     try {
       const songs = await getPlaylistSongs(playlistId);
       if (songs.length > 0) {
@@ -628,6 +631,64 @@ const LibraryPage = () => {
     ...playlists.map(p => ({ ...p, type: 'regular' as const }))
   ];
 
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setCurrentIndex((prev) => (prev - 1 + allPlaylists.length) % allPlaylists.length);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setCurrentIndex((prev) => (prev + 1) % allPlaylists.length);
+      } else if (e.key === 'Enter') {
+        const centerPlaylist = allPlaylists[currentIndex];
+        if (centerPlaylist) {
+          if (centerPlaylist.type === 'emotion') {
+            setSelectedEmotionPlaylist(centerPlaylist);
+          } else {
+            setSelectedPlaylist(centerPlaylist);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, allPlaylists]);
+
+  // Touch/swipe handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      setCurrentIndex((prev) => (prev + 1) % allPlaylists.length);
+    }
+    if (isRightSwipe) {
+      setCurrentIndex((prev) => (prev - 1 + allPlaylists.length) % allPlaylists.length);
+    }
+
+    setTouchStart(0);
+    setTouchEnd(0);
+  };
+
+  const getCardPosition = (index: number) => {
+    const total = allPlaylists.length;
+    const diff = (index - currentIndex + total) % total;
+    const normalizedDiff = diff > total / 2 ? diff - total : diff;
+    return normalizedDiff;
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white pb-32 relative overflow-hidden">
       {/* Animated Background Grid */}
@@ -743,21 +804,17 @@ const LibraryPage = () => {
           </div>
         ) : (
           /* Circular 3D Playlist Arrangement */
-          <div className="relative w-full min-h-[600px] flex items-center justify-center perspective-[2000px]">
-            <motion.div
-              className="relative w-full max-w-4xl aspect-square"
-              animate={{
-                rotateY: [0, 360],
-              }}
-              transition={{
-                duration: 60,
-                repeat: Infinity,
-                ease: 'linear',
-              }}
-              style={{ transformStyle: 'preserve-3d' }}
-            >
+          <div 
+            className="relative w-full min-h-[600px] flex items-center justify-center perspective-[2000px]"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div className="relative w-full max-w-4xl aspect-square" style={{ transformStyle: 'preserve-3d' }}>
               {allPlaylists.map((playlist, index) => {
-                const angle = (index / allPlaylists.length) * 2 * Math.PI;
+                const position = getCardPosition(index);
+                const isCenterCard = position === 0;
+                const angle = (position / Math.max(allPlaylists.length, 5)) * 2 * Math.PI;
                 const radius = 280;
                 const x = Math.cos(angle) * radius;
                 const z = Math.sin(angle) * radius;
@@ -767,27 +824,49 @@ const LibraryPage = () => {
                   <motion.div
                     key={`${playlist.type}-${playlist.id}`}
                     className="absolute top-1/2 left-1/2 cursor-pointer"
+                    initial={false}
+                    animate={{
+                      x: x,
+                      z: z,
+                      scale: isCenterCard ? 1.3 : 0.7,
+                      opacity: isCenterCard ? 1 : 0.5,
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 100,
+                      damping: 20,
+                      mass: 1
+                    }}
                     style={{
-                      transform: `translate(-50%, -50%) translate3d(${x}px, 0, ${z}px) rotateY(${-angle * (180 / Math.PI)}deg)`,
+                      transform: `translate(-50%, -50%) rotateY(${-angle * (180 / Math.PI)}deg)`,
                       transformStyle: 'preserve-3d',
                     }}
-                    whileHover={{
-                      scale: 1.3,
-                      z: 100,
+                    whileHover={isCenterCard ? {
+                      scale: 1.4,
+                      z: 120,
                       rotateY: 15,
                       transition: { duration: 0.3 },
+                    } : {
+                      scale: 0.75,
+                      opacity: 0.7,
                     }}
                     onClick={() => {
-                      if (isEmotion) {
-                        setSelectedEmotionPlaylist(playlist);
+                      if (isCenterCard) {
+                        if (isEmotion) {
+                          setSelectedEmotionPlaylist(playlist);
+                        } else {
+                          setSelectedPlaylist(playlist);
+                        }
                       } else {
-                        setSelectedPlaylist(playlist);
+                        setCurrentIndex(index);
                       }
                     }}
                   >
                     <motion.div
-                      className="relative w-44 h-56 rounded-3xl overflow-hidden"
+                      className="relative rounded-3xl overflow-hidden"
                       style={{
+                        width: isCenterCard ? '200px' : '140px',
+                        height: isCenterCard ? '260px' : '180px',
                         background: isEmotion 
                           ? `linear-gradient(135deg, ${
                               playlist.emotion === 'happy' ? '#fbbf24, #f59e0b' : 
@@ -799,16 +878,18 @@ const LibraryPage = () => {
                               '#9ca3af, #6b7280'
                             })`
                           : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                        boxShadow: '0 0 40px rgba(0, 255, 200, 0.6), inset 0 0 20px rgba(0, 255, 200, 0.2)',
-                        border: '2px solid rgba(0, 255, 200, 0.5)',
+                        boxShadow: isCenterCard 
+                          ? '0 0 50px rgba(0, 255, 200, 0.8), inset 0 0 30px rgba(0, 255, 200, 0.3)'
+                          : '0 0 20px rgba(0, 255, 200, 0.4), inset 0 0 10px rgba(0, 255, 200, 0.1)',
+                        border: isCenterCard ? '3px solid rgba(0, 255, 200, 0.8)' : '2px solid rgba(0, 255, 200, 0.3)',
                       }}
-                      animate={{
+                      animate={isCenterCard ? {
                         boxShadow: [
-                          '0 0 40px rgba(0, 255, 200, 0.6), inset 0 0 20px rgba(0, 255, 200, 0.2)',
-                          '0 0 60px rgba(0, 255, 200, 0.8), inset 0 0 30px rgba(0, 255, 200, 0.3)',
-                          '0 0 40px rgba(0, 255, 200, 0.6), inset 0 0 20px rgba(0, 255, 200, 0.2)',
+                          '0 0 50px rgba(0, 255, 200, 0.8), inset 0 0 30px rgba(0, 255, 200, 0.3)',
+                          '0 0 70px rgba(0, 255, 200, 1), inset 0 0 40px rgba(0, 255, 200, 0.4)',
+                          '0 0 50px rgba(0, 255, 200, 0.8), inset 0 0 30px rgba(0, 255, 200, 0.3)',
                         ],
-                      }}
+                      } : {}}
                       transition={{
                         duration: 2,
                         repeat: Infinity,
@@ -836,26 +917,26 @@ const LibraryPage = () => {
                       />
 
                       {/* Card Content */}
-                      <div className="relative z-10 h-full p-6 flex flex-col items-center justify-between">
+                      <div className={`relative z-10 h-full flex flex-col items-center justify-between ${isCenterCard ? 'p-6' : 'p-4'}`}>
                         <div className="flex-1 flex items-center justify-center">
                           {isEmotion ? (
-                            <div className="text-7xl mb-2">{getEmotionEmoji(playlist.emotion)}</div>
+                            <div className={`${isCenterCard ? 'text-7xl' : 'text-5xl'} mb-2`}>{getEmotionEmoji(playlist.emotion)}</div>
                           ) : (
-                            <Music size={60} className="text-white/90" />
+                            <Music size={isCenterCard ? 60 : 40} className="text-white/90" />
                           )}
                         </div>
                         
                         <div className="text-center space-y-2 w-full">
-                          <h3 className="text-white font-bold text-lg line-clamp-1 capitalize">
+                          <h3 className={`text-white font-bold ${isCenterCard ? 'text-lg' : 'text-sm'} line-clamp-1 capitalize`}>
                             {isEmotion ? playlist.emotion : playlist.name}
                           </h3>
-                          {isEmotion && playlist.description && (
+                          {isEmotion && playlist.description && isCenterCard && (
                             <p className="text-white/70 text-xs line-clamp-2">{playlist.description}</p>
                           )}
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex items-center space-x-2 mt-3">
+                        {/* Action Buttons (only on center card) */}
+                        {isCenterCard && <div className="flex items-center space-x-2 mt-3">
                           <motion.button
                             className="p-2 bg-green-500 rounded-full shadow-lg shadow-green-500/50"
                             whileHover={{ scale: 1.2, boxShadow: '0 0 20px rgba(34, 197, 94, 0.8)' }}
@@ -907,7 +988,7 @@ const LibraryPage = () => {
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )}
-                        </div>
+                        </div>}
                       </div>
 
                       {/* Data Stream Particles */}
@@ -970,7 +1051,7 @@ const LibraryPage = () => {
                   );
                 })}
               </svg>
-            </motion.div>
+            </div>
           </div>
         )}
       </div>
