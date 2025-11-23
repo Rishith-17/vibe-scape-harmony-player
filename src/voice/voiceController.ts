@@ -180,13 +180,17 @@ export class VoiceController {
   async armMic(): Promise<void> {
     // Already armed - reuse existing instance
     if (isAsrArmed && sharedAsrEngine) {
-      console.debug('[VoiceController] ✅ Mic already armed, reusing instance', ASR_INSTANCE_ID);
+      console.debug('[VoiceController] ========================================');
+      console.debug('[VoiceController] armMic() → Already armed, reusing existing ASR instance');
+      console.debug(`[VoiceController] 🔍 ASR_ID=${ASR_INSTANCE_ID}`);
+      console.debug('[VoiceController] ========================================');
       return;
     }
 
+    console.debug('[VoiceController] ========================================');
+    console.debug('[VoiceController] armMic() → Requesting microphone permission...');
+    
     try {
-      console.debug('[VoiceController] 🎤 Arming mic - requesting permission...');
-      
       // THIS IS THE ONLY getUserMedia() CALL IN THE ENTIRE VOICE SYSTEM
       sharedMediaStream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
@@ -205,7 +209,7 @@ export class VoiceController {
         // Generate stable instance ID for verification
         ASR_INSTANCE_ID = `ASR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
-        console.debug('[VoiceController] 🎤 Created shared ASR instance:', ASR_INSTANCE_ID);
+        console.debug(`[VoiceController] 🎤 Created shared ASR instance: ASR_ID=${ASR_INSTANCE_ID}`);
         
         // Setup callbacks
         this.setupAsrCallbacks();
@@ -213,9 +217,11 @@ export class VoiceController {
 
       isAsrArmed = true;
       console.debug('[VoiceController] ✅ Mic armed successfully - ready for all activation paths');
+      console.debug('[VoiceController] ========================================');
       
     } catch (error) {
       console.error('[VoiceController] ❌ Failed to arm mic:', error);
+      console.debug('[VoiceController] ========================================');
       isAsrArmed = false;
       throw error;
     }
@@ -291,7 +297,8 @@ export class VoiceController {
   async startListeningFromArmedMic(source: string = 'unknown'): Promise<void> {
     const now = Date.now();
     
-    console.debug('[VoiceController] 🎤 startListeningFromArmedMic() called from:', source);
+    console.debug('[VoiceController] ========================================');
+    console.debug(`[VoiceController] startListeningFromArmedMic("${source}") called`);
     console.debug('[VoiceController] 📊 State:', {
       currentState: this.state,
       isArmed: isAsrArmed,
@@ -304,26 +311,29 @@ export class VoiceController {
     // Guard: Mic must be armed first
     if (!isAsrArmed || !sharedAsrEngine) {
       console.error('[VoiceController] ❌ Cannot start listening - mic not armed!');
-      console.error('[VoiceController] 💡 Call armMic() first (via Tap-Mic button)');
+      console.error('[VoiceController] 💡 User should tap mic button first to request permission');
+      console.debug('[VoiceController] ========================================');
       return;
     }
 
     // Guard: Already listening or processing
     if (this.state === 'listening' || this.state === 'processing') {
       console.debug('[VoiceController] ⚠️ Already listening or processing - ignoring duplicate call');
+      console.debug('[VoiceController] ========================================');
       return;
     }
 
     // Guard: Prevent rapid duplicate calls (debounce within 300ms)
     if (now - lastStartTimestamp < DUPLICATE_SUPPRESSION_MS) {
       console.debug('[VoiceController] ⚠️ Duplicate call suppressed (within 300ms window)');
+      console.debug('[VoiceController] ========================================');
       return;
     }
 
     // Update timestamp
     lastStartTimestamp = now;
 
-    console.debug('[VoiceController] ✅ All guards passed - starting shared ASR instance:', ASR_INSTANCE_ID);
+    console.debug(`[VoiceController] ✅ All guards passed - starting shared ASR: ASR_ID=${ASR_INSTANCE_ID}`);
     console.debug('[VoiceController] 🔄 Setting state to listening...');
     this.setState('listening');
     isListening = true;
@@ -335,11 +345,13 @@ export class VoiceController {
     }
     
     try {
-      console.debug('[VoiceController] 🎤 Starting shared ASR engine...', ASR_INSTANCE_ID);
+      console.debug(`[VoiceController] 🎤 Starting shared ASR engine: ASR_ID=${ASR_INSTANCE_ID}`);
       await sharedAsrEngine.start();
       console.debug('[VoiceController] ✅ ASR started successfully - listening for command');
+      console.debug('[VoiceController] ========================================');
     } catch (error) {
       console.error('[VoiceController] ❌ Failed to start ASR:', error);
+      console.debug('[VoiceController] ========================================');
       this.setState('error');
       isListening = false;
       if (sharedEarconPlayer) {

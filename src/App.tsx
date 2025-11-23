@@ -145,76 +145,31 @@ const VoiceIntegration = () => {
     }
   };
 
-    // Listen for gesture/clap voice trigger events
-    React.useEffect(() => {
-      const handleGestureTrigger = async (event: Event) => {
-        const customEvent = event as CustomEvent;
-        const source = customEvent.detail?.source || 'unknown';
-        
-        console.log('[App] ========== VOICE TRIGGER EVENT ==========');
-        console.log('[App] 🤙 Voice triggered by:', source);
-        console.log('[App] Voice controller exists:', !!voiceController);
-        console.log('[App] Voice settings enabled:', voiceSettings.enabled);
-        console.log('[App] Feature enabled:', isFeatureEnabled('VOICE_CONTROL_ENABLED'));
-        
-        if (!voiceController) {
-          console.error('[App] ❌ Voice controller not initialized!');
-          console.error('[App] This usually means voice control is disabled in settings');
-          console.error('[App] Or the controller failed to initialize');
-          return;
-        }
-        
-        console.log('[App] ✅ Voice controller is ready');
-        
-        // Check if mic is armed - if not, gesture should arm it first
-        const micArmed = voiceController.isMicArmed();
-        console.log('[App] Mic armed status:', micArmed);
-        
-        if (!micArmed) {
-          console.log('[App] 🔓 Gesture trigger - arming mic first...');
-          try {
-            await voiceController.armMic();
-            console.log('[App] ✅ Mic armed successfully by gesture');
-          } catch (error) {
-            console.error('[App] ❌ Failed to arm mic from gesture:', error);
-            return;
-          }
-        }
-        
-        try {
-          console.log('[App] 🎤 Calling startListeningFromArmedMic("gesture")...');
-          await voiceController.startListeningFromArmedMic('gesture');
-          console.log('[App] ✅ Voice ASR started successfully from gesture');
-          console.log('[App] 🔍 ASR Instance ID:', voiceController.getAsrInstanceId());
-        } catch (error) {
-          console.error('[App] ❌ Failed to start voice ASR from gesture:', error);
-        }
-        
-        console.log('[App] ==========================================');
-      };
-
-      console.log('[App] 🎤 Registering event listener for vibescape:trigger-voice');
-      console.log('[App] Voice controller ready:', !!voiceController);
-      window.addEventListener('vibescape:trigger-voice', handleGestureTrigger);
-      
-      return () => {
-        window.removeEventListener('vibescape:trigger-voice', handleGestureTrigger);
-      };
-    }, [voiceController, voiceSettings.enabled]);
+  // NOTE: Gesture voice triggers are handled directly by useUnifiedMusicControls
+  // via getGlobalVoiceController().startListeningFromArmedMic('gesture')
+  // No event listener needed here anymore
 
   return (
     <VoiceChipLazy 
       state={voiceState} 
       onManualTrigger={handleManualTrigger}
       voiceController={voiceController}
+      debugInfo={{
+        asrInstanceId: voiceController?.getAsrInstanceId() || null,
+        isMicArmed: voiceController?.isMicArmed() || false,
+      }}
     />
   );
 };
 
-const VoiceChipLazy = ({ state, onManualTrigger, voiceController }: { 
+const VoiceChipLazy = ({ state, onManualTrigger, voiceController, debugInfo }: { 
   state: any; 
   onManualTrigger?: () => void;
   voiceController?: any;
+  debugInfo?: {
+    asrInstanceId: string | null;
+    isMicArmed: boolean;
+  };
 }) => {
   const [VoiceChipComponent, setVoiceChipComponent] = React.useState<any>(null);
 
@@ -230,10 +185,7 @@ const VoiceChipLazy = ({ state, onManualTrigger, voiceController }: {
     <VoiceChipComponent 
       state={state} 
       onManualTrigger={onManualTrigger}
-      debugInfo={{
-        asrInstanceId: voiceController?.getAsrInstanceId() || null,
-        isMicArmed: voiceController?.isMicArmed() || false
-      }}
+      debugInfo={debugInfo}
     />
   );
 };
