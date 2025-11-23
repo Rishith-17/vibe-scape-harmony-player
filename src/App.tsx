@@ -277,7 +277,7 @@ const AppContent = () => {
   return (
     <BrowserRouter>
       <GestureControlsProvider>
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-x-hidden">
+        <div className="min-h-screen bg-background overflow-x-hidden">
           <Routes>
             <Route path="/" element={<Navigate to="/home" replace />} />
             <Route path="/index" element={<Navigate to="/home" replace />} />
