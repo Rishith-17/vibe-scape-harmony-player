@@ -10,6 +10,7 @@ import { GestureStatusIndicator } from './GestureStatusIndicator';
 import { GestureTutorial } from './GestureTutorial';
 import { TestGestureController } from './TestGestureController';
 import { ControlFeedback } from './ControlFeedback';
+import { VoiceDebugOverlay } from './VoiceDebugOverlay';
 
 interface GestureControlsProviderProps {
   children: React.ReactNode;
@@ -30,20 +31,13 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   
   const { handleGestureCommand, feedback, clearFeedback } = useUnifiedMusicControls();
 
-  // Voice control trigger function - dispatches event for VoiceIntegration to handle
-  const activateVoiceControl = () => {
-    console.log('🎤 Voice control activated by gesture/clap - dispatching event');
-    setVoiceControlActive(true);
-    
-    // Dispatch custom event that VoiceIntegration listens for
-    const event = new CustomEvent('vibescape:trigger-voice');
-    window.dispatchEvent(event);
-  };
-
-  // Double clap detection
+  // Double clap detection - triggers voice via gesture system
   const { isListening: clapListening } = useDoubleClap({
     enabled: gestureControlsEnabled,
-    onDoubleClap: activateVoiceControl
+    onDoubleClap: () => {
+      console.log('👏👏 Double clap detected - triggering open_hand gesture');
+      handleGestureCommand('open_hand', 0.95); // Trigger same path as gesture
+    }
   });
 
   // Fetch user's gesture controls preference (disabled when no user)
@@ -185,6 +179,8 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
           />
         </>
       )}
+      {/* Dev-only debug overlay - shows mic armed status and ASR instance */}
+      <VoiceDebugOverlay />
     </>
   );
 };

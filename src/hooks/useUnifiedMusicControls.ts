@@ -119,29 +119,34 @@ export const useUnifiedMusicControls = () => {
         }
         
         console.log('🖐️ [Gesture] ========== OPEN HAND DETECTED ==========');
-        console.log('🖐️ [Gesture] Checking if mic is armed...');
-        
         lastOpenHandGestureRef.current = nowOpenHand;
         
         const voiceController = getGlobalVoiceController();
         
         if (!voiceController) {
           console.log('🖐️ [Gesture] ❌ Voice controller not initialized');
+          console.log('🖐️ [Gesture] 💡 Voice control may be disabled in settings');
           toast({
             title: "Voice Not Ready",
             description: "Voice control is not available",
             variant: "destructive",
+            duration: 2000,
           });
+          console.log('🖐️ [Gesture] ========================================');
           return;
         }
         
+        console.log('🖐️ [Gesture] ✅ Voice controller found');
+        
         if (voiceController.isMicArmed()) {
-          console.log('🖐️ [Gesture] ✅ Mic armed - triggering shared ASR instance');
-          console.log('🖐️ [Gesture] ASR Instance ID:', voiceController.getAsrInstanceId());
+          const asrId = voiceController.getAsrInstanceId();
+          console.log('🖐️ [Gesture] ✅ Mic is armed');
+          console.log(`🖐️ [Gesture] 🔍 ASR_ID=${asrId}`);
+          console.log('🖐️ [Gesture] → Calling startListeningFromArmedMic("gesture")...');
           
           try {
             await voiceController.startListeningFromArmedMic('gesture');
-            console.log('🖐️ [Gesture] Successfully started listening from armed mic');
+            console.log('🖐️ [Gesture] ✅ Successfully started listening from armed mic');
             
             toast({
               title: "🎤 Voice Activated",
@@ -149,19 +154,21 @@ export const useUnifiedMusicControls = () => {
               duration: 2000,
             });
           } catch (error) {
-            console.error('🖐️ [Gesture] Failed to start listening:', error);
+            console.error('🖐️ [Gesture] ❌ Failed to start listening:', error);
             toast({
               title: "Mic Error",
               description: "Could not activate voice control",
               variant: "destructive",
+              duration: 2000,
             });
           }
         } else {
-          console.log('🖐️ [Gesture] ❌ Mic not armed - tap mic button first to enable gesture activation');
+          console.log('🖐️ [Gesture] ❌ Mic not armed');
+          console.log('🖐️ [Gesture] 💡 User must tap mic button first to request permission');
           toast({
-            title: "Mic Not Ready",
-            description: "Tap the mic button first to enable gesture control",
-            variant: "destructive",
+            title: "Tap Mic First",
+            description: "🎤 Tap the mic button to enable gesture control",
+            duration: 3000,
           });
         }
         
