@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Music, MoreHorizontal, Play, Trash2, Edit, ArrowLeft, Shuffle, ArrowUpDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ interface PlaylistSong {
 }
 
 const LibraryPage = () => {
+  const navigate = useNavigate();
   const {
     playlists,
     emotionPlaylists,
@@ -53,11 +55,6 @@ const LibraryPage = () => {
   const [editName, setEditName] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedPlaylist, setSelectedPlaylist] = useState<any>(null);
-  const [selectedEmotionPlaylist, setSelectedEmotionPlaylist] = useState<any>(null);
-  const [playlistSongs, setPlaylistSongs] = useState<PlaylistSong[]>([]);
-  const [recommendedSongs, setRecommendedSongs] = useState<any[]>([]);
-  const [isLoadingSongs, setIsLoadingSongs] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
@@ -68,70 +65,6 @@ const LibraryPage = () => {
     refreshEmotionPlaylists();
   }, [refreshPlaylists, refreshEmotionPlaylists]);
 
-  useEffect(() => {
-    if (selectedPlaylist || selectedEmotionPlaylist) {
-      loadPlaylistSongs();
-      loadRecommendedSongs();
-    }
-  }, [selectedPlaylist, selectedEmotionPlaylist]);
-
-  const loadPlaylistSongs = async () => {
-    if (!selectedPlaylist && !selectedEmotionPlaylist) return;
-    
-    setIsLoadingSongs(true);
-    try {
-      let songsData;
-      
-      if (selectedPlaylist) {
-        const { data, error } = await supabase
-          .from('playlist_songs')
-          .select('*')
-          .eq('playlist_id', selectedPlaylist.id)
-          .order('position');
-        
-        if (error) throw error;
-        songsData = data || [];
-      } else if (selectedEmotionPlaylist) {
-        const { data, error } = await supabase
-          .from('emotion_playlist_songs')
-          .select('*')
-          .eq('emotion_playlist_id', selectedEmotionPlaylist.id)
-          .order('created_at');
-        
-        if (error) throw error;
-        songsData = data || [];
-      }
-
-      setPlaylistSongs(songsData || []);
-    } catch (error) {
-      console.error('Error loading playlist songs:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load playlist songs",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingSongs(false);
-    }
-  };
-
-  const loadRecommendedSongs = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('gemini-music-feed', {
-        body: { 
-          mood: 'happy',
-          country: 'USA',
-          language: 'English',
-          userHistory: []
-        }
-      });
-
-      if (error) throw error;
-      setRecommendedSongs(data?.globalTrending?.slice(0, 4) || []);
-    } catch (error) {
-      console.error('Error loading recommendations:', error);
-    }
-  };
 
   const handleCreatePlaylist = async () => {
     if (!newPlaylistName.trim()) {
@@ -164,9 +97,6 @@ const LibraryPage = () => {
   const handleDeletePlaylist = async (playlistId: string, playlistName: string) => {
     try {
       await deletePlaylist(playlistId);
-      if (selectedPlaylist?.id === playlistId) {
-        setSelectedPlaylist(null);
-      }
       toast({
         title: "Deleted",
         description: `Playlist "${playlistName}" deleted`,
@@ -200,9 +130,6 @@ const LibraryPage = () => {
 
     try {
       await renamePlaylist(editingPlaylist, editName.trim());
-      if (selectedPlaylist?.id === editingPlaylist) {
-        setSelectedPlaylist({ ...selectedPlaylist, name: editName.trim() });
-      }
       setIsEditDialogOpen(false);
       setEditingPlaylist(null);
       setEditName('');
@@ -220,7 +147,7 @@ const LibraryPage = () => {
     }
   };
 
-  const handlePlayPlaylist = async (playlistId: string, type?: 'emotion' | 'regular') => {
+  const handlePlayPlaylist = async (playlistId: string) => {
     try {
       const songs = await getPlaylistSongs(playlistId);
       if (songs.length > 0) {
@@ -257,117 +184,6 @@ const LibraryPage = () => {
     }
   };
 
-  const handlePlaySong = async (song: PlaylistSong, index: number) => {
-    try {
-      const tracks = playlistSongs.map(s => ({
-        id: s.song_id,
-        title: s.title,
-        channelTitle: s.artist,
-        thumbnail: s.thumbnail,
-        url: s.url,
-      }));
-
-      playTrack(tracks[index], tracks, index);
-      
-      toast({
-        title: "Now Playing",
-        description: `${song.title} by ${song.artist}`,
-      });
-    } catch (error) {
-      console.error('Error playing song:', error);
-      toast({
-        title: "Error",
-        description: "Failed to play song",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleShufflePlay = () => {
-    if (playlistSongs.length === 0) return;
-    
-    const shuffledSongs = [...playlistSongs].sort(() => Math.random() - 0.5);
-    const tracks = shuffledSongs.map(s => ({
-      id: s.song_id,
-      title: s.title,
-      channelTitle: s.artist,
-      thumbnail: s.thumbnail,
-      url: s.url,
-    }));
-
-    playTrack(tracks[0], tracks, 0);
-    toast({
-      title: "Shuffle Play",
-      description: "Playing playlist in shuffle mode",
-    });
-  };
-
-  const handleRemoveSong = async (songId: string) => {
-    if (!selectedPlaylist && !selectedEmotionPlaylist) return;
-    
-    try {
-      if (selectedPlaylist) {
-        await removeFromPlaylist(selectedPlaylist.id, songId);
-      } else if (selectedEmotionPlaylist) {
-        const { error } = await supabase
-          .from('emotion_playlist_songs')
-          .delete()
-          .eq('emotion_playlist_id', selectedEmotionPlaylist.id)
-          .eq('song_id', songId);
-        
-        if (error) throw error;
-      }
-      
-      setPlaylistSongs(playlistSongs.filter(s => s.song_id !== songId));
-      toast({
-        title: "Song Removed",
-        description: "Song removed from playlist",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to remove song",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const isCurrentlyPlaying = (song: PlaylistSong) => {
-    return currentTrack?.id === song.song_id && isPlaying;
-  };
-
-  const generatePlaylistCover = (playlist: any) => {
-    const first4Songs = playlistSongs.slice(0, 4);
-    if (first4Songs.length === 0) return null;
-    
-    return (
-      <div className="grid grid-cols-2 gap-0.5 w-48 h-48 rounded-lg overflow-hidden shadow-xl">
-        {Array.from({ length: 4 }).map((_, index) => {
-          const song = first4Songs[index];
-          return (
-            <div key={index} className="aspect-square bg-gray-800">
-              {song ? (
-                <img
-                  src={`https://img.youtube.com/vi/${song.song_id}/hqdefault.jpg`}
-                  alt={song.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = "https://via.placeholder.com/120x90/1a1a1a/ffffff?text=♪";
-                  }}
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                  <div className="text-gray-500 text-2xl">♪</div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   const getEmotionEmoji = (emotion: string) => {
     const emojiMap: { [key: string]: string } = {
       happy: '😊',
@@ -380,250 +196,6 @@ const LibraryPage = () => {
     };
     return emojiMap[emotion] || '😐';
   };
-
-  const getEmotionColor = (emotion: string) => {
-    const colorMap: { [key: string]: string } = {
-      happy: 'from-yellow-400 to-orange-500',
-      sad: 'from-blue-400 to-blue-600',
-      angry: 'from-red-400 to-red-600',
-      fear: 'from-purple-400 to-purple-600',
-      surprise: 'from-pink-400 to-pink-600',
-      disgust: 'from-green-400 to-green-600',
-      neutral: 'from-gray-400 to-gray-600'
-    };
-    return colorMap[emotion] || 'from-gray-400 to-gray-600';
-  };
-
-  if (selectedPlaylist || selectedEmotionPlaylist) {
-    const currentPlaylistData = selectedPlaylist || selectedEmotionPlaylist;
-    const isEmotionPlaylist = !!selectedEmotionPlaylist;
-    
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white pb-32">
-        <div className="p-6">
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setSelectedPlaylist(null);
-              setSelectedEmotionPlaylist(null);
-            }}
-            className="text-gray-400 hover:text-white mb-4 p-2"
-          >
-            <ArrowLeft size={20} className="mr-2" />
-            Back to Library
-          </Button>
-        </div>
-
-        <div className="px-6 mb-8">
-          <div className="flex flex-col md:flex-row items-start md:items-end space-y-6 md:space-y-0 md:space-x-6">
-            <div className="flex-shrink-0">
-              {generatePlaylistCover(currentPlaylistData) || (
-                <div className={`w-48 h-48 bg-gradient-to-br ${
-                  isEmotionPlaylist ? getEmotionColor(currentPlaylistData.emotion) : 'from-purple-500 to-pink-500'
-                } rounded-lg flex items-center justify-center shadow-xl`}>
-                  <div className="text-white text-6xl">
-                    {isEmotionPlaylist ? getEmotionEmoji(currentPlaylistData.emotion) : '♪'}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-400 mb-2">
-                {isEmotionPlaylist ? 'Emotion Playlist' : 'Playlist'}
-              </p>
-              <h1 className="text-4xl md:text-6xl font-bold mb-4 line-clamp-2">{currentPlaylistData.name}</h1>
-              {currentPlaylistData.description && (
-                <p className="text-gray-300 mb-4">{currentPlaylistData.description}</p>
-              )}
-              <div className="flex items-center space-x-4 text-sm text-gray-400">
-                <span>Created by You</span>
-                <span>•</span>
-                <span>{playlistSongs.length} songs</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4 mt-8">
-            <Button
-              onClick={handleShufflePlay}
-              disabled={playlistSongs.length === 0}
-              className="bg-green-600 hover:bg-green-700 text-white rounded-full px-8 py-3 text-lg font-semibold disabled:opacity-50"
-            >
-              <Shuffle size={20} className="mr-2" />
-              Shuffle Play
-            </Button>
-            
-            <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
-              <Plus size={20} className="mr-2" />
-              Add
-            </Button>
-            
-            <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
-              <ArrowUpDown size={20} className="mr-2" />
-              Sort
-            </Button>
-            
-            {!isEmotionPlaylist && (
-              <Button 
-                variant="outline" 
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                onClick={() => startEditPlaylist(selectedPlaylist)}
-              >
-                <Edit size={20} className="mr-2" />
-                Edit
-              </Button>
-            )}
-          </div>
-        </div>
-
-        <div className="px-6 mb-8">
-          {isLoadingSongs ? (
-            <div className="text-center py-16">
-              <div className="w-8 h-8 border-4 border-green-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-300">Loading songs...</p>
-            </div>
-          ) : playlistSongs.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="text-gray-400 text-xl mb-4">No songs in this playlist</div>
-              <p className="text-gray-500">
-                {isEmotionPlaylist 
-                  ? `Add songs to your ${currentPlaylistData.emotion} playlist from search or when emotions are detected`
-                  : 'Add some songs from the search page to get started'
-                }
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {playlistSongs.map((song, index) => (
-                <div
-                  key={song.id}
-                  className={`group flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer ${
-                    isCurrentlyPlaying(song) ? 'bg-gray-700/70' : ''
-                  }`}
-                  onClick={() => handlePlaySong(song, index)}
-                >
-                  <div className="w-6 text-center">
-                    {isCurrentlyPlaying(song) ? (
-                      <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                    ) : (
-                      <span className="text-gray-400 text-sm group-hover:hidden">{index + 1}</span>
-                    )}
-                    <Play size={16} className="text-gray-400 hidden group-hover:block" />
-                  </div>
-
-                  <div className="w-12 h-9 rounded overflow-hidden flex-shrink-0">
-                    <img
-                      src={`https://img.youtube.com/vi/${song.song_id}/hqdefault.jpg`}
-                      alt={song.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "https://via.placeholder.com/48x36/1a1a1a/ffffff?text=♪";
-                      }}
-                    />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <h4 className={`font-medium line-clamp-1 ${
-                      isCurrentlyPlaying(song) ? 'text-green-400' : 'text-white'
-                    }`}>
-                      {song.title}
-                    </h4>
-                    <p className="text-gray-400 text-sm line-clamp-1">{song.artist}</p>
-                  </div>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-gray-400 hover:text-white opacity-0 group-hover:opacity-100"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreHorizontal size={16} />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-gray-800 border-gray-700">
-                      <DropdownMenuItem 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveSong(song.song_id);
-                        }}
-                        className="text-red-400 hover:bg-gray-700"
-                      >
-                        Remove from playlist
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {recommendedSongs.length > 0 && (
-          <div className="px-6">
-            <h2 className="text-2xl font-bold mb-6">Recommended Songs</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {recommendedSongs.map((song, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-800/50 rounded-xl p-4 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer group"
-                >
-                  <div className="w-full aspect-video rounded-lg overflow-hidden mb-3">
-                    <img
-                      src={song.albumArt || "https://via.placeholder.com/240x180/1a1a1a/ffffff?text=♪"}
-                      alt={song.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "https://via.placeholder.com/240x180/1a1a1a/ffffff?text=♪";
-                      }}
-                    />
-                  </div>
-                  <h4 className="text-white font-medium line-clamp-1 mb-1">{song.title}</h4>
-                  <p className="text-gray-400 text-sm line-clamp-1">{song.artist}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="bg-gray-800 text-white border-gray-700">
-            <DialogHeader>
-              <DialogTitle>Rename Playlist</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                placeholder="Enter new playlist name"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                className="bg-gray-700 border-gray-600 text-white"
-                onKeyPress={(e) => e.key === 'Enter' && saveEditPlaylist()}
-              />
-              <div className="flex justify-end space-x-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsEditDialogOpen(false)}
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={saveEditPlaylist}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  Save
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-    );
-  }
 
   // Combine all playlists for circular arrangement
   const allPlaylists = [
@@ -643,18 +215,14 @@ const LibraryPage = () => {
       } else if (e.key === 'Enter') {
         const centerPlaylist = allPlaylists[currentIndex];
         if (centerPlaylist) {
-          if (centerPlaylist.type === 'emotion') {
-            setSelectedEmotionPlaylist(centerPlaylist);
-          } else {
-            setSelectedPlaylist(centerPlaylist);
-          }
+          navigate(`/playlist/${centerPlaylist.id}`);
         }
       }
-    };
+    }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, allPlaylists]);
+  }, [currentIndex, allPlaylists, navigate]);
 
   // Touch/swipe handlers
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -852,11 +420,7 @@ const LibraryPage = () => {
                     }}
                     onClick={() => {
                       if (isCenterCard) {
-                        if (isEmotion) {
-                          setSelectedEmotionPlaylist(playlist);
-                        } else {
-                          setSelectedPlaylist(playlist);
-                        }
+                        navigate(`/playlist/${playlist.id}`);
                       } else {
                         setCurrentIndex(index);
                       }
