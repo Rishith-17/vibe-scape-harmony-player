@@ -52,27 +52,27 @@ const SpotifyMiniPlayer = () => {
 
   return (
     <>
-      {/* Spotify-Style Mini Player */}
-      <div className="fixed bottom-20 left-0 right-0 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 backdrop-blur-xl border-t border-gray-700/50 z-40 shadow-2xl">
-        {/* Interactive Progress Bar */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gray-700 group cursor-pointer">
-          <div 
-            className="h-full bg-gradient-to-r from-green-400 to-green-500 transition-all duration-300"
-            style={{ width: `${duration > 0 ? (displayTime / duration) * 100 : 0}%` }}
-          />
-          <div className="absolute top-0 left-0 right-0 h-3 -mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Slider
-              value={[displayTime]}
-              max={duration || 100}
-              step={0.1}
-              onValueChange={handleSeek}
-              onValueCommit={handleSeekCommit}
-              className="w-full h-3"
+      {/* Pill-Shaped Mini Player with Neon Glow */}
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[95%] max-w-4xl z-40">
+        <div className="relative rounded-full bg-background/95 backdrop-blur-xl border-2 border-primary/60 shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] px-6 py-4">
+          {/* Interactive Progress Bar */}
+          <div className="absolute -top-2 left-6 right-6 h-1 bg-muted rounded-full overflow-hidden group cursor-pointer">
+            <div 
+              className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-300 shadow-[0_0_8px_hsl(var(--primary))]"
+              style={{ width: `${duration > 0 ? (displayTime / duration) * 100 : 0}%` }}
             />
+            <div className="absolute -top-1 left-0 right-0 h-3 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Slider
+                value={[displayTime]}
+                max={duration || 100}
+                step={0.1}
+                onValueChange={handleSeek}
+                onValueCommit={handleSeekCommit}
+                className="w-full h-3"
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="px-4 py-3">
           <div className="flex items-center space-x-4">
             {/* Track Info - Left Section */}
             <div 
@@ -80,38 +80,38 @@ const SpotifyMiniPlayer = () => {
               onClick={() => setIsNowPlayingOpen(true)}
             >
               <div className="relative flex-shrink-0">
-                <div className="w-14 h-14 rounded-lg overflow-hidden shadow-lg transform transition-all duration-300 group-hover:scale-105">
+                <div className="w-14 h-14 rounded-full overflow-hidden shadow-lg border-2 border-primary/40 shadow-[0_0_15px_hsl(var(--primary)/0.3)] transform transition-all duration-300 group-hover:scale-105 group-hover:border-primary group-hover:shadow-[0_0_20px_hsl(var(--primary)/0.6)]">
                   <img
                     src={currentTrack.thumbnail}
                     alt={currentTrack.title}
                     className="w-full h-full object-cover"
                   />
                   {/* 3D Glass Effect Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-lg" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-full" />
                 </div>
                 
                 {/* Loading/Playing Status Indicator */}
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gray-900 border-2 border-gray-700 flex items-center justify-center">
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background border-2 border-primary/60 flex items-center justify-center shadow-[0_0_8px_hsl(var(--primary)/0.4)]">
                   {isLoading ? (
-                    <Loader2 size={10} className="text-green-400 animate-spin" />
+                    <Loader2 size={10} className="text-primary animate-spin" />
                   ) : isPlaying ? (
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
                   ) : (
-                    <div className="w-2 h-2 bg-gray-500 rounded-full" />
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full" />
                   )}
                 </div>
               </div>
               
               <div className="flex-1 min-w-0">
-                <h4 className="text-white font-semibold text-sm line-clamp-1 mb-1 group-hover:text-green-400 transition-colors">
+                <h4 className="text-foreground font-semibold text-sm line-clamp-1 mb-1 group-hover:text-primary transition-colors">
                   {currentTrack.title}
                 </h4>
                 <div className="flex items-center space-x-2">
-                  <p className="text-gray-400 text-xs line-clamp-1">
+                  <p className="text-muted-foreground text-xs line-clamp-1">
                     {currentTrack.channelTitle || 'Unknown Artist'}
                   </p>
                   {hasError && (
-                    <span className="text-red-400 text-xs">• Error</span>
+                    <span className="text-destructive text-xs">• Error</span>
                   )}
                 </div>
               </div>
@@ -119,59 +119,59 @@ const SpotifyMiniPlayer = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-gray-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all rounded-full"
               >
                 <Heart size={16} />
               </Button>
             </div>
 
             {/* Center Controls */}
-            <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className="flex items-center space-x-3 flex-shrink-0">
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={skipPrevious}
                 disabled={!canSkipPrevious}
-                className="text-gray-400 hover:text-white disabled:opacity-30 hover:bg-gray-700/50 rounded-full p-2 transition-all hover:scale-110"
+                className="text-muted-foreground hover:text-foreground disabled:opacity-30 hover:bg-primary/10 rounded-full w-9 h-9 p-0 transition-all hover:scale-110 hover:shadow-[0_0_12px_hsl(var(--primary)/0.3)] active:scale-95"
               >
-                <SkipBack size={16} />
+                <SkipBack size={18} />
               </Button>
 
               <Button
                 onClick={togglePlayPause}
                 disabled={isLoading}
-                className="bg-white hover:bg-gray-100 text-black rounded-full w-8 h-8 p-0 shadow-lg transform transition-all duration-200 hover:scale-110 active:scale-95 disabled:opacity-50"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full w-11 h-11 p-0 shadow-[0_0_20px_hsl(var(--primary)/0.5)] transform transition-all duration-200 hover:scale-110 hover:shadow-[0_0_25px_hsl(var(--primary)/0.7)] active:scale-95 disabled:opacity-50"
               >
                 {isLoading ? (
-                  <Loader2 size={16} className="animate-spin" />
+                  <Loader2 size={20} className="animate-spin" />
                 ) : isPlaying ? (
-                  <Pause size={16} />
+                  <Pause size={20} />
                 ) : (
-                  <Play size={16} className="ml-0.5" />
+                  <Play size={20} className="ml-0.5" />
                 )}
               </Button>
 
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={skipNext}
                 disabled={!canSkipNext}
-                className="text-gray-400 hover:text-white disabled:opacity-30 hover:bg-gray-700/50 rounded-full p-2 transition-all hover:scale-110"
+                className="text-muted-foreground hover:text-foreground disabled:opacity-30 hover:bg-primary/10 rounded-full w-9 h-9 p-0 transition-all hover:scale-110 hover:shadow-[0_0_12px_hsl(var(--primary)/0.3)] active:scale-95"
               >
-                <SkipForward size={16} />
+                <SkipForward size={18} />
               </Button>
             </div>
 
             {/* Right Section - Volume & Time */}
             <div className="flex items-center space-x-3 flex-shrink-0">
-              <div className="hidden md:flex items-center space-x-2 text-xs text-gray-400 font-mono">
+              <div className="hidden md:flex items-center space-x-2 text-xs text-muted-foreground font-mono">
                 <span>{formatTime(displayTime)}</span>
                 <span>/</span>
                 <span>{formatTime(duration)}</span>
               </div>
 
               <div className="hidden lg:flex items-center space-x-2 w-24">
-                <Volume2 size={14} className="text-gray-400" />
+                <Volume2 size={14} className="text-muted-foreground" />
                 <Slider
                   value={[volume]}
                   max={100}
@@ -183,11 +183,11 @@ const SpotifyMiniPlayer = () => {
 
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => setIsNowPlayingOpen(true)}
-                className="text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-full p-2 transition-all hover:scale-110"
+                className="text-muted-foreground hover:text-foreground hover:bg-primary/10 rounded-full w-9 h-9 p-0 transition-all hover:scale-110 hover:shadow-[0_0_12px_hsl(var(--primary)/0.3)] active:scale-95"
               >
-                <ChevronUp size={16} />
+                <ChevronUp size={18} />
               </Button>
             </div>
           </div>
