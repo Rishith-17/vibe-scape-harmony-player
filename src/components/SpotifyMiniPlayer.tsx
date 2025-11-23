@@ -116,8 +116,8 @@ const SpotifyMiniPlayer = () => {
                     <div className="relative">
                       <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl overflow-hidden shadow-lg transform transition-all duration-300 group-hover/art:scale-110 ring-2 ring-cyan-400/30">
                         <img
-                          src={currentTrack.thumbnail}
-                          alt={currentTrack.title}
+                          src={effectiveTrack.thumbnail}
+                          alt={effectiveTrack.title}
                           className="w-full h-full object-cover"
                         />
                         {/* Glass Effect Overlay */}
@@ -143,11 +143,11 @@ const SpotifyMiniPlayer = () => {
                     onClick={() => setIsNowPlayingOpen(true)}
                   >
                     <h4 className="text-white font-bold text-sm md:text-base line-clamp-1 mb-0.5 group-hover/info:text-cyan-400 transition-colors">
-                      {currentTrack.title}
+                      {effectiveTrack.title}
                     </h4>
                     <div className="flex items-center gap-2">
                       <p className="text-gray-400 text-xs md:text-sm line-clamp-1">
-                        {currentTrack.channelTitle || 'Unknown Artist'}
+                        {effectiveTrack.channelTitle || 'Unknown Artist'}
                       </p>
                       {/* Simple Visualizer Bars */}
                       {isPlaying && (
