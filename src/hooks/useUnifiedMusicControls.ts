@@ -142,6 +142,7 @@ export const useUnifiedMusicControls = () => {
           const asrId = voiceController.getAsrInstanceId();
           console.log('🖐️ [Gesture] ✅ Mic is armed');
           console.log(`🖐️ [Gesture] 🔍 ASR_ID=${asrId}`);
+          console.log(`[Gesture] open_hand → startListening ASR_ID=${asrId}`);
           console.log('🖐️ [Gesture] → Calling startListeningFromArmedMic("gesture")...');
           
           try {
@@ -163,6 +164,7 @@ export const useUnifiedMusicControls = () => {
             });
           }
         } else {
+          console.log('[Gesture] open_hand detected but mic not armed');
           console.log('🖐️ [Gesture] ❌ Mic not armed');
           console.log('🖐️ [Gesture] 💡 User must tap mic button first to request permission');
           toast({
