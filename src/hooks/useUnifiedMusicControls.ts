@@ -127,12 +127,10 @@ export const useUnifiedMusicControls = () => {
         
         if (!voiceController) {
           console.log('🖐️ [Gesture] ❌ Voice controller not initialized');
-          console.log('🖐️ [Gesture] Voice control may be disabled in settings');
           toast({
-            title: "Voice Control Disabled",
-            description: "Enable voice control in Profile → Voice Settings",
+            title: "Voice Not Ready",
+            description: "Voice control is not available",
             variant: "destructive",
-            duration: 4000,
           });
           return;
         }

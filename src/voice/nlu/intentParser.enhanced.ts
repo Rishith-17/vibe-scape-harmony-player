@@ -280,31 +280,7 @@ export function parseIntent(transcript: string): VoiceIntent {
     };
   }
   
-  // 11. Song information queries
-  // Patterns: "who sings this", "what year is this", "tell me about this song", etc.
-  if (/(who (sings|is singing|sang)|what (year|album|genre)|tell me about|info about|information about)/i.test(lower) &&
-      /(this|current|playing|song|track)/i.test(lower)) {
-    return {
-      action: 'song_info',
-      slots: {},
-      raw: transcript,
-      confidence: 0.92,
-    };
-  }
-
-  // Specific song query: "tell me about [song name]"
-  const songInfoMatch = lower.match(/(tell me about|info about|who (sings|sang)|what (year|album) (is|was))\s+["\']?(.+?)["\']?$/i);
-  if (songInfoMatch && songInfoMatch[6]) {
-    const songTitle = songInfoMatch[6].trim();
-    return {
-      action: 'song_info',
-      slots: { songTitle },
-      raw: transcript,
-      confidence: 0.88,
-    };
-  }
-
-  // 12. Navigation commands
+  // 11. Navigation commands
   if (/^(open\s+|go\s+to\s+)?search$/i.test(lower)) {
     return {
       action: 'navigate',
@@ -363,7 +339,7 @@ export function parseIntent(transcript: string): VoiceIntent {
     };
   }
   
-  // 13. Unknown
+  // 12. Unknown
   return { action: 'unknown', slots: {}, raw: transcript, confidence: 0.0 };
 }
 
@@ -392,12 +368,6 @@ export const ENHANCED_HELP_TEXT = `
 
 🔍 Search:
 - "search for lo-fi beats" (auto-plays first result)
-
-🎤 Song Info:
-- "tell me about this song"
-- "who sings this?"
-- "what year is this song?"
-- "tell me about Blinding Lights"
 
 🧭 Navigation:
 - "go home", "open library", "open emotions", "open profile"

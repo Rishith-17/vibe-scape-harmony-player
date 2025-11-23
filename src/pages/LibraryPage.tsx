@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Music, MoreHorizontal, Play, Trash2, Edit, ArrowLeft, Shuffle, ArrowUpDown, Sparkles } from 'lucide-react';
-import { motion, useMotionValue, PanInfo } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { Plus, Music, MoreHorizontal, Play, Trash2, Edit, ArrowLeft, Shuffle, ArrowUpDown } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
@@ -58,8 +58,6 @@ const LibraryPage = () => {
   const [playlistSongs, setPlaylistSongs] = useState<PlaylistSong[]>([]);
   const [recommendedSongs, setRecommendedSongs] = useState<any[]>([]);
   const [isLoadingSongs, setIsLoadingSongs] = useState(false);
-  const [hoveredPlaylistId, setHoveredPlaylistId] = useState<string | null>(null);
-  const [focusedIndex, setFocusedIndex] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -68,69 +66,45 @@ const LibraryPage = () => {
   }, [refreshPlaylists, refreshEmotionPlaylists]);
 
   useEffect(() => {
-    console.log('[LibraryPage] Selected playlist changed:', {
-      selectedPlaylist,
-      selectedEmotionPlaylist
-    });
-    
     if (selectedPlaylist || selectedEmotionPlaylist) {
-      console.log('[LibraryPage] Loading songs for selected playlist...');
       loadPlaylistSongs();
       loadRecommendedSongs();
     }
   }, [selectedPlaylist, selectedEmotionPlaylist]);
 
   const loadPlaylistSongs = async () => {
-    if (!selectedPlaylist && !selectedEmotionPlaylist) {
-      console.log('[LibraryPage] No playlist selected, skipping song load');
-      return;
-    }
-    
-    console.log('[LibraryPage] Loading songs...', {
-      selectedPlaylist: selectedPlaylist?.id,
-      selectedEmotionPlaylist: selectedEmotionPlaylist?.id
-    });
+    if (!selectedPlaylist && !selectedEmotionPlaylist) return;
     
     setIsLoadingSongs(true);
     try {
       let songsData;
       
       if (selectedPlaylist) {
-        console.log('[LibraryPage] Fetching regular playlist songs for:', selectedPlaylist.id);
         const { data, error } = await supabase
           .from('playlist_songs')
           .select('*')
           .eq('playlist_id', selectedPlaylist.id)
           .order('position');
         
-        if (error) {
-          console.error('[LibraryPage] Error fetching playlist songs:', error);
-          throw error;
-        }
+        if (error) throw error;
         songsData = data || [];
-        console.log('[LibraryPage] Loaded playlist songs:', songsData.length);
       } else if (selectedEmotionPlaylist) {
-        console.log('[LibraryPage] Fetching emotion playlist songs for:', selectedEmotionPlaylist.id);
         const { data, error } = await supabase
           .from('emotion_playlist_songs')
           .select('*')
           .eq('emotion_playlist_id', selectedEmotionPlaylist.id)
           .order('created_at');
         
-        if (error) {
-          console.error('[LibraryPage] Error fetching emotion playlist songs:', error);
-          throw error;
-        }
+        if (error) throw error;
         songsData = data || [];
-        console.log('[LibraryPage] Loaded emotion playlist songs:', songsData.length);
       }
 
       setPlaylistSongs(songsData || []);
     } catch (error) {
-      console.error('[LibraryPage] Error loading playlist songs:', error);
+      console.error('Error loading playlist songs:', error);
       toast({
         title: "Error",
-        description: "Failed to load playlist songs. Please try again.",
+        description: "Failed to load playlist songs",
         variant: "destructive",
       });
     } finally {
@@ -417,29 +391,6 @@ const LibraryPage = () => {
     return colorMap[emotion] || 'from-gray-400 to-gray-600';
   };
 
-  const getPlaylistGlowColor = (playlist: any, index: number) => {
-    if (playlist.type === 'emotion') {
-      const glowMap: { [key: string]: string } = {
-        happy: 'rgba(251, 191, 36, 0.8)',
-        sad: 'rgba(96, 165, 250, 0.8)',
-        angry: 'rgba(248, 113, 113, 0.8)',
-        fear: 'rgba(167, 139, 250, 0.8)',
-        surprise: 'rgba(244, 114, 182, 0.8)',
-        disgust: 'rgba(52, 211, 153, 0.8)',
-        neutral: 'rgba(156, 163, 175, 0.8)'
-      };
-      return glowMap[playlist.emotion] || 'rgba(0, 255, 200, 0.8)';
-    }
-    // Cycle through vibrant colors for regular playlists
-    const colors = [
-      'rgba(168, 85, 247, 0.8)', // purple
-      'rgba(236, 72, 153, 0.8)', // pink
-      'rgba(34, 197, 94, 0.8)', // green
-      'rgba(6, 182, 212, 0.8)', // cyan
-    ];
-    return colors[index % colors.length];
-  };
-
   if (selectedPlaylist || selectedEmotionPlaylist) {
     const currentPlaylistData = selectedPlaylist || selectedEmotionPlaylist;
     const isEmotionPlaylist = !!selectedEmotionPlaylist;
@@ -531,23 +482,13 @@ const LibraryPage = () => {
             </div>
           ) : playlistSongs.length === 0 ? (
             <div className="text-center py-16">
-              <div className="text-6xl mb-6">🎵</div>
-              <div className="text-gray-300 text-2xl font-semibold mb-4">
-                {isEmotionPlaylist ? `Your ${currentPlaylistData.emotion} playlist is empty` : 'This playlist is empty'}
-              </div>
-              <p className="text-gray-400 mb-8 max-w-md mx-auto">
+              <div className="text-gray-400 text-xl mb-4">No songs in this playlist</div>
+              <p className="text-gray-500">
                 {isEmotionPlaylist 
-                  ? `Songs matching the "${currentPlaylistData.emotion}" emotion will appear here. Search for songs and add them to this playlist.`
-                  : 'Start adding songs from the search page to build your perfect playlist.'
+                  ? `Add songs to your ${currentPlaylistData.emotion} playlist from search or when emotions are detected`
+                  : 'Add some songs from the search page to get started'
                 }
               </p>
-              <Button
-                onClick={() => window.location.href = '/search'}
-                className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-600 hover:to-cyan-600 text-white"
-              >
-                <Plus size={20} className="mr-2" />
-                Add Songs from Search
-              </Button>
             </div>
           ) : (
             <div className="space-y-1">
@@ -687,61 +628,6 @@ const LibraryPage = () => {
     ...playlists.map(p => ({ ...p, type: 'regular' as const }))
   ];
 
-  // Keyboard controls
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (allPlaylists.length === 0) return;
-      
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        setFocusedIndex((prev) => (prev - 1 + allPlaylists.length) % allPlaylists.length);
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        setFocusedIndex((prev) => (prev + 1) % allPlaylists.length);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [allPlaylists.length]);
-
-  // Swipe handlers
-  const handleDragEnd = useCallback((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (allPlaylists.length === 0) return;
-    
-    const swipeThreshold = 50;
-    if (info.offset.x > swipeThreshold) {
-      // Swipe right -> go to previous
-      setFocusedIndex((prev) => (prev - 1 + allPlaylists.length) % allPlaylists.length);
-    } else if (info.offset.x < -swipeThreshold) {
-      // Swipe left -> go to next
-      setFocusedIndex((prev) => (prev + 1) % allPlaylists.length);
-    }
-  }, [allPlaylists.length]);
-
-  // Handle clicking a playlist - always open its detail view and center it
-  const handlePlaylistClick = useCallback((playlist: any, index: number) => {
-    console.log('[LibraryPage] Playlist clicked:', {
-      playlist,
-      index,
-      type: playlist.type
-    });
-    
-    const isEmotion = playlist.type === 'emotion';
-
-    // Center the clicked card in the carousel for visual consistency
-    setFocusedIndex(index);
-
-    // Open the corresponding playlist detail view
-    if (isEmotion) {
-      console.log('[LibraryPage] Setting emotion playlist:', playlist.name);
-      setSelectedEmotionPlaylist(playlist);
-    } else {
-      console.log('[LibraryPage] Setting regular playlist:', playlist.name);
-      setSelectedPlaylist(playlist);
-    }
-  }, []);
-
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white pb-32 relative overflow-hidden">
       {/* Animated Background Grid */}
@@ -753,79 +639,29 @@ const LibraryPage = () => {
         }} />
       </div>
 
-      {/* Floating Particles and Stars */}
-      {[...Array(30)].map((_, i) => (
+      {/* Floating Particles */}
+      {[...Array(20)].map((_, i) => (
         <motion.div
-          key={`particle-${i}`}
-          className="absolute rounded-full"
-          style={{
-            width: i % 3 === 0 ? '3px' : '1px',
-            height: i % 3 === 0 ? '3px' : '1px',
-            backgroundColor: i % 2 === 0 ? '#00ffcc' : '#a78bfa',
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-          }}
-          animate={{
-            y: [0, -40, 0],
-            x: [0, Math.random() * 20 - 10, 0],
-            opacity: [0.1, 1, 0.1],
-            scale: [1, 1.8, 1],
-          }}
-          transition={{
-            duration: 4 + Math.random() * 3,
-            repeat: Infinity,
-            delay: Math.random() * 3,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
-
-      {/* Twinkling Stars */}
-      {[...Array(50)].map((_, i) => (
-        <motion.div
-          key={`star-${i}`}
-          className="absolute w-0.5 h-0.5 bg-white rounded-full"
+          key={i}
+          className="absolute w-1 h-1 bg-cyan-400 rounded-full"
           style={{
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
           }}
           animate={{
-            opacity: [0, 1, 0],
-            scale: [0, 1.5, 0],
+            y: [0, -30, 0],
+            opacity: [0.2, 0.8, 0.2],
+            scale: [1, 1.5, 1],
           }}
           transition={{
-            duration: 2 + Math.random() * 2,
+            duration: 3 + Math.random() * 2,
             repeat: Infinity,
-            delay: Math.random() * 4,
+            delay: Math.random() * 2,
           }}
         />
       ))}
 
-      {/* Data Stream Lines */}
-      {[...Array(8)].map((_, i) => (
-        <motion.div
-          key={`line-${i}`}
-          className="absolute h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
-          style={{
-            width: '200px',
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            opacity: 0.3,
-          }}
-          animate={{
-            x: [-200, window.innerWidth + 200],
-            opacity: [0, 0.6, 0],
-          }}
-          transition={{
-            duration: 8 + Math.random() * 4,
-            repeat: Infinity,
-            delay: Math.random() * 5,
-            ease: 'linear',
-          }}
-        />
-      ))}
-
-      <div className="pt-8 px-6 relative z-10 min-h-screen">
+      <div className="pt-8 px-6 relative z-10">
         <div className="flex items-center justify-between mb-16">
           <motion.h1 
             className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-green-400 to-cyan-400 bg-clip-text text-transparent"
@@ -888,12 +724,11 @@ const LibraryPage = () => {
 
         {/* Empty State */}
         {allPlaylists.length === 0 ? (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center py-16">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="text-center"
             >
               <div className="text-gray-400 text-xl mb-4">Your library is empty</div>
               <p className="text-gray-500 mb-6">Create your first playlist to get started</p>
@@ -907,52 +742,51 @@ const LibraryPage = () => {
             </motion.div>
           </div>
         ) : (
-          /* Circular 3D Playlist Arrangement - Controllable Carousel */
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[80vh] flex items-center justify-center perspective-[2000px]">
+          /* Circular 3D Playlist Arrangement */
+          <div className="relative w-full min-h-[600px] flex items-center justify-center perspective-[2000px]">
             <motion.div
-              className="relative w-full max-w-5xl aspect-square"
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.1}
-              onDragEnd={handleDragEnd}
+              className="relative w-full max-w-4xl aspect-square"
+              animate={{
+                rotateY: [0, 360],
+              }}
+              transition={{
+                duration: 60,
+                repeat: Infinity,
+                ease: 'linear',
+              }}
               style={{ transformStyle: 'preserve-3d' }}
             >
               {allPlaylists.map((playlist, index) => {
-                const numPlaylists = allPlaylists.length;
-                const angle = ((index - focusedIndex) / numPlaylists) * 2 * Math.PI;
-                const radius = 380;
+                const angle = (index / allPlaylists.length) * 2 * Math.PI;
+                const radius = 280;
                 const x = Math.cos(angle) * radius;
                 const z = Math.sin(angle) * radius;
                 const isEmotion = playlist.type === 'emotion';
-                const playlistKey = `${playlist.type}-${playlist.id}`;
-                const isFocused = index === focusedIndex;
-                const isHovered = hoveredPlaylistId === playlistKey;
-                const glowColor = getPlaylistGlowColor(playlist, index);
 
                 return (
                   <motion.div
-                    key={playlistKey}
+                    key={`${playlist.type}-${playlist.id}`}
                     className="absolute top-1/2 left-1/2 cursor-pointer"
                     style={{
+                      transform: `translate(-50%, -50%) translate3d(${x}px, 0, ${z}px) rotateY(${-angle * (180 / Math.PI)}deg)`,
                       transformStyle: 'preserve-3d',
                     }}
-                    animate={{
-                      x: x,
-                      z: z,
-                      y: isFocused ? -30 : 0,
-                      scale: isFocused ? 1.4 : 0.75,
-                      rotateY: -angle * (180 / Math.PI),
+                    whileHover={{
+                      scale: 1.3,
+                      z: 100,
+                      rotateY: 15,
+                      transition: { duration: 0.3 },
                     }}
-                    transition={{
-                      duration: 0.6,
-                      ease: [0.25, 0.46, 0.45, 0.94],
+                    onClick={() => {
+                      if (isEmotion) {
+                        setSelectedEmotionPlaylist(playlist);
+                      } else {
+                        setSelectedPlaylist(playlist);
+                      }
                     }}
-                    onHoverStart={() => setHoveredPlaylistId(playlistKey)}
-                    onHoverEnd={() => setHoveredPlaylistId(null)}
-                    onClick={() => handlePlaylistClick(playlist, index)}
                   >
                     <motion.div
-                      className="relative w-56 h-72 rounded-3xl overflow-hidden group"
+                      className="relative w-44 h-56 rounded-3xl overflow-hidden"
                       style={{
                         background: isEmotion 
                           ? `linear-gradient(135deg, ${
@@ -965,193 +799,178 @@ const LibraryPage = () => {
                               '#9ca3af, #6b7280'
                             })`
                           : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                        boxShadow: isFocused 
-                          ? `0 0 80px ${glowColor}, inset 0 0 50px ${glowColor}, 0 20px 60px rgba(0,0,0,0.6)` 
-                          : `0 0 40px ${glowColor}, inset 0 0 20px ${glowColor}`,
-                        border: `3px solid ${glowColor}`,
+                        boxShadow: '0 0 40px rgba(0, 255, 200, 0.6), inset 0 0 20px rgba(0, 255, 200, 0.2)',
+                        border: '2px solid rgba(0, 255, 200, 0.5)',
                       }}
                       animate={{
-                        boxShadow: isFocused 
-                          ? [
-                              `0 0 80px ${glowColor}, inset 0 0 50px ${glowColor}, 0 20px 60px rgba(0,0,0,0.6)`,
-                              `0 0 120px ${glowColor}, inset 0 0 70px ${glowColor}, 0 20px 60px rgba(0,0,0,0.6)`,
-                              `0 0 80px ${glowColor}, inset 0 0 50px ${glowColor}, 0 20px 60px rgba(0,0,0,0.6)`,
-                            ]
-                          : isHovered
-                          ? [
-                              `0 0 50px ${glowColor}, inset 0 0 30px ${glowColor}`,
-                              `0 0 70px ${glowColor}, inset 0 0 40px ${glowColor}`,
-                              `0 0 50px ${glowColor}, inset 0 0 30px ${glowColor}`,
-                            ]
-                          : [
-                              `0 0 30px ${glowColor}, inset 0 0 15px ${glowColor}`,
-                              `0 0 45px ${glowColor}, inset 0 0 25px ${glowColor}`,
-                              `0 0 30px ${glowColor}, inset 0 0 15px ${glowColor}`,
-                            ],
+                        boxShadow: [
+                          '0 0 40px rgba(0, 255, 200, 0.6), inset 0 0 20px rgba(0, 255, 200, 0.2)',
+                          '0 0 60px rgba(0, 255, 200, 0.8), inset 0 0 30px rgba(0, 255, 200, 0.3)',
+                          '0 0 40px rgba(0, 255, 200, 0.6), inset 0 0 20px rgba(0, 255, 200, 0.2)',
+                        ],
                       }}
                       transition={{
-                        duration: isFocused ? 1.2 : 1.8,
+                        duration: 2,
                         repeat: Infinity,
                         ease: 'easeInOut',
                       }}
                     >
                       {/* Glowing Border Animation */}
                       <motion.div
-                        className="absolute inset-0 rounded-3xl pointer-events-none"
+                        className="absolute inset-0 rounded-3xl"
                         style={{
-                          background: `linear-gradient(45deg, ${glowColor}, rgba(255,255,255,0.4), ${glowColor})`,
-                          backgroundSize: '200% 200%',
-                          opacity: isFocused ? 0.8 : 0.5,
-                          mixBlendMode: 'overlay',
+                          border: '3px solid transparent',
+                          background: 'linear-gradient(45deg, #00ffcc, #00ff88, #00ffcc) border-box',
+                          WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)',
+                          WebkitMaskComposite: 'destination-out',
+                          maskComposite: 'exclude',
                         }}
                         animate={{
-                          backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                          opacity: [0.5, 1, 0.5],
                         }}
                         transition={{
-                          duration: 3,
+                          duration: 1.5,
                           repeat: Infinity,
-                          ease: 'linear',
+                          ease: 'easeInOut',
                         }}
                       />
 
-                      {/* Animated Pulsing Orbs */}
-                      <div className="absolute inset-0 opacity-30 pointer-events-none">
+                      {/* Card Content */}
+                      <div className="relative z-10 h-full p-6 flex flex-col items-center justify-between">
+                        <div className="flex-1 flex items-center justify-center">
+                          {isEmotion ? (
+                            <div className="text-7xl mb-2">{getEmotionEmoji(playlist.emotion)}</div>
+                          ) : (
+                            <Music size={60} className="text-white/90" />
+                          )}
+                        </div>
+                        
+                        <div className="text-center space-y-2 w-full">
+                          <h3 className="text-white font-bold text-lg line-clamp-1 capitalize">
+                            {isEmotion ? playlist.emotion : playlist.name}
+                          </h3>
+                          {isEmotion && playlist.description && (
+                            <p className="text-white/70 text-xs line-clamp-2">{playlist.description}</p>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center space-x-2 mt-3">
+                          <motion.button
+                            className="p-2 bg-green-500 rounded-full shadow-lg shadow-green-500/50"
+                            whileHover={{ scale: 1.2, boxShadow: '0 0 20px rgba(34, 197, 94, 0.8)' }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isEmotion) {
+                                handlePlayEmotionPlaylist(playlist.emotion);
+                              } else {
+                                handlePlayPlaylist(playlist.id);
+                              }
+                            }}
+                          >
+                            <Play size={16} className="text-white fill-white" />
+                          </motion.button>
+                          
+                          {!isEmotion && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <motion.button
+                                  className="p-2 bg-gray-700/80 rounded-full"
+                                  whileHover={{ scale: 1.1, backgroundColor: 'rgba(55, 65, 81, 1)' }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreHorizontal size={16} className="text-white" />
+                                </motion.button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="bg-gray-900 border-cyan-500/30">
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startEditPlaylist(playlist);
+                                  }}
+                                  className="text-white hover:bg-gray-800"
+                                >
+                                  <Edit size={16} className="mr-2" />
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeletePlaylist(playlist.id, playlist.name);
+                                  }}
+                                  className="text-red-400 hover:bg-gray-800"
+                                >
+                                  <Trash2 size={16} className="mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Data Stream Particles */}
+                      {[...Array(3)].map((_, i) => (
                         <motion.div
-                          className="absolute top-4 right-4 w-12 h-12 rounded-full"
-                          style={{ backgroundColor: `${glowColor}` }}
+                          key={i}
+                          className="absolute w-1 h-1 bg-cyan-400 rounded-full"
+                          style={{
+                            left: `${20 + i * 30}%`,
+                            top: '10%',
+                          }}
                           animate={{
-                            scale: [1, 1.5, 1],
-                            opacity: [0.3, 0.6, 0.3],
+                            y: [0, 200],
+                            opacity: [0, 1, 0],
                           }}
                           transition={{
                             duration: 2,
                             repeat: Infinity,
-                            ease: 'easeInOut',
+                            delay: i * 0.3,
                           }}
                         />
-                        <motion.div
-                          className="absolute bottom-8 left-8 w-16 h-16 rounded-full"
-                          style={{ backgroundColor: `${glowColor}` }}
-                          animate={{
-                            scale: [1, 1.8, 1],
-                            opacity: [0.2, 0.5, 0.2],
-                          }}
-                          transition={{
-                            duration: 3,
-                            repeat: Infinity,
-                            ease: 'easeInOut',
-                            delay: 0.5,
-                          }}
-                        />
-                      </div>
-
-                      {/* Center Play Button */}
-                      <motion.div
-                        className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
-                        initial={{ opacity: 0 }}
-                        whileHover={{ opacity: 1 }}
-                      >
-                        <div className="flex items-center justify-center h-full">
-                          <motion.div
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            className="pointer-events-auto"
-                          >
-                            <Play 
-                              size={isFocused ? 48 : 36} 
-                              fill="white" 
-                              className="text-white drop-shadow-2xl" 
-                            />
-                          </motion.div>
-                        </div>
-                      </motion.div>
-
-                      {/* Playlist Content */}
-                      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/95 via-black/70 to-transparent">
-                        <h3 className="text-white text-2xl font-bold mb-2 line-clamp-1">
-                          {playlist.name}
-                        </h3>
-                        <div className="flex items-center space-x-2">
-                          {isEmotion && (
-                            <span className="text-3xl">{getEmotionEmoji(playlist.emotion)}</span>
-                          )}
-                          <Music size={16} className="text-gray-300" />
-                          <span className="text-gray-300 text-sm">Playlist</span>
-                        </div>
-                      </div>
-
-                      {/* Dropdown Menu */}
-                      {!isEmotion && (
-                        <div className="absolute top-4 right-4 z-20">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-white hover:bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                }}
-                              >
-                                <MoreHorizontal size={20} />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="bg-gray-900 border-cyan-500/30 text-white">
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePlayPlaylist(playlist.id);
-                                }}
-                                className="hover:bg-gray-800 cursor-pointer"
-                              >
-                                <Play size={16} className="mr-2" />
-                                Play
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  startEditPlaylist(playlist);
-                                }}
-                                className="hover:bg-gray-800 cursor-pointer"
-                              >
-                                <Edit size={16} className="mr-2" />
-                                Rename
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeletePlaylist(playlist.id, playlist.name);
-                                }}
-                                className="hover:bg-gray-800 text-red-400 cursor-pointer"
-                              >
-                                <Trash2 size={16} className="mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      )}
+                      ))}
                     </motion.div>
                   </motion.div>
                 );
               })}
 
-            </motion.div>
+              {/* Connecting Lines */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ transform: 'translateZ(-50px)' }}>
+                {allPlaylists.map((_, index) => {
+                  const nextIndex = (index + 1) % allPlaylists.length;
+                  const angle1 = (index / allPlaylists.length) * 2 * Math.PI;
+                  const angle2 = (nextIndex / allPlaylists.length) * 2 * Math.PI;
+                  const radius = 280;
+                  const centerX = 50;
+                  const centerY = 50;
+                  const x1 = centerX + (Math.cos(angle1) * radius) / 8;
+                  const y1 = centerY + (Math.sin(angle1) * radius) / 8;
+                  const x2 = centerX + (Math.cos(angle2) * radius) / 8;
+                  const y2 = centerY + (Math.sin(angle2) * radius) / 8;
 
-            {/* Navigation Hints */}
-            {allPlaylists.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center space-x-6 text-gray-400 text-sm">
-                <div className="flex items-center space-x-2">
-                  <kbd className="px-2 py-1 bg-gray-800/50 rounded border border-gray-700">←</kbd>
-                  <kbd className="px-2 py-1 bg-gray-800/50 rounded border border-gray-700">→</kbd>
-                  <span>Arrow Keys</span>
-                </div>
-                <span>or</span>
-                <div className="flex items-center space-x-2">
-                  <span>Swipe</span>
-                </div>
-              </div>
-            )}
+                  return (
+                    <motion.line
+                      key={`line-${index}`}
+                      x1={`${x1}%`}
+                      y1={`${y1}%`}
+                      x2={`${x2}%`}
+                      y2={`${y2}%`}
+                      stroke="rgba(0, 255, 200, 0.3)"
+                      strokeWidth="2"
+                      animate={{
+                        opacity: [0.2, 0.5, 0.2],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        delay: index * 0.1,
+                      }}
+                    />
+                  );
+                })}
+              </svg>
+            </motion.div>
           </div>
         )}
       </div>

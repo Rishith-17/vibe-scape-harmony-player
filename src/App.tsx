@@ -8,7 +8,6 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-route
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MusicPlayerProvider, useMusicPlayer } from "@/contexts/MusicPlayerContext";
 import { GestureControlsProvider } from "@/components/GestureControlsProvider";
-import { SongInfoCardContainer } from "@/components/SongInfoCardContainer";
 import { useMobileAudio } from "@/hooks/useMobileAudio";
 import BackgroundAudioManager from "@/services/BackgroundAudioManager";
 import PWAInstallPrompt from "@/services/PWAInstallPrompt";
@@ -45,16 +44,10 @@ const VoiceIntegration = () => {
     // Only initialize if feature is enabled AND user has enabled it
     if (!isFeatureEnabled('VOICE_CONTROL_ENABLED') || !voiceSettings.enabled) {
       console.log('[App] Voice control not active - feature or user setting disabled');
-      console.log('[App] Feature flag:', isFeatureEnabled('VOICE_CONTROL_ENABLED'), 'User enabled:', voiceSettings.enabled);
       // Clean up if controller exists
       if (voiceController) {
         voiceController.destroy();
         setVoiceController(null);
-        // Clean up global reference
-        (async () => {
-          const { setGlobalVoiceController } = await import('./voice/voiceController');
-          setGlobalVoiceController(null);
-        })();
       }
       return;
     }
@@ -162,13 +155,11 @@ const VoiceIntegration = () => {
         console.log('[App] Voice controller exists:', !!voiceController);
         console.log('[App] Voice settings enabled:', voiceSettings.enabled);
         console.log('[App] Feature enabled:', isFeatureEnabled('VOICE_CONTROL_ENABLED'));
-        console.log('[App] Consent given:', voiceSettings.consentGiven);
         
         if (!voiceController) {
           console.error('[App] ❌ Voice controller not initialized!');
-          console.error('[App] Reason: Voice control may be disabled in settings');
-          console.error('[App] voiceSettings.enabled:', voiceSettings.enabled);
-          console.error('[App] VOICE_CONTROL_ENABLED flag:', isFeatureEnabled('VOICE_CONTROL_ENABLED'));
+          console.error('[App] This usually means voice control is disabled in settings');
+          console.error('[App] Or the controller failed to initialize');
           return;
         }
         
@@ -340,7 +331,6 @@ const AppContent = () => {
               <BottomNavigation />
               <MiniPlayer />
               <VoiceIntegration />
-              <SongInfoCardContainer />
             </>
           )}
         </div>
