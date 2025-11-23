@@ -183,6 +183,7 @@ export class VoiceController {
       console.debug('[VoiceController] ========================================');
       console.debug('[VoiceController] armMic() → Already armed, reusing existing ASR instance');
       console.debug(`[VoiceController] 🔍 ASR_ID=${ASR_INSTANCE_ID}`);
+      console.debug(`[VoiceController] armMic ASR_ID=${ASR_INSTANCE_ID}`);
       console.debug('[VoiceController] ========================================');
       return;
     }
@@ -216,6 +217,7 @@ export class VoiceController {
       }
 
       isAsrArmed = true;
+      console.debug(`[VoiceController] armMic ASR_ID=${ASR_INSTANCE_ID}`);
       console.debug('[VoiceController] ✅ Mic armed successfully - ready for all activation paths');
       console.debug('[VoiceController] ========================================');
       
