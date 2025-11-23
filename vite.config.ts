@@ -99,6 +99,10 @@ export default defineConfig(({ mode }) => ({
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
     },
   },
+  define: {
+    // Prevent dev client ReferenceError in some environments
+    __WS_TOKEN__: JSON.stringify(''),
+  },
   optimizeDeps: {
     include: ['react', 'react-dom', 'framer-motion'],
     force: true
