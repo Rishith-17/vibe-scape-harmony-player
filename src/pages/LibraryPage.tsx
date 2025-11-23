@@ -68,45 +68,69 @@ const LibraryPage = () => {
   }, [refreshPlaylists, refreshEmotionPlaylists]);
 
   useEffect(() => {
+    console.log('[LibraryPage] Selected playlist changed:', {
+      selectedPlaylist,
+      selectedEmotionPlaylist
+    });
+    
     if (selectedPlaylist || selectedEmotionPlaylist) {
+      console.log('[LibraryPage] Loading songs for selected playlist...');
       loadPlaylistSongs();
       loadRecommendedSongs();
     }
   }, [selectedPlaylist, selectedEmotionPlaylist]);
 
   const loadPlaylistSongs = async () => {
-    if (!selectedPlaylist && !selectedEmotionPlaylist) return;
+    if (!selectedPlaylist && !selectedEmotionPlaylist) {
+      console.log('[LibraryPage] No playlist selected, skipping song load');
+      return;
+    }
+    
+    console.log('[LibraryPage] Loading songs...', {
+      selectedPlaylist: selectedPlaylist?.id,
+      selectedEmotionPlaylist: selectedEmotionPlaylist?.id
+    });
     
     setIsLoadingSongs(true);
     try {
       let songsData;
       
       if (selectedPlaylist) {
+        console.log('[LibraryPage] Fetching regular playlist songs for:', selectedPlaylist.id);
         const { data, error } = await supabase
           .from('playlist_songs')
           .select('*')
           .eq('playlist_id', selectedPlaylist.id)
           .order('position');
         
-        if (error) throw error;
+        if (error) {
+          console.error('[LibraryPage] Error fetching playlist songs:', error);
+          throw error;
+        }
         songsData = data || [];
+        console.log('[LibraryPage] Loaded playlist songs:', songsData.length);
       } else if (selectedEmotionPlaylist) {
+        console.log('[LibraryPage] Fetching emotion playlist songs for:', selectedEmotionPlaylist.id);
         const { data, error } = await supabase
           .from('emotion_playlist_songs')
           .select('*')
           .eq('emotion_playlist_id', selectedEmotionPlaylist.id)
           .order('created_at');
         
-        if (error) throw error;
+        if (error) {
+          console.error('[LibraryPage] Error fetching emotion playlist songs:', error);
+          throw error;
+        }
         songsData = data || [];
+        console.log('[LibraryPage] Loaded emotion playlist songs:', songsData.length);
       }
 
       setPlaylistSongs(songsData || []);
     } catch (error) {
-      console.error('Error loading playlist songs:', error);
+      console.error('[LibraryPage] Error loading playlist songs:', error);
       toast({
         title: "Error",
-        description: "Failed to load playlist songs",
+        description: "Failed to load playlist songs. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -507,13 +531,23 @@ const LibraryPage = () => {
             </div>
           ) : playlistSongs.length === 0 ? (
             <div className="text-center py-16">
-              <div className="text-gray-400 text-xl mb-4">No songs in this playlist</div>
-              <p className="text-gray-500">
+              <div className="text-6xl mb-6">🎵</div>
+              <div className="text-gray-300 text-2xl font-semibold mb-4">
+                {isEmotionPlaylist ? `Your ${currentPlaylistData.emotion} playlist is empty` : 'This playlist is empty'}
+              </div>
+              <p className="text-gray-400 mb-8 max-w-md mx-auto">
                 {isEmotionPlaylist 
-                  ? `Add songs to your ${currentPlaylistData.emotion} playlist from search or when emotions are detected`
-                  : 'Add some songs from the search page to get started'
+                  ? `Songs matching the "${currentPlaylistData.emotion}" emotion will appear here. Search for songs and add them to this playlist.`
+                  : 'Start adding songs from the search page to build your perfect playlist.'
                 }
               </p>
+              <Button
+                onClick={() => window.location.href = '/search'}
+                className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-600 hover:to-cyan-600 text-white"
+              >
+                <Plus size={20} className="mr-2" />
+                Add Songs from Search
+              </Button>
             </div>
           ) : (
             <div className="space-y-1">
@@ -687,6 +721,12 @@ const LibraryPage = () => {
 
   // Handle clicking a playlist - always open its detail view and center it
   const handlePlaylistClick = useCallback((playlist: any, index: number) => {
+    console.log('[LibraryPage] Playlist clicked:', {
+      playlist,
+      index,
+      type: playlist.type
+    });
+    
     const isEmotion = playlist.type === 'emotion';
 
     // Center the clicked card in the carousel for visual consistency
@@ -694,8 +734,10 @@ const LibraryPage = () => {
 
     // Open the corresponding playlist detail view
     if (isEmotion) {
+      console.log('[LibraryPage] Setting emotion playlist:', playlist.name);
       setSelectedEmotionPlaylist(playlist);
     } else {
+      console.log('[LibraryPage] Setting regular playlist:', playlist.name);
       setSelectedPlaylist(playlist);
     }
   }, []);
