@@ -48,17 +48,20 @@ const SpotifyMiniPlayer = () => {
 
   const displayTime = isDragging ? dragTime : currentTime;
 
-  // Debug logging
-  console.log('🎵 [MiniPlayer] Render check:', { 
-    hasCurrentTrack: !!currentTrack, 
-    currentTrack: currentTrack?.title,
-    isPlaying 
-  });
+  // Use a safe fallback track so the mini player bar is always rendered
+  const effectiveTrack = currentTrack || {
+    id: 'placeholder',
+    title: 'No song playing',
+    channelTitle: 'Search and play a track to start',
+    thumbnail: '/placeholder.svg',
+    url: '',
+  };
 
-  if (!currentTrack) {
-    console.log('🎵 [MiniPlayer] Not rendering - no current track');
-    return null;
-  }
+  console.log('🎵 [MiniPlayer] Render:', {
+    hasCurrentTrack: !!currentTrack,
+    effectiveTitle: effectiveTrack.title,
+    isPlaying,
+  });
 
   return (
     <>
