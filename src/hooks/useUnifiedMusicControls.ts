@@ -148,12 +148,6 @@ export const useUnifiedMusicControls = () => {
           try {
             await voiceController.startListeningFromArmedMic('gesture');
             console.log('🖐️ [Gesture] ✅ Successfully started listening from armed mic');
-            
-            toast({
-              title: "🎤 Voice Activated",
-              description: "Listening via gesture...",
-              duration: 2000,
-            });
           } catch (error) {
             console.error('🖐️ [Gesture] ❌ Failed to start listening:', error);
             toast({
