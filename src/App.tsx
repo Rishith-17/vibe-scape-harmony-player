@@ -18,6 +18,7 @@ import AuthPage from "./pages/AuthPage";
 import EnhancedHomePage from "./pages/EnhancedHomePage";
 import SearchPage from "./pages/SearchPage";
 import LibraryPage from "./pages/LibraryPage";
+import PlaylistDetailPage from "./pages/PlaylistDetailPage";
 import ProfilePage from "./pages/ProfilePage";
 import EmotionsPage from "./pages/EmotionsPage";
 import InstallPage from "./pages/InstallPage";
@@ -303,6 +304,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <LibraryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/playlist/:id"
+              element={
+                <ProtectedRoute>
+                  <PlaylistDetailPage />
                 </ProtectedRoute>
               }
             />
