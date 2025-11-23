@@ -48,7 +48,17 @@ const SpotifyMiniPlayer = () => {
 
   const displayTime = isDragging ? dragTime : currentTime;
 
-  if (!currentTrack) return null;
+  // Debug logging
+  console.log('🎵 [MiniPlayer] Render check:', { 
+    hasCurrentTrack: !!currentTrack, 
+    currentTrack: currentTrack?.title,
+    isPlaying 
+  });
+
+  if (!currentTrack) {
+    console.log('🎵 [MiniPlayer] Not rendering - no current track');
+    return null;
+  }
 
   return (
     <>
