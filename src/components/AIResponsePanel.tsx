@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
@@ -13,7 +13,7 @@ interface AIResponsePanelProps {
 /**
  * Animated Text Display - Shows words one by one with smooth animation
  */
-const AnimatedText: React.FC<{ text: string }> = ({ text }) => {
+function AnimatedText({ text }: { text: string }) {
   const [displayedWords, setDisplayedWords] = useState<string[]>([]);
   
   // Split text into words, preserving line breaks
@@ -58,18 +58,18 @@ const AnimatedText: React.FC<{ text: string }> = ({ text }) => {
       ))}
     </div>
   );
-};
+}
 
 /**
  * AI Response Panel - Shows Flamingo's audio analysis
  * Neon-themed panel with word-by-word animation and scrolling
  */
-export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
+export function AIResponsePanel({
   isVisible,
   response,
   isLoading,
   onClose,
-}) => {
+}: AIResponsePanelProps) {
   return (
     <AnimatePresence>
       {isVisible && (
@@ -172,4 +172,4 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
       )}
     </AnimatePresence>
   );
-};
+}
