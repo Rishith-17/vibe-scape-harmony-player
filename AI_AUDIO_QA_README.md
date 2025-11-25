@@ -2,40 +2,43 @@
 
 ## Overview
 
-The AI Audio Q&A feature integrates **NVIDIA Audio Flamingo 3** AI model via Hugging Face Inference API to provide intelligent audio analysis capabilities. Users can ask questions about music using voice commands or the dedicated "AI Explain Song" button.
+The AI Audio Q&A feature uses **Hugging Face audio emotion recognition** to analyze audio and detect emotional content. The NVIDIA Audio Flamingo 3 model was originally planned but is no longer available on Hugging Face (410 Gone error).
+
+**Current Model**: `ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition`
+
+This model specializes in:
+- **Emotion Detection**: Happy, sad, angry, calm, neutral, fearful, surprised, etc.
+- **Audio Mood Analysis**: Detects the overall vibe and emotional tone
+- **Confidence Scores**: Provides percentage confidence for each detected emotion
 
 ---
 
 ## Features
 
-### 🎵 Audio Analysis Capabilities
+### 🎵 Audio Emotion Analysis
 
-1. **Instrument Detection**
-   - Identifies instruments in the current song
-   - Describes instrumentation details
-   - Example: "What instruments are in this song?"
+1. **Multi-Emotion Detection**
+   - Identifies multiple emotions in audio simultaneously
+   - Provides confidence scores (0-100%) for each emotion
+   - Example: "What's the mood of this song?"
 
-2. **Mood & Emotion Detection**
-   - Analyzes the emotional tone and mood
-   - Provides vibe descriptions
-   - Example: "What's the mood of this tune?"
+2. **Top Results Display**
+   - Shows the top 3 emotions detected
+   - Ranked by confidence score
+   - Visual emoji indicators for each emotion
 
-3. **Genre Classification**
-   - Detects and tags music genres
-   - Example: "What genre is this?"
+3. **Real-time Analysis**
+   - 5-second audio capture
+   - Fast processing (3-5 seconds after model warmup)
+   - Loading states with visual feedback
 
-4. **Music Theory Analysis**
-   - Describes melody, harmony, tempo
-   - Identifies scales, keys, and musical structure
-   - Example: "Explain this melody"
+**Note**: This model focuses on emotional content. It cannot identify:
+- Specific instruments
+- Music genres
+- Music theory details (scales, keys, tempo)
+- Song identification
 
-5. **Humming Description**
-   - Analyzes user's humming or singing
-   - Example: "Describe my humming"
-
-6. **Environment Detection**
-   - Detects background noise and audio environment
-   - Example: "What do you hear?"
+For these features, alternative models or APIs would be needed.
 
 ---
 
@@ -46,14 +49,17 @@ The AI Audio Q&A feature integrates **NVIDIA Audio Flamingo 3** AI model via Hug
 **File**: `supabase/functions/flamingo-analyze/index.ts`
 
 - **Purpose**: Secure API endpoint that communicates with Hugging Face
+- **Current Model**: `ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition`
+- **Previous Model**: NVIDIA Audio Flamingo 3 (no longer available)
 - **Security**: HF token is fetched from Supabase secrets (server-side only)
 - **Input**: Audio blob (base64) + optional question text
-- **Output**: AI-generated analysis response
+- **Output**: Emotion analysis with confidence scores
 
 **Key Features**:
 - CORS enabled for web app
 - Handles model loading states (503 errors)
-- Enhances responses based on question type
+- Provides top 3 emotions with confidence percentages
+- Emoji indicators for each emotion
 - Secure token management (never exposed to client)
 
 ---
@@ -87,7 +93,7 @@ Handles audio recording:
 - **`blobToBase64(blob)`**: Converts audio to base64 for API transmission
 - **Default Duration**: 5 seconds
 
-**Note**: Due to YouTube iframe CORS restrictions, playback audio is captured via microphone (records ambient sound).
+**Note**: Due to YouTube iframe CORS restrictions, playback audio is captured via microphone (records ambient sound). The emotion recognition model analyzes whatever audio it receives.
 
 #### 3. **AIResponsePanel** (`src/components/AIResponsePanel.tsx`)
 
