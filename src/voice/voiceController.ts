@@ -495,9 +495,10 @@ export class VoiceController {
   /**
    * PUBLIC API: Manually trigger audio analysis (for "AI Explain Song" button)
    */
-  async analyzeCurrentAudio(songTitle?: string, songArtist?: string): Promise<void> {
+  async analyzeCurrentAudio(songTitle?: string, songArtist?: string, customQuestion?: string): Promise<void> {
     console.log('[VoiceController] 🎵 Manual audio analysis triggered');
-    await this.handleAudioAnalysis('Analyze this audio. What instruments, mood, and genre do you detect?', songTitle, songArtist);
+    const question = customQuestion || 'Analyze this audio. What instruments, mood, and genre do you detect?';
+    await this.handleAudioAnalysis(question, songTitle, songArtist);
   }
 
   private async executeIntent(intent: any): Promise<void> {
