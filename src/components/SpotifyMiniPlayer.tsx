@@ -16,6 +16,7 @@ const SpotifyMiniPlayer = () => {
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [aiResponse, setAiResponse] = useState('');
   const [isAILoading, setIsAILoading] = useState(false);
+  const [aiMode, setAiMode] = useState<'analysis' | 'lyrics'>('analysis');
 
   const { 
     currentTrack,
@@ -54,10 +55,33 @@ const SpotifyMiniPlayer = () => {
     const controller = getGlobalVoiceController();
     if (controller && currentTrack) {
       console.log('[MiniPlayer] 🎵 AI Explain Song clicked');
+      setAiMode('analysis');
       setShowAIPanel(true);
       setIsAILoading(true);
       // Pass current song info to AI analysis
       await controller.analyzeCurrentAudio(currentTrack.title, currentTrack.channelTitle);
+    }
+  };
+
+  const handleModeChange = async (mode: 'analysis' | 'lyrics') => {
+    setAiMode(mode);
+    const controller = getGlobalVoiceController();
+    if (controller && currentTrack) {
+      setIsAILoading(true);
+      
+      if (mode === 'lyrics') {
+        // Request lyrics specifically
+        console.log('[MiniPlayer] 🎵 Requesting lyrics');
+        await controller.analyzeCurrentAudio(
+          currentTrack.title, 
+          currentTrack.channelTitle,
+          'Please provide the complete lyrics of this song, formatted line by line.'
+        );
+      } else {
+        // Request analysis
+        console.log('[MiniPlayer] 🎵 Requesting analysis');
+        await controller.analyzeCurrentAudio(currentTrack.title, currentTrack.channelTitle);
+      }
     }
   };
 
@@ -247,6 +271,8 @@ const SpotifyMiniPlayer = () => {
         response={aiResponse}
         isLoading={isAILoading}
         onClose={() => setShowAIPanel(false)}
+        mode={aiMode}
+        onModeChange={handleModeChange}
       />
 
       {/* Now Playing Modal */}

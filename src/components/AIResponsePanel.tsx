@@ -8,6 +8,8 @@ interface AIResponsePanelProps {
   response: string;
   isLoading: boolean;
   onClose: () => void;
+  mode?: 'analysis' | 'lyrics';
+  onModeChange?: (mode: 'analysis' | 'lyrics') => void;
 }
 
 /**
@@ -16,9 +18,9 @@ interface AIResponsePanelProps {
 function AnimatedText({ text }: { text: string }) {
   const [displayedWords, setDisplayedWords] = useState<string[]>([]);
   
-  // Split text into words, preserving line breaks
+  // Split text into words and whitespace, preserving structure
   const words = useMemo(() => {
-    return text.split(/(\s+|\n+)/).filter(word => word.length > 0);
+    return text.split(/(\s+)/).filter(word => word.length > 0);
   }, [text]);
 
   useEffect(() => {
@@ -35,27 +37,34 @@ function AnimatedText({ text }: { text: string }) {
       } else {
         clearInterval(interval);
       }
-    }, 50); // Adjust speed: lower = faster
+    }, 30); // Faster animation
 
     return () => clearInterval(interval);
   }, [words]);
 
   return (
-    <div className="space-y-2">
-      {displayedWords.map((word, index) => (
-        <motion.span
-          key={`${word}-${index}`}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-          className="inline-block"
-          style={{
-            whiteSpace: word.match(/\n/) ? 'pre' : 'normal'
-          }}
-        >
-          {word}
-        </motion.span>
-      ))}
+    <div className="leading-relaxed">
+      {displayedWords.map((word, index) => {
+        // Check if this is whitespace
+        const isWhitespace = /^\s+$/.test(word);
+        
+        if (isWhitespace) {
+          // Render whitespace as actual space
+          return <span key={index}>{word}</span>;
+        }
+        
+        return (
+          <motion.span
+            key={`${word}-${index}`}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15 }}
+            className="inline"
+          >
+            {word}
+          </motion.span>
+        );
+      })}
     </div>
   );
 }
@@ -69,6 +78,8 @@ export function AIResponsePanel({
   response,
   isLoading,
   onClose,
+  mode = 'analysis',
+  onModeChange,
 }: AIResponsePanelProps) {
   return (
     <AnimatePresence>
@@ -88,29 +99,59 @@ export function AIResponsePanel({
             }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-cyan-400/30">
-              <div className="flex items-center gap-2">
-                <motion.div
-                  animate={{
-                    rotate: [0, 360],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: 'linear',
-                  }}
+            <div className="flex flex-col border-b border-cyan-400/30">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-2">
+                  <motion.div
+                    animate={{
+                      rotate: [0, 360],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: 'linear',
+                    }}
+                  >
+                    <Sparkles className="w-5 h-5 text-cyan-400" />
+                  </motion.div>
+                  <h3 className="font-semibold text-cyan-400">
+                    {mode === 'lyrics' ? 'Song Lyrics' : 'AI Song Analysis'}
+                  </h3>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                  aria-label="Close AI panel"
                 >
-                  <Sparkles className="w-5 h-5 text-cyan-400" />
-                </motion.div>
-                <h3 className="font-semibold text-cyan-400">AI Song Analysis</h3>
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
-                aria-label="Close AI panel"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              
+              {/* Mode Toggle */}
+              {onModeChange && (
+                <div className="flex gap-2 px-4 pb-3">
+                  <button
+                    onClick={() => onModeChange('analysis')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      mode === 'analysis'
+                        ? 'bg-cyan-400/20 text-cyan-400 border border-cyan-400/50'
+                        : 'bg-slate-800/50 text-gray-400 hover:bg-slate-800 hover:text-gray-300'
+                    }`}
+                  >
+                    Analysis
+                  </button>
+                  <button
+                    onClick={() => onModeChange('lyrics')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      mode === 'lyrics'
+                        ? 'bg-cyan-400/20 text-cyan-400 border border-cyan-400/50'
+                        : 'bg-slate-800/50 text-gray-400 hover:bg-slate-800 hover:text-gray-300'
+                    }`}
+                  >
+                    Lyrics
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Content with ScrollArea */}
@@ -146,7 +187,7 @@ export function AIResponsePanel({
                   </motion.p>
                 </div>
               ) : (
-                <div className="text-gray-200 leading-relaxed text-base">
+                <div className="text-gray-200 text-base whitespace-pre-wrap">
                   <AnimatedText text={response} />
                 </div>
               )}
