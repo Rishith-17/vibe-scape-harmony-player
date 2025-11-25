@@ -1,15 +1,10 @@
 /**
- * AI Audio Q&A Edge Function
+ * AI Song Q&A Edge Function
  * 
- * Accepts audio blob and uses NVIDIA Audio Flamingo 3 via Hugging Face Inference API to:
- * - Answer questions about songs (instruments, mood, genre, tempo, etc.)
- * - Analyze audio characteristics
- * - Provide music theory insights
- * - Describe melodies and harmonies
+ * Uses Google Gemini to answer questions about songs based on metadata
+ * (title, artist, genre, etc.)
  * 
- * Uses: nvidia/audio-flamingo-3-hf
- * 
- * SECURITY: HF token is fetched from Supabase secrets (server-side only)
+ * SECURITY: Gemini API key is fetched from Supabase secrets (server-side only)
  * Never expose the token to client
  */
 
@@ -27,65 +22,78 @@ serve(async (req) => {
   }
 
   try {
-    console.log('[Flamingo] 🎵 Received audio analysis request');
+    console.log('[SongQA] 🎵 Received song Q&A request');
 
-    // Get Hugging Face token from Supabase secrets (server-side only)
-    const HF_TOKEN = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
-    if (!HF_TOKEN) {
-      console.error('[Flamingo] ❌ HUGGING_FACE_ACCESS_TOKEN not configured');
+    // Get Gemini API key from Supabase secrets (server-side only)
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
+      console.error('[SongQA] ❌ GEMINI_API_KEY not configured');
       return new Response(
         JSON.stringify({ error: 'AI service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Parse request body
-    const { audioBlob, question } = await req.json();
+    // Parse request body - expecting song metadata + question
+    const { songTitle, songArtist, question } = await req.json();
     
-    if (!audioBlob) {
+    if (!songTitle) {
       return new Response(
-        JSON.stringify({ error: 'Audio data is required' }),
+        JSON.stringify({ error: 'Song title is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('[Flamingo] 📝 Question:', question || 'Audio analysis');
-    console.log('[Flamingo] 🎤 Audio blob size:', audioBlob.length);
+    console.log('[SongQA] 🎵 Song:', songTitle, 'by', songArtist);
+    console.log('[SongQA] 📝 Question:', question || 'General analysis');
 
-    // Decode base64 audio
-    const binaryAudio = Uint8Array.from(atob(audioBlob), c => c.charCodeAt(0));
-    
-    // Use Qwen2-Audio for comprehensive audio Q&A (actively maintained alternative)
-    const HF_API_URL = 'https://api-inference.huggingface.co/models/Qwen/Qwen2-Audio-7B-Instruct';
-    
-    console.log('[Flamingo] 🚀 Sending to Qwen2-Audio model...');
+    // Build comprehensive prompt for Gemini
+    const prompt = `You are a music expert AI assistant. Answer questions about songs based on your knowledge of music.
 
-    // Call Hugging Face Inference API with audio data
-    // Qwen2-Audio expects raw audio bytes
-    const response = await fetch(HF_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${HF_TOKEN}`,
-        'Content-Type': 'audio/wav',
-      },
-      body: binaryAudio,
-    });
+Song: "${songTitle}" ${songArtist ? `by ${songArtist}` : ''}
+
+User question: ${question || 'Tell me about this song - what instruments, mood, genre, and tempo does it have?'}
+
+Provide a detailed, informative answer about the song. Include information about:
+- Instruments used (if known or typical for the genre)
+- Musical mood and emotion
+- Genre and style
+- Tempo and rhythm (fast/slow, upbeat/mellow)
+- Notable musical elements or characteristics
+- Any interesting facts about the song
+
+Keep your response conversational and engaging, as if speaking to a music enthusiast.`;
+
+    console.log('[SongQA] 🚀 Calling Gemini API...');
+
+    // Call Gemini API
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          }
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[Flamingo] ❌ HF API error:', response.status, errorText);
+      console.error('[SongQA] ❌ Gemini API error:', response.status, errorText);
       
-      // Handle model loading
-      if (response.status === 503) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'AI model is loading. Please try again in 20-30 seconds.',
-            loading: true 
-          }),
-          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
       return new Response(
         JSON.stringify({ error: 'AI analysis failed', details: errorText }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -93,47 +101,31 @@ serve(async (req) => {
     }
 
     const result = await response.json();
-    console.log('[Flamingo] ✅ Analysis complete:', result);
+    console.log('[SongQA] ✅ Analysis complete');
 
-    // Parse Qwen2-Audio response
+    // Extract Gemini response
     let aiResponse = '';
     
-    // Qwen2-Audio can return various formats
-    if (typeof result === 'string') {
-      aiResponse = result;
-    } else if (result.generated_text) {
-      aiResponse = result.generated_text;
-    } else if (result[0]?.generated_text) {
-      aiResponse = result[0].generated_text;
-    } else if (result.text) {
-      aiResponse = result.text;
-    } else if (result[0]?.text) {
-      aiResponse = result[0].text;
-    } else if (Array.isArray(result) && result.length > 0) {
-      // Try to extract meaningful response from array
-      aiResponse = typeof result[0] === 'string' ? result[0] : JSON.stringify(result[0]);
+    if (result.candidates && result.candidates[0]?.content?.parts?.[0]?.text) {
+      aiResponse = result.candidates[0].content.parts[0].text;
     } else {
-      aiResponse = 'Unable to analyze audio. The model may still be loading. Please try again in a moment.';
-    }
-    
-    // Add contextual analysis based on question
-    if (question && aiResponse) {
-      aiResponse = `${aiResponse}\n\n(Analysis for: "${question}")`;
+      aiResponse = 'Unable to analyze the song. Please try again.';
     }
 
-    console.log('[Flamingo] 📤 Sending response:', aiResponse);
+    console.log('[SongQA] 📤 Sending response');
 
     return new Response(
       JSON.stringify({ 
         response: aiResponse,
-        raw: JSON.stringify(result),
-        question: question || 'Audio emotion analysis'
+        question: question || 'Song analysis',
+        song: songTitle,
+        artist: songArtist
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('[Flamingo] ❌ Error:', error);
+    console.error('[SongQA] ❌ Error:', error);
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error', 

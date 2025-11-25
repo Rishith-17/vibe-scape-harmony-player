@@ -1,18 +1,18 @@
-# AI Audio Q&A Feature - Qwen2-Audio Integration
+# AI Song Q&A Feature - Gemini Integration
 
 ## Overview
 
-The AI Audio Q&A feature uses **Qwen2-Audio-7B-Instruct** (Alibaba's audio understanding model) via the Hugging Face Inference API to analyze audio and answer questions about songs.
+The AI Song Q&A feature uses **Google Gemini** to answer questions about songs based on their metadata (title, artist, genre).
 
-**Current Model**: `Qwen/Qwen2-Audio-7B-Instruct`
+**Current Model**: Gemini Pro via Google Generative AI API
 
-This model specializes in:
-- **Song Information**: Instruments, mood, genre, tempo, melody, harmony
-- **Audio Characteristics**: Sound quality, mixing, production details
-- **Music Theory**: Scales, keys, chord progressions, time signatures
-- **Descriptive Analysis**: Comprehensive explanations of musical elements
-- **Q&A Capabilities**: Answers specific questions about the audio
-- **Multi-turn Dialogue**: Supports conversational audio analysis
+This provides:
+- **Song Information**: Instruments typically used in the genre, mood, tempo, style
+- **Music Knowledge**: Genre analysis, typical characteristics, notable elements
+- **Conversational Q&A**: Natural language answers about songs
+- **Music Context**: Background information, production details, cultural significance
+
+**Note**: Since raw audio analysis via Hugging Face models is unavailable (410 errors), this implementation uses Gemini's extensive music knowledge to answer questions based on song titles and artists.
 
 ---
 
@@ -51,11 +51,11 @@ This model specializes in:
 
 **File**: `supabase/functions/flamingo-analyze/index.ts`
 
-- **Purpose**: Secure API endpoint that communicates with Hugging Face
-- **Current Model**: `Qwen/Qwen2-Audio-7B-Instruct` (actively maintained, powerful audio understanding)
-- **Security**: HF token is fetched from Supabase secrets (server-side only)
-- **Input**: Audio blob (base64) + optional question text
-- **Output**: Comprehensive audio analysis and Q&A responses
+- **Purpose**: Secure API endpoint that uses Google Gemini
+- **Current Model**: Gemini Pro (text-based Q&A about songs)
+- **Security**: Gemini API key is fetched from Supabase secrets (server-side only)
+- **Input**: Song title + artist + optional question text
+- **Output**: Comprehensive song analysis and Q&A responses based on music knowledge
 
 **Key Features**:
 - CORS enabled for web app
@@ -149,14 +149,14 @@ Added "AI Explain Song" button:
 
 ### Required Secrets
 
-**Supabase Secret**: `HUGGING_FACE_ACCESS_TOKEN`
+**Supabase Secret**: `GEMINI_API_KEY`
 
 - **How to Add**:
   1. Go to Supabase Dashboard → Project Settings → Edge Functions → Secrets
-  2. Add secret: `HUGGING_FACE_ACCESS_TOKEN`
-  3. Value: Your Hugging Face API token from https://huggingface.co/settings/tokens
+  2. Add secret: `GEMINI_API_KEY`
+  3. Value: Your Google Gemini API key from https://makersuite.google.com/app/apikey
 
-**IMPORTANT**: The token is **NEVER** exposed to the client. All API calls go through the secure edge function.
+**IMPORTANT**: The API key is **NEVER** exposed to the client. All API calls go through the secure edge function.
 
 ### Edge Function Configuration
 

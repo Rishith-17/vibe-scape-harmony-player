@@ -427,10 +427,10 @@ export class VoiceController {
   }
 
   /**
-   * Handle audio analysis using NVIDIA Flamingo 3
+   * Handle song Q&A using Gemini AI
    */
-  private async handleAudioAnalysis(question: string): Promise<void> {
-    console.log('[VoiceController] 🎤 Starting Flamingo audio analysis...');
+  private async handleAudioAnalysis(question: string, songTitle?: string, songArtist?: string): Promise<void> {
+    console.log('[VoiceController] 🎤 Starting AI song analysis...');
     
     try {
       // Show loading state
@@ -438,41 +438,29 @@ export class VoiceController {
         aiResponseCallback('', true);
       }
 
-      // Capture 5 seconds of audio
-      const audioCapture = getAudioCapture();
-      console.log('[VoiceController] 🎙️ Capturing 5 seconds of audio...');
-      const audioBlob = await audioCapture.capturePlaybackAudio(5000);
+      // Use provided song info or fallback to unknown
+      const title = songTitle || 'Unknown Song';
+      const artist = songArtist || 'Unknown Artist';
       
-      console.log('[VoiceController] 📤 Sending to Flamingo API...');
+      console.log('[VoiceController] 🎵 Song:', title, 'by', artist);
+      console.log('[VoiceController] 📤 Sending to AI...');
       
-      // Call Flamingo edge function
+      // Call song Q&A edge function with Gemini
       const { data, error } = await supabase.functions.invoke('flamingo-analyze', {
         body: {
-          audioBlob,
+          songTitle: title,
+          songArtist: artist,
           question
         }
       });
 
       if (error) {
-        console.error('[VoiceController] ❌ Flamingo API error:', error);
-        
-        // Handle model loading
-        if (error.message?.includes('loading')) {
-          const loadingMsg = 'AI model is warming up. Please try again in 20 seconds.';
-          if (aiResponseCallback) {
-            aiResponseCallback(loadingMsg, false);
-          }
-          await this.speak(loadingMsg);
-        } else {
-          throw error;
-        }
-        
-        this.reset();
-        return;
+        console.error('[VoiceController] ❌ AI API error:', error);
+        throw error;
       }
 
       const aiResponse = data.response || 'No response from AI';
-      console.log('[VoiceController] ✅ Flamingo response:', aiResponse);
+      console.log('[VoiceController] ✅ AI response received');
 
       // Display response
       if (aiResponseCallback) {
@@ -487,8 +475,8 @@ export class VoiceController {
       }
 
     } catch (error) {
-      console.error('[VoiceController] ❌ Audio analysis failed:', error);
-      const errorMsg = 'Sorry, I could not analyze the audio.';
+      console.error('[VoiceController] ❌ Song analysis failed:', error);
+      const errorMsg = 'Sorry, I could not analyze the song.';
       
       if (aiResponseCallback) {
         aiResponseCallback(errorMsg, false);
@@ -507,9 +495,9 @@ export class VoiceController {
   /**
    * PUBLIC API: Manually trigger audio analysis (for "AI Explain Song" button)
    */
-  async analyzeCurrentAudio(): Promise<void> {
+  async analyzeCurrentAudio(songTitle?: string, songArtist?: string): Promise<void> {
     console.log('[VoiceController] 🎵 Manual audio analysis triggered');
-    await this.handleAudioAnalysis('Analyze this audio. What instruments, mood, and genre do you detect?');
+    await this.handleAudioAnalysis('Analyze this audio. What instruments, mood, and genre do you detect?', songTitle, songArtist);
   }
 
   private async executeIntent(intent: any): Promise<void> {
