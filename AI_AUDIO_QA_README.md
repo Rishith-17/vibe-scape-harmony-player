@@ -1,10 +1,10 @@
-# AI Audio Q&A Feature - NVIDIA Flamingo 3 Integration
+# AI Audio Q&A Feature - Qwen2-Audio Integration
 
 ## Overview
 
-The AI Audio Q&A feature uses **NVIDIA Audio Flamingo 3** via the Hugging Face Inference API to analyze audio and answer questions about songs.
+The AI Audio Q&A feature uses **Qwen2-Audio-7B-Instruct** (Alibaba's audio understanding model) via the Hugging Face Inference API to analyze audio and answer questions about songs.
 
-**Current Model**: `nvidia/audio-flamingo-3-hf`
+**Current Model**: `Qwen/Qwen2-Audio-7B-Instruct`
 
 This model specializes in:
 - **Song Information**: Instruments, mood, genre, tempo, melody, harmony
@@ -12,6 +12,7 @@ This model specializes in:
 - **Music Theory**: Scales, keys, chord progressions, time signatures
 - **Descriptive Analysis**: Comprehensive explanations of musical elements
 - **Q&A Capabilities**: Answers specific questions about the audio
+- **Multi-turn Dialogue**: Supports conversational audio analysis
 
 ---
 
@@ -51,7 +52,7 @@ This model specializes in:
 **File**: `supabase/functions/flamingo-analyze/index.ts`
 
 - **Purpose**: Secure API endpoint that communicates with Hugging Face
-- **Current Model**: `nvidia/audio-flamingo-3-hf`
+- **Current Model**: `Qwen/Qwen2-Audio-7B-Instruct` (actively maintained, powerful audio understanding)
 - **Security**: HF token is fetched from Supabase secrets (server-side only)
 - **Input**: Audio blob (base64) + optional question text
 - **Output**: Comprehensive audio analysis and Q&A responses
@@ -94,7 +95,7 @@ Handles audio recording:
 - **`blobToBase64(blob)`**: Converts audio to base64 for API transmission
 - **Default Duration**: 5 seconds
 
-**Note**: Due to YouTube iframe CORS restrictions, playback audio is captured via microphone (records ambient sound). The emotion recognition model analyzes whatever audio it receives.
+**Note**: Due to YouTube iframe CORS restrictions, playback audio is captured via microphone (records ambient sound). The Qwen2-Audio model analyzes whatever audio it receives with high accuracy.
 
 #### 3. **AIResponsePanel** (`src/components/AIResponsePanel.tsx`)
 
@@ -138,7 +139,7 @@ Added "AI Explain Song" button:
 1. User clicks "AI Explain Song" button (Sparkles icon)
 2. Loading state shown (cyan spinning loader)
 3. AudioCapture records 5 seconds
-4. Audio sent to Flamingo API
+4. Audio sent to Qwen2-Audio API
 5. Response displayed in AIResponsePanel
 6. TTS speaks the response
 
@@ -318,8 +319,9 @@ Check for these logs during testing:
 [AudioCapture] 🎤 Starting audio capture...
 [AudioCapture] ✅ Audio captured: 123456 bytes
 [Flamingo] 🎵 Received audio analysis request
+[Flamingo] 🚀 Sending to Qwen2-Audio model...
 [Flamingo] ✅ Analysis complete
-[VoiceController] ✅ Flamingo response: ...
+[VoiceController] ✅ Qwen2-Audio response: ...
 ```
 
 ---
@@ -329,7 +331,7 @@ Check for these logs during testing:
 ### 1. **Song Identification**
 
 - Integrate Shazam or AudD API for song recognition
-- Keep Flamingo for descriptive analysis only
+- Keep Qwen2-Audio for descriptive analysis only
 
 ### 2. **Multi-Modal Analysis**
 
@@ -348,7 +350,7 @@ Check for these logs during testing:
 
 ### 5. **Real-Time Streaming**
 
-- Stream Flamingo responses word-by-word
+- Stream Qwen2-Audio responses word-by-word
 - Show loading progress bar
 
 ### 6. **Context-Aware Analysis**
@@ -409,7 +411,7 @@ Check for these logs during testing:
 
 ## Credits
 
-- **AI Model**: NVIDIA Audio Flamingo 3 via Hugging Face
+- **AI Model**: Qwen2-Audio-7B-Instruct by Alibaba via Hugging Face
 - **Icons**: Lucide React (Sparkles, Loader2)
 - **Animations**: Framer Motion
 - **Backend**: Supabase Edge Functions
@@ -423,8 +425,9 @@ For issues or questions:
 2. Verify Hugging Face API token is valid
 3. Test edge function directly via Supabase Dashboard
 4. Check Supabase Edge Function logs
+5. Ensure model `Qwen/Qwen2-Audio-7B-Instruct` is accessible on HF
 
 ---
 
 **Last Updated**: 2025-11-25
-**Version**: 1.0.0
+**Version**: 1.1.0 (Updated to Qwen2-Audio model)
