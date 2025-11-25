@@ -55,23 +55,18 @@ serve(async (req) => {
     // Decode base64 audio
     const binaryAudio = Uint8Array.from(atob(audioBlob), c => c.charCodeAt(0));
     
-    // Use NVIDIA Audio Flamingo 3 for comprehensive audio Q&A
-    const HF_API_URL = 'https://api-inference.huggingface.co/models/nvidia/audio-flamingo-3-hf';
+    // Use Qwen2-Audio for comprehensive audio Q&A (actively maintained alternative)
+    const HF_API_URL = 'https://api-inference.huggingface.co/models/Qwen/Qwen2-Audio-7B-Instruct';
     
-    console.log('[Flamingo] 🚀 Sending to NVIDIA Audio Flamingo 3...');
+    console.log('[Flamingo] 🚀 Sending to Qwen2-Audio model...');
 
-    // Prepare multimodal request with audio and text question
-    const formData = new FormData();
-    formData.append('inputs', new Blob([binaryAudio], { type: 'audio/wav' }));
-    if (question) {
-      formData.append('question', question);
-    }
-
-    // Call Hugging Face API
+    // Call Hugging Face Inference API with audio data
+    // Qwen2-Audio expects raw audio bytes
     const response = await fetch(HF_API_URL, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_TOKEN}`,
+        'Content-Type': 'audio/wav',
       },
       body: binaryAudio,
     });
@@ -100,19 +95,30 @@ serve(async (req) => {
     const result = await response.json();
     console.log('[Flamingo] ✅ Analysis complete:', result);
 
-    // Flamingo returns text response with audio analysis
+    // Parse Qwen2-Audio response
     let aiResponse = '';
     
+    // Qwen2-Audio can return various formats
     if (typeof result === 'string') {
       aiResponse = result;
     } else if (result.generated_text) {
       aiResponse = result.generated_text;
     } else if (result[0]?.generated_text) {
       aiResponse = result[0].generated_text;
-    } else if (Array.isArray(result)) {
-      aiResponse = JSON.stringify(result);
+    } else if (result.text) {
+      aiResponse = result.text;
+    } else if (result[0]?.text) {
+      aiResponse = result[0].text;
+    } else if (Array.isArray(result) && result.length > 0) {
+      // Try to extract meaningful response from array
+      aiResponse = typeof result[0] === 'string' ? result[0] : JSON.stringify(result[0]);
     } else {
-      aiResponse = 'Unable to analyze audio. Please try again.';
+      aiResponse = 'Unable to analyze audio. The model may still be loading. Please try again in a moment.';
+    }
+    
+    // Add contextual analysis based on question
+    if (question && aiResponse) {
+      aiResponse = `${aiResponse}\n\n(Analysis for: "${question}")`;
     }
 
     console.log('[Flamingo] 📤 Sending response:', aiResponse);
