@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles } from 'lucide-react';
+import { ScrollArea } from './ui/scroll-area';
 
 interface AIResponsePanelProps {
   isVisible: boolean;
@@ -10,8 +11,58 @@ interface AIResponsePanelProps {
 }
 
 /**
+ * Animated Text Display - Shows words one by one with smooth animation
+ */
+const AnimatedText: React.FC<{ text: string }> = ({ text }) => {
+  const [displayedWords, setDisplayedWords] = useState<string[]>([]);
+  
+  // Split text into words, preserving line breaks
+  const words = useMemo(() => {
+    return text.split(/(\s+|\n+)/).filter(word => word.length > 0);
+  }, [text]);
+
+  useEffect(() => {
+    setDisplayedWords([]);
+    
+    if (words.length === 0) return;
+
+    // Animate words in sequence
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      if (currentIndex < words.length) {
+        setDisplayedWords(prev => [...prev, words[currentIndex]]);
+        currentIndex++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 50); // Adjust speed: lower = faster
+
+    return () => clearInterval(interval);
+  }, [words]);
+
+  return (
+    <div className="space-y-2">
+      {displayedWords.map((word, index) => (
+        <motion.span
+          key={`${word}-${index}`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="inline-block"
+          style={{
+            whiteSpace: word.match(/\n/) ? 'pre' : 'normal'
+          }}
+        >
+          {word}
+        </motion.span>
+      ))}
+    </div>
+  );
+};
+
+/**
  * AI Response Panel - Shows Flamingo's audio analysis
- * Neon-themed panel matching the main UI design
+ * Neon-themed panel with word-by-word animation and scrolling
  */
 export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
   isVisible,
@@ -27,37 +78,61 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 50, scale: 0.9 }}
           transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-          className="fixed bottom-24 left-4 right-4 md:left-auto md:right-8 md:w-[400px] z-50"
+          className="fixed top-20 right-4 bottom-28 w-[90vw] max-w-[500px] z-50"
         >
           <div
-            className="bg-slate-900/95 backdrop-blur-lg rounded-2xl p-6 shadow-2xl"
+            className="h-full bg-slate-900/95 backdrop-blur-lg rounded-2xl shadow-2xl flex flex-col"
             style={{
               border: '2px solid hsl(180 100% 50%)',
               boxShadow: '0 0 30px hsl(180 100% 50% / 0.4), inset 0 0 20px hsl(180 100% 50% / 0.1)',
             }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between p-4 border-b border-cyan-400/30">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-cyan-400" />
-                <h3 className="font-semibold text-cyan-400">AI Audio Analysis</h3>
+                <motion.div
+                  animate={{
+                    rotate: [0, 360],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: 'linear',
+                  }}
+                >
+                  <Sparkles className="w-5 h-5 text-cyan-400" />
+                </motion.div>
+                <h3 className="font-semibold text-cyan-400">AI Song Analysis</h3>
               </div>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
                 aria-label="Close AI panel"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Content */}
-            <div className="min-h-[80px]">
+            {/* Content with ScrollArea */}
+            <ScrollArea className="flex-1 p-6">
               {isLoading ? (
-                <div className="flex items-center justify-center py-6">
+                <div className="flex flex-col items-center justify-center py-12">
                   <motion.div
                     animate={{
                       scale: [1, 1.2, 1],
+                      rotate: [0, 180, 360],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    }}
+                    className="text-cyan-400 mb-4"
+                  >
+                    <Sparkles className="w-12 h-12" />
+                  </motion.div>
+                  <motion.p
+                    animate={{
                       opacity: [0.5, 1, 0.5],
                     }}
                     transition={{
@@ -65,23 +140,17 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
                       repeat: Infinity,
                       ease: 'easeInOut',
                     }}
-                    className="text-cyan-400"
+                    className="text-gray-300 text-center"
                   >
-                    <Sparkles className="w-8 h-8" />
-                  </motion.div>
-                  <p className="ml-3 text-gray-300">AI analyzing audio...</p>
+                    AI analyzing song...
+                  </motion.p>
                 </div>
               ) : (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-gray-200 leading-relaxed"
-                >
-                  {response}
-                </motion.p>
+                <div className="text-gray-200 leading-relaxed text-base">
+                  <AnimatedText text={response} />
+                </div>
               )}
-            </div>
+            </ScrollArea>
 
             {/* Glowing bottom accent */}
             <motion.div
@@ -93,7 +162,7 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
                 repeat: Infinity,
                 ease: 'easeInOut',
               }}
-              className="absolute bottom-0 left-0 right-0 h-1 rounded-b-2xl"
+              className="absolute bottom-0 left-0 right-0 h-1 rounded-b-2xl pointer-events-none"
               style={{
                 background: 'linear-gradient(90deg, transparent, hsl(180 100% 50%), transparent)',
               }}
