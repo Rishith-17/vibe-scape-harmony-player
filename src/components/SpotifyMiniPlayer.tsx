@@ -1,16 +1,21 @@
-import { useState } from 'react';
-import { Play, Pause, SkipForward, SkipBack, ChevronUp, Volume2, Heart, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Play, Pause, SkipForward, SkipBack, ChevronUp, Volume2, Heart, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { formatTime } from '@/lib/timeUtils';
 import NowPlayingModal from './NowPlayingModal';
+import { AIResponsePanel } from './AIResponsePanel';
+import { getGlobalVoiceController, setAIResponseCallback } from '@/voice/voiceController';
 
 const SpotifyMiniPlayer = () => {
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
   const [volume, setVolume] = useState(80);
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [aiResponse, setAiResponse] = useState('');
+  const [isAILoading, setIsAILoading] = useState(false);
 
   const { 
     currentTrack,
@@ -29,6 +34,31 @@ const SpotifyMiniPlayer = () => {
     playlist,
     currentIndex
   } = useMusicPlayer();
+
+  // Setup AI response callback
+  useEffect(() => {
+    setAIResponseCallback((response: string, loading: boolean) => {
+      setIsAILoading(loading);
+      if (!loading) {
+        setAiResponse(response);
+        setShowAIPanel(true);
+      }
+    });
+
+    return () => {
+      setAIResponseCallback(null);
+    };
+  }, []);
+
+  const handleAIExplainClick = async () => {
+    const controller = getGlobalVoiceController();
+    if (controller) {
+      console.log('[MiniPlayer] 🎵 AI Explain Song clicked');
+      setShowAIPanel(true);
+      setIsAILoading(true);
+      await controller.analyzeCurrentAudio();
+    }
+  };
 
   const handleSeek = (value: number[]) => {
     const targetTime = value[0];
@@ -162,8 +192,24 @@ const SpotifyMiniPlayer = () => {
               </Button>
             </div>
 
-            {/* Right Section - Volume & Time */}
+            {/* Right Section - AI, Volume & Time */}
             <div className="flex items-center space-x-3 flex-shrink-0">
+              {/* AI Explain Song Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleAIExplainClick}
+                disabled={isAILoading || !currentTrack}
+                className="text-muted-foreground hover:text-cyan-400 hover:bg-cyan-400/10 rounded-full w-9 h-9 p-0 transition-all hover:scale-110 hover:shadow-[0_0_12px_hsl(180_100%_50%/0.3)] active:scale-95 disabled:opacity-30"
+                title="AI Explain Song"
+              >
+                {isAILoading ? (
+                  <Loader2 size={16} className="animate-spin text-cyan-400" />
+                ) : (
+                  <Sparkles size={16} />
+                )}
+              </Button>
+
               <div className="hidden md:flex items-center space-x-2 text-xs text-muted-foreground font-mono">
                 <span>{formatTime(displayTime)}</span>
                 <span>/</span>
@@ -193,6 +239,14 @@ const SpotifyMiniPlayer = () => {
           </div>
         </div>
       </div>
+
+      {/* AI Response Panel */}
+      <AIResponsePanel
+        isVisible={showAIPanel}
+        response={aiResponse}
+        isLoading={isAILoading}
+        onClose={() => setShowAIPanel(false)}
+      />
 
       {/* Now Playing Modal */}
       <NowPlayingModal

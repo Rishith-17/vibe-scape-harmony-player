@@ -72,3 +72,6 @@ verify_jwt = false
 
 [functions.emotion-detection]
 verify_jwt = false
+
+[functions.flamingo-analyze]
+verify_jwt = false

@@ -6,6 +6,8 @@ import { TtsEngine } from './tts/tts';
 import { EarconPlayer } from './EarconPlayer';
 import { runCommand } from './commandRunner';
 import { setPlayerReady, whenReady } from './playerGate';
+import { getAudioCapture } from './audioCapture';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * SINGLETON Voice Controller - Single Shared Microphone/ASR Instance
@@ -36,6 +38,10 @@ let ASR_INSTANCE_ID: string | null = null;
 
 // Global singleton voice controller instance (set by App.tsx after initialization)
 let globalVoiceController: VoiceController | null = null;
+
+// AI Response callback for displaying Flamingo responses
+type AIResponseCallback = (response: string, isLoading: boolean) => void;
+let aiResponseCallback: AIResponseCallback | null = null;
 
 /**
  * Main voice controller - orchestrates wake → ASR → NLU → action flow
@@ -371,6 +377,13 @@ export class VoiceController {
     }
 
     try {
+      // Check if this is an audio analysis question
+      if (this.isAudioAnalysisQuestion(transcript)) {
+        console.log('[VoiceController] 🎵 Detected audio analysis question:', transcript);
+        await this.handleAudioAnalysis(transcript);
+        return;
+      }
+
       const intent = parseIntent(transcript);
       console.log('[VoiceController] Parsed intent:', intent);
 
@@ -396,6 +409,107 @@ export class VoiceController {
     }
 
     this.reset();
+  }
+
+  /**
+   * Check if the transcript is asking for audio analysis
+   */
+  private isAudioAnalysisQuestion(transcript: string): boolean {
+    const lower = transcript.toLowerCase();
+    const audioKeywords = [
+      'what instrument', 'what mood', 'what emotion', 'what genre',
+      'describe', 'explain', 'analyze', 'what is this', 'what\'s this',
+      'tell me about', 'what am i', 'what do you hear', 'sound like',
+      'melody', 'harmony', 'tempo', 'beat', 'rhythm', 'vibe', 'feeling'
+    ];
+    
+    return audioKeywords.some(keyword => lower.includes(keyword));
+  }
+
+  /**
+   * Handle audio analysis using NVIDIA Flamingo 3
+   */
+  private async handleAudioAnalysis(question: string): Promise<void> {
+    console.log('[VoiceController] 🎤 Starting Flamingo audio analysis...');
+    
+    try {
+      // Show loading state
+      if (aiResponseCallback) {
+        aiResponseCallback('', true);
+      }
+
+      // Capture 5 seconds of audio
+      const audioCapture = getAudioCapture();
+      console.log('[VoiceController] 🎙️ Capturing 5 seconds of audio...');
+      const audioBlob = await audioCapture.capturePlaybackAudio(5000);
+      
+      console.log('[VoiceController] 📤 Sending to Flamingo API...');
+      
+      // Call Flamingo edge function
+      const { data, error } = await supabase.functions.invoke('flamingo-analyze', {
+        body: {
+          audioBlob,
+          question
+        }
+      });
+
+      if (error) {
+        console.error('[VoiceController] ❌ Flamingo API error:', error);
+        
+        // Handle model loading
+        if (error.message?.includes('loading')) {
+          const loadingMsg = 'AI model is warming up. Please try again in 20 seconds.';
+          if (aiResponseCallback) {
+            aiResponseCallback(loadingMsg, false);
+          }
+          await this.speak(loadingMsg);
+        } else {
+          throw error;
+        }
+        
+        this.reset();
+        return;
+      }
+
+      const aiResponse = data.response || 'No response from AI';
+      console.log('[VoiceController] ✅ Flamingo response:', aiResponse);
+
+      // Display response
+      if (aiResponseCallback) {
+        aiResponseCallback(aiResponse, false);
+      }
+
+      // Speak the response
+      await this.speak(aiResponse);
+
+      if (sharedEarconPlayer) {
+        sharedEarconPlayer.play('success');
+      }
+
+    } catch (error) {
+      console.error('[VoiceController] ❌ Audio analysis failed:', error);
+      const errorMsg = 'Sorry, I could not analyze the audio.';
+      
+      if (aiResponseCallback) {
+        aiResponseCallback(errorMsg, false);
+      }
+      
+      await this.speak(errorMsg);
+      
+      if (sharedEarconPlayer) {
+        sharedEarconPlayer.play('error');
+      }
+    }
+
+    this.reset();
+  }
+
+  /**
+   * PUBLIC API: Manually trigger audio analysis (for "AI Explain Song" button)
+   */
+  async analyzeCurrentAudio(): Promise<void> {
+    console.log('[VoiceController] 🎵 Manual audio analysis triggered');
+    await this.handleAudioAnalysis('Analyze this audio. What instruments, mood, and genre do you detect?');
   }
 
   private async executeIntent(intent: any): Promise<void> {
@@ -668,4 +782,12 @@ export function setGlobalVoiceController(controller: VoiceController | null): vo
  */
 export function getGlobalVoiceController(): VoiceController | null {
   return globalVoiceController;
+}
+
+/**
+ * Register callback for AI responses (for UI display)
+ */
+export function setAIResponseCallback(callback: AIResponseCallback | null): void {
+  aiResponseCallback = callback;
+  console.debug('[VoiceController] AI response callback set:', !!callback);
 }
