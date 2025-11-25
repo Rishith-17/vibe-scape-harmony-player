@@ -52,11 +52,12 @@ const SpotifyMiniPlayer = () => {
 
   const handleAIExplainClick = async () => {
     const controller = getGlobalVoiceController();
-    if (controller) {
+    if (controller && currentTrack) {
       console.log('[MiniPlayer] 🎵 AI Explain Song clicked');
       setShowAIPanel(true);
       setIsAILoading(true);
-      await controller.analyzeCurrentAudio();
+      // Pass current song info to AI analysis
+      await controller.analyzeCurrentAudio(currentTrack.title, currentTrack.channelTitle);
     }
   };
 
