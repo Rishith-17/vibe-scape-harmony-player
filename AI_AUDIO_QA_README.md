@@ -2,43 +2,45 @@
 
 ## Overview
 
-The AI Audio Q&A feature uses **Hugging Face audio emotion recognition** to analyze audio and detect emotional content. The NVIDIA Audio Flamingo 3 model was originally planned but is no longer available on Hugging Face (410 Gone error).
+The AI Audio Q&A feature uses **NVIDIA Audio Flamingo 3** via the Hugging Face Inference API to analyze audio and answer questions about songs.
 
-**Current Model**: `ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition`
+**Current Model**: `nvidia/audio-flamingo-3-hf`
 
 This model specializes in:
-- **Emotion Detection**: Happy, sad, angry, calm, neutral, fearful, surprised, etc.
-- **Audio Mood Analysis**: Detects the overall vibe and emotional tone
-- **Confidence Scores**: Provides percentage confidence for each detected emotion
+- **Song Information**: Instruments, mood, genre, tempo, melody, harmony
+- **Audio Characteristics**: Sound quality, mixing, production details
+- **Music Theory**: Scales, keys, chord progressions, time signatures
+- **Descriptive Analysis**: Comprehensive explanations of musical elements
+- **Q&A Capabilities**: Answers specific questions about the audio
 
 ---
 
 ## Features
 
-### 🎵 Audio Emotion Analysis
+### 🎵 Comprehensive Audio Analysis
 
-1. **Multi-Emotion Detection**
-   - Identifies multiple emotions in audio simultaneously
-   - Provides confidence scores (0-100%) for each emotion
+1. **Song Information Extraction**
+   - Identifies instruments used in the track
+   - Detects musical genre and style
+   - Analyzes tempo, rhythm, and time signature
+   - Example: "What instruments are in this song?"
+
+2. **Mood & Emotion Detection**
+   - Describes the overall mood and feeling
+   - Identifies emotional characteristics
    - Example: "What's the mood of this song?"
 
-2. **Top Results Display**
-   - Shows the top 3 emotions detected
-   - Ranked by confidence score
-   - Visual emoji indicators for each emotion
+3. **Music Theory Insights**
+   - Detects musical scales and keys
+   - Identifies chord progressions
+   - Analyzes harmony and melody structure
+   - Example: "What key is this song in?"
 
-3. **Real-time Analysis**
-   - 5-second audio capture
-   - Fast processing (3-5 seconds after model warmup)
+4. **Interactive Q&A**
+   - Answer specific user questions about the audio
+   - Provide detailed explanations
+   - Real-time analysis (5-second audio capture)
    - Loading states with visual feedback
-
-**Note**: This model focuses on emotional content. It cannot identify:
-- Specific instruments
-- Music genres
-- Music theory details (scales, keys, tempo)
-- Song identification
-
-For these features, alternative models or APIs would be needed.
 
 ---
 
@@ -49,17 +51,16 @@ For these features, alternative models or APIs would be needed.
 **File**: `supabase/functions/flamingo-analyze/index.ts`
 
 - **Purpose**: Secure API endpoint that communicates with Hugging Face
-- **Current Model**: `ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition`
-- **Previous Model**: NVIDIA Audio Flamingo 3 (no longer available)
+- **Current Model**: `nvidia/audio-flamingo-3-hf`
 - **Security**: HF token is fetched from Supabase secrets (server-side only)
 - **Input**: Audio blob (base64) + optional question text
-- **Output**: Emotion analysis with confidence scores
+- **Output**: Comprehensive audio analysis and Q&A responses
 
 **Key Features**:
 - CORS enabled for web app
 - Handles model loading states (503 errors)
-- Provides top 3 emotions with confidence percentages
-- Emoji indicators for each emotion
+- Supports natural language questions
+- Provides detailed song information
 - Secure token management (never exposed to client)
 
 ---
