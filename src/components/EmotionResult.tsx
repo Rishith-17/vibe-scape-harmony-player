@@ -41,6 +41,8 @@ const EmotionResult: React.FC<Props> = ({ emotions }) => {
         return;
       }
 
+      console.log('[EmotionResult] Looking for emotion playlist:', emotion, 'for user:', user.id);
+
       // Find emotion playlist that matches the detected emotion (case-insensitive)
       const { data: emotionPlaylists, error: playlistError } = await supabase
         .from('emotion_playlists')
@@ -50,14 +52,21 @@ const EmotionResult: React.FC<Props> = ({ emotions }) => {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (playlistError) throw playlistError;
+      if (playlistError) {
+        console.error('[EmotionResult] Playlist query error:', playlistError);
+        throw playlistError;
+      }
+
+      console.log('[EmotionResult] Found playlists:', emotionPlaylists);
 
       if (!emotionPlaylists || emotionPlaylists.length === 0) {
+        console.log('[EmotionResult] No playlist found for emotion:', emotion);
         setMessage(`No '${emotion}' playlist found. Create one in your library to auto-play your mood next time.`);
         return;
       }
 
       const selectedPlaylist = emotionPlaylists[0];
+      console.log('[EmotionResult] Selected playlist:', selectedPlaylist);
 
       // Get songs from the emotion playlist
       const { data: songs, error: songsError } = await supabase
@@ -66,10 +75,15 @@ const EmotionResult: React.FC<Props> = ({ emotions }) => {
         .eq('emotion_playlist_id', selectedPlaylist.id)
         .order('position', { ascending: true });
 
-      if (songsError) throw songsError;
+      if (songsError) {
+        console.error('[EmotionResult] Songs query error:', songsError);
+        throw songsError;
+      }
+      
+      console.log('[EmotionResult] Found songs:', songs?.length || 0);
       
       if (!songs || songs.length === 0) {
-        setMessage(`Your '${emotion}' playlist is empty. Add some songs to auto-play your mood next time.`);
+        setMessage(`Your '${emotion}' playlist is empty. Add some songs first in your library to enable auto-play.`);
         return;
       }
 
@@ -82,8 +96,12 @@ const EmotionResult: React.FC<Props> = ({ emotions }) => {
         url: song.url
       }));
 
+      console.log('[EmotionResult] Formatted songs:', formattedSongs);
+
       // Play the first song from the playlist
       playTrack(formattedSongs[0], formattedSongs, 0);
+      
+      console.log('[EmotionResult] Started playing:', formattedSongs[0].title);
       
       toast({
         title: "Now Playing",
@@ -92,7 +110,7 @@ const EmotionResult: React.FC<Props> = ({ emotions }) => {
 
       setMessage(null);
     } catch (error) {
-      console.error('Error finding and playing matching playlist:', error);
+      console.error('[EmotionResult] Error finding and playing matching playlist:', error);
       setMessage(`Error loading playlist for '${emotion}'. Please try again.`);
     }
   };
