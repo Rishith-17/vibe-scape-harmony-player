@@ -41,70 +41,125 @@ const EmotionResult: React.FC<Props> = ({ emotions }) => {
         return;
       }
 
-      console.log('[EmotionResult] Looking for emotion playlist:', emotion, 'for user:', user.id);
+      const normalizedEmotion = emotion.toLowerCase();
+      console.log('[EmotionResult] Looking for emotion playlist:', normalizedEmotion, 'for user:', user.id);
 
-      // Find emotion playlist that matches the detected emotion (case-insensitive)
-      const { data: emotionPlaylists, error: playlistError } = await supabase
+      // 1) Try emotion-specific playlists first
+      const { data: emotionPlaylists, error: emotionPlaylistError } = await supabase
         .from('emotion_playlists')
         .select('*')
         .eq('user_id', user.id)
-        .ilike('emotion', emotion)
+        .ilike('emotion', normalizedEmotion)
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (playlistError) {
-        console.error('[EmotionResult] Playlist query error:', playlistError);
-        throw playlistError;
+      if (emotionPlaylistError) {
+        console.error('[EmotionResult] Emotion playlist query error:', emotionPlaylistError);
+        throw emotionPlaylistError;
       }
 
-      console.log('[EmotionResult] Found playlists:', emotionPlaylists);
+      if (emotionPlaylists && emotionPlaylists.length > 0) {
+        const selectedEmotionPlaylist = emotionPlaylists[0];
+        console.log('[EmotionResult] Using emotion playlist:', selectedEmotionPlaylist);
 
-      if (!emotionPlaylists || emotionPlaylists.length === 0) {
-        console.log('[EmotionResult] No playlist found for emotion:', emotion);
-        setMessage(`No '${emotion}' playlist found. Create one in your library to auto-play your mood next time.`);
+        const { data: emotionSongs, error: emotionSongsError } = await supabase
+          .from('emotion_playlist_songs')
+          .select('*')
+          .eq('emotion_playlist_id', selectedEmotionPlaylist.id)
+          .order('position', { ascending: true });
+
+        if (emotionSongsError) {
+          console.error('[EmotionResult] Emotion playlist songs query error:', emotionSongsError);
+          throw emotionSongsError;
+        }
+
+        console.log('[EmotionResult] Emotion playlist songs found:', emotionSongs?.length || 0);
+
+        if (emotionSongs && emotionSongs.length > 0) {
+          const formattedSongs = emotionSongs.map(song => ({
+            id: song.song_id,
+            title: song.title,
+            channelTitle: song.artist,
+            thumbnail: song.thumbnail || '',
+            url: song.url,
+          }));
+
+          console.log('[EmotionResult] Formatted songs from emotion playlist:', formattedSongs);
+
+          playTrack(formattedSongs[0], formattedSongs, 0);
+          console.log('[EmotionResult] Started playing from emotion playlist:', formattedSongs[0].title);
+
+          toast({
+            title: 'Now Playing',
+            description: `Playing from your '${emotion}' playlist`,
+          });
+
+          setMessage(null);
+          return;
+        }
+
+        console.log('[EmotionResult] Emotion playlist exists but has no songs, falling back to regular playlists');
+      } else {
+        console.log('[EmotionResult] No emotion playlist found, falling back to regular playlists');
+      }
+
+      // 2) Fallback: look for a regular playlist whose NAME matches the emotion (case-insensitive)
+      const { data: playlists, error: playlistsError } = await supabase
+        .from('playlists')
+        .select('*')
+        .eq('user_id', user.id)
+        .ilike('name', normalizedEmotion)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (playlistsError) {
+        console.error('[EmotionResult] Regular playlist query error:', playlistsError);
+        throw playlistsError;
+      }
+
+      console.log('[EmotionResult] Matching regular playlists for emotion:', normalizedEmotion, playlists);
+
+      if (!playlists || playlists.length === 0) {
+        setMessage(`No '${emotion}' playlist found. Create one in your library with that exact name to auto-play your mood next time.`);
         return;
       }
 
-      const selectedPlaylist = emotionPlaylists[0];
-      console.log('[EmotionResult] Selected playlist:', selectedPlaylist);
+      const selectedPlaylist = playlists[0];
+      console.log('[EmotionResult] Selected regular playlist:', selectedPlaylist);
 
-      // Get songs from the emotion playlist
       const { data: songs, error: songsError } = await supabase
-        .from('emotion_playlist_songs')
+        .from('playlist_songs')
         .select('*')
-        .eq('emotion_playlist_id', selectedPlaylist.id)
+        .eq('playlist_id', selectedPlaylist.id)
         .order('position', { ascending: true });
 
       if (songsError) {
-        console.error('[EmotionResult] Songs query error:', songsError);
+        console.error('[EmotionResult] Regular playlist songs query error:', songsError);
         throw songsError;
       }
-      
-      console.log('[EmotionResult] Found songs:', songs?.length || 0);
-      
+
+      console.log('[EmotionResult] Regular playlist songs found:', songs?.length || 0);
+
       if (!songs || songs.length === 0) {
-        setMessage(`Your '${emotion}' playlist is empty. Add some songs first in your library to enable auto-play.`);
+        setMessage(`Your '${emotion}' playlist is empty. Add some songs in your library to enable auto-play.`);
         return;
       }
 
-      // Convert to the format expected by playTrack
       const formattedSongs = songs.map(song => ({
         id: song.song_id,
         title: song.title,
         channelTitle: song.artist,
         thumbnail: song.thumbnail || '',
-        url: song.url
+        url: song.url,
       }));
 
-      console.log('[EmotionResult] Formatted songs:', formattedSongs);
+      console.log('[EmotionResult] Formatted songs from regular playlist:', formattedSongs);
 
-      // Play the first song from the playlist
       playTrack(formattedSongs[0], formattedSongs, 0);
-      
-      console.log('[EmotionResult] Started playing:', formattedSongs[0].title);
-      
+      console.log('[EmotionResult] Started playing from regular playlist:', formattedSongs[0].title);
+
       toast({
-        title: "Now Playing",
+        title: 'Now Playing',
         description: `Playing from your '${emotion}' playlist`,
       });
 
