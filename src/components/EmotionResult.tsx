@@ -41,12 +41,12 @@ const EmotionResult: React.FC<Props> = ({ emotions }) => {
         return;
       }
 
-      // Find emotion playlist that matches the detected emotion
+      // Find emotion playlist that matches the detected emotion (case-insensitive)
       const { data: emotionPlaylists, error: playlistError } = await supabase
         .from('emotion_playlists')
         .select('*')
         .eq('user_id', user.id)
-        .eq('emotion', emotion)
+        .ilike('emotion', emotion)
         .order('created_at', { ascending: false })
         .limit(1);
 

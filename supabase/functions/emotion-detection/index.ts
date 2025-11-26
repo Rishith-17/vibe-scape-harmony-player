@@ -57,6 +57,17 @@ serve(async (req) => {
     // Sort emotions by confidence score
     const sortedEmotions = result.sort((a: any, b: any) => b.score - a.score)
 
+    // Validate that a face is actually detected
+    // If scores are too evenly distributed or top confidence is too low, likely no face
+    const topScore = sortedEmotions[0]?.score || 0
+    const avgScore = sortedEmotions.reduce((sum: number, e: any) => sum + e.score, 0) / sortedEmotions.length
+    const scoreVariance = sortedEmotions.reduce((sum: number, e: any) => sum + Math.pow(e.score - avgScore, 2), 0) / sortedEmotions.length
+    
+    // If top confidence is below 30% or scores are too evenly distributed (low variance)
+    if (topScore < 0.3 || scoreVariance < 0.01) {
+      throw new Error('No person detected in the image. Please upload a photo with a clear face.')
+    }
+
     return new Response(
       JSON.stringify({ emotions: sortedEmotions }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
