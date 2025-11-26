@@ -459,6 +459,7 @@ const EnhancedHomePage = () => {
               currentTrack={currentTrack}
               isPlaying={isPlaying}
               gradient="from-cyan-500/20 to-blue-500/20"
+              sectionId="global-top"
             />
 
             <EnhancedRecommendationSection
@@ -470,6 +471,7 @@ const EnhancedHomePage = () => {
               currentTrack={currentTrack}
               isPlaying={isPlaying}
               gradient="from-purple-500/20 to-pink-500/20"
+              sectionId="new-releases"
             />
 
             <EnhancedRecommendationSection
@@ -481,6 +483,7 @@ const EnhancedHomePage = () => {
               currentTrack={currentTrack}
               isPlaying={isPlaying}
               gradient="from-blue-500/20 to-indigo-500/20"
+              sectionId="top-by-country"
             />
 
             <EnhancedRecommendationSection
@@ -492,6 +495,7 @@ const EnhancedHomePage = () => {
               currentTrack={currentTrack}
               isPlaying={isPlaying}
               gradient="from-pink-500/20 to-purple-500/20"
+              sectionId="top-by-state"
             />
           </>
         )}
