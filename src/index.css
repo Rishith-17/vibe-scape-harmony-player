@@ -137,6 +137,35 @@ html, body {
   }
 }
 
+@keyframes voiceHighlight {
+  0% { 
+    outline-color: hsl(180 100% 50% / 0);
+    outline-offset: 0px;
+    box-shadow: 0 0 0 hsl(180 100% 50% / 0);
+  }
+  50% { 
+    outline-color: hsl(180 100% 50% / 1);
+    outline-offset: 8px;
+    box-shadow: 0 0 40px hsl(180 100% 50% / 0.8);
+  }
+  100% { 
+    outline-color: hsl(180 100% 50% / 0);
+    outline-offset: 12px;
+    box-shadow: 0 0 0 hsl(180 100% 50% / 0);
+  }
+}
+
+@keyframes voicePulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 0 20px hsl(180 100% 50% / 0.5);
+  }
+  50% { 
+    transform: scale(1.05);
+    box-shadow: 0 0 40px hsl(180 100% 50% / 0.8);
+  }
+}
+
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
@@ -331,4 +360,15 @@ html, body {
   .glass {
     backdrop-filter: blur(40px);
   }
+}
+
+/* Voice control visual feedback */
+.voice-highlight {
+  animation: voiceHighlight 1s ease-in-out;
+  outline: 3px solid hsl(180 100% 50%);
+  outline-offset: 4px;
+}
+
+.voice-pulse {
+  animation: voicePulse 0.8s ease-in-out;
 }

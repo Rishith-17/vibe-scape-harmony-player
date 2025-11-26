@@ -1,5 +1,5 @@
 import { VoiceState, MusicController, NavControllerAdapter } from './types';
-import { parseIntent, HELP_TEXT } from './nlu/intentParser';
+import { parseIntent, ENHANCED_HELP_TEXT } from './nlu/intentParser.enhanced';
 import { WebSpeechAsr } from './asr/WebSpeechAsr';
 import { PorcupineWebEngine } from './wake/PorcupineWeb';
 import { TtsEngine } from './tts/tts';
@@ -8,6 +8,11 @@ import { runCommand } from './commandRunner';
 import { setPlayerReady, whenReady } from './playerGate';
 import { getAudioCapture } from './audioCapture';
 import { supabase } from '@/integrations/supabase/client';
+import { VoiceCommandRunner } from './voiceCommandRunner';
+import { MusicAdapter } from './adapters/MusicAdapter';
+import { NavigationAdapter } from './adapters/NavigationAdapter';
+import { ScrollAdapter } from './adapters/ScrollAdapter';
+import { UiAdapter } from './adapters/UiAdapter';
 
 /**
  * SINGLETON Voice Controller - Single Shared Microphone/ASR Instance
@@ -53,6 +58,7 @@ export class VoiceController {
   private wakeEnabled = true;
   private musicController: MusicController;
   private navController: NavControllerAdapter;
+  private commandRunner: VoiceCommandRunner;
   private config: {
     language: string;
     wakeSensitivity: number;
@@ -74,6 +80,21 @@ export class VoiceController {
     this.navController = navController;
     this.config = config;
     this.wakeEnabled = config.wakeEnabled !== false;
+
+    // Initialize adapters for the command runner
+    const musicAdapter = new MusicAdapter(musicController);
+    const navigationAdapter = new NavigationAdapter(navController);
+    const scrollAdapter = new ScrollAdapter();
+    const uiAdapter = new UiAdapter();
+
+    // Create command runner with all adapters
+    this.commandRunner = new VoiceCommandRunner(
+      musicAdapter,
+      navigationAdapter,
+      scrollAdapter,
+      uiAdapter,
+      config.ttsEnabled
+    );
 
     // Initialize shared resources if not already created
     this.initializeSharedResources();
@@ -502,170 +523,50 @@ export class VoiceController {
   }
 
   private async executeIntent(intent: any): Promise<void> {
-    const { action, slots } = intent;
-
-    console.log('[VoiceController] 🎯 Executing action:', action, 'Slots:', slots);
+    console.log('[VoiceController] 🎯 Executing intent via CommandRunner:', intent);
 
     try {
-      // Use command runner to prevent overlapping commands
-      const result = await runCommand(async () => {
-        switch (action) {
-          case 'play':
-            console.log('[VoiceController] ▶️ Playing music');
-            await whenReady(async () => {
-              await this.musicController.play();
-            });
-            await this.speak('Playing');
-            return;
-
-          case 'pause':
-            console.log('[VoiceController] ⏸️ Pausing music');
-            await whenReady(async () => {
-              await this.musicController.pause();
-            });
-            await this.speak('Paused');
-            return;
-
-          case 'resume':
-            console.log('[VoiceController] ▶️ Resuming music');
-            await whenReady(async () => {
-              await this.musicController.resume();
-            });
-            await this.speak('Resuming');
-            return;
-
-          case 'next':
-            console.log('[VoiceController] ⏭️ Next track');
-            await whenReady(async () => {
-              await this.musicController.next();
-            });
-            await this.speak('Next track');
-            return;
-
-          case 'previous':
-            console.log('[VoiceController] ⏮️ Previous track');
-            await whenReady(async () => {
-              await this.musicController.previous();
-            });
-            await this.speak('Previous track');
-            return;
-
-          case 'volume_up':
-            console.log('[VoiceController] 🔊 Volume up');
-            this.musicController.adjustVolume(10);
-            await this.speak('Volume up');
-            return;
-
-          case 'volume_down':
-            console.log('[VoiceController] 🔉 Volume down');
-            this.musicController.adjustVolume(-10);
-            await this.speak('Volume down');
-            return;
-
-          case 'volume_set':
-            if (slots.volume !== undefined) {
-              console.log('[VoiceController] 🔊 Setting volume to', slots.volume);
-              this.musicController.setVolume(slots.volume);
-              await this.speak(`Volume set to ${slots.volume}`);
-            }
-            return;
-
-          case 'play_query':
-            if (slots.query) {
-              console.log('[VoiceController] 🎵 Playing query:', slots.query);
-              await whenReady(async () => {
-                await this.musicController.playQuery(slots.query);
-              });
-              await this.speak(`Playing ${slots.query}`);
-            }
-            return;
-
-          case 'play_mood':
-            if (slots.mood) {
-              console.log('[VoiceController] 😊 Playing mood:', slots.mood);
-              await whenReady(async () => {
-                await this.musicController.playMood(slots.mood);
-              });
-              await this.speak(`Playing ${slots.mood} music`);
-            }
-            return;
-
-          case 'play_nth_track':
-            if (slots.trackNumber) {
-              console.log('[VoiceController] 🎵 Playing track number:', slots.trackNumber);
-              await whenReady(async () => {
-                await this.musicController.playNthTrack(slots.trackNumber);
-              });
-              await this.speak(`Playing track ${slots.trackNumber}`);
-            }
-            return;
-
-          case 'play_liked_songs':
-            console.log('[VoiceController] ❤️ Playing liked songs');
-            await whenReady(async () => {
-              await this.musicController.playLikedSongs();
-            });
-            await this.speak('Playing your liked songs');
-            return;
-
-          case 'play_playlist':
-            if (slots.playlistName) {
-              console.log('[VoiceController] 📋 Playing playlist:', slots.playlistName);
-              await whenReady(async () => {
-                await this.musicController.playPlaylist(slots.playlistName);
-              });
-              await this.speak(`Playing ${slots.playlistName} playlist`);
-            }
-            return;
-
-          case 'search_and_play':
-            if (slots.query) {
-              console.log('[VoiceController] 🔍 Searching and playing:', slots.query);
-              await whenReady(async () => {
-                await this.musicController.searchAndPlay(slots.query);
-              });
-              await this.speak(`Playing ${slots.query}`);
-            }
-            return;
-
-          case 'search':
-            if (slots.query) {
-              console.log('[VoiceController] 🔍 Opening search for:', slots.query);
-              this.navController.openSearch(slots.query);
-              await this.speak(`Searching for ${slots.query}`);
-            }
-            return;
-
-          case 'navigate':
-            console.log('[VoiceController] 🧭 Navigating to:', slots.navigation);
-            if (slots.navigation === 'emotions') this.navController.openEmotionDetection();
-            else if (slots.navigation === 'library') this.navController.openLibrary();
-            else if (slots.navigation === 'settings') this.navController.openSettings();
-            else if (slots.navigation === 'home') this.navController.openHome();
-            else if (slots.navigation === 'search') this.navController.openSearch();
-            await this.speak(`Opening ${slots.navigation}`);
-            return;
-
-          case 'help':
-            console.log('[VoiceController] ℹ️ Showing help');
-            await this.speak(HELP_TEXT);
-            return;
-
-          default:
-            console.log('[VoiceController] ❓ Unknown action:', action);
-            await this.speak("I don't know how to do that yet.");
-            return;
-        }
-      });
-
-      if (result === null) {
-        console.log('[VoiceController] ⏸️ Command skipped - another command is running');
-        await this.speak('Please wait, processing previous command');
+      // Delegate to the comprehensive command runner
+      await this.commandRunner.executeIntent(intent);
+      
+      // Speak confirmation if TTS is enabled
+      if (this.config.ttsEnabled) {
+        await this.speak(this.getConfirmationMessage(intent));
       }
     } catch (error: any) {
       console.error('[VoiceController] ❌ Error executing intent:', error);
       await this.speak(error.message || 'Sorry, I could not complete that action.');
       throw error;
+    }
+  }
+
+  /**
+   * Get confirmation message for intent
+   */
+  private getConfirmationMessage(intent: any): string {
+    const { action, slots } = intent;
+    
+    switch (action) {
+      case 'play': return 'Playing';
+      case 'pause': return 'Paused';
+      case 'resume': return 'Resumed';
+      case 'next': return 'Next track';
+      case 'previous': return 'Previous track';
+      case 'volume_up': return 'Volume up';
+      case 'volume_down': return 'Volume down';
+      case 'volume_set': return `Volume ${slots.volume}`;
+      case 'play_nth_track': return `Playing track ${slots.trackNumber}`;
+      case 'play_item_in_section': return `Playing item ${slots.trackNumber}`;
+      case 'play_mood': return `Playing ${slots.mood} music`;
+      case 'play_playlist': return `Playing ${slots.playlistName}`;
+      case 'play_liked_songs': return 'Playing liked songs';
+      case 'search_and_play': return `Playing ${slots.query}`;
+      case 'navigate': return `Opening ${slots.navigation}`;
+      case 'scroll_down': return 'Scrolled down';
+      case 'scroll_up': return 'Scrolled up';
+      case 'scroll_to_section': return `Scrolled to ${slots.sectionId}`;
+      case 'help': return ENHANCED_HELP_TEXT;
+      default: return 'Done';
     }
   }
 

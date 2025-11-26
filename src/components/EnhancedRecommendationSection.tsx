@@ -29,6 +29,7 @@ interface EnhancedRecommendationSectionProps {
   currentTrack: Track | null;
   isPlaying: boolean;
   gradient?: string;
+  sectionId?: string;
 }
 
 const EnhancedRecommendationSection = ({ 
@@ -39,7 +40,8 @@ const EnhancedRecommendationSection = ({
   onPlaySong, 
   currentTrack, 
   isPlaying,
-  gradient = "from-gray-500/20 to-gray-600/20"
+  gradient = "from-gray-500/20 to-gray-600/20",
+  sectionId
 }: EnhancedRecommendationSectionProps) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -53,6 +55,7 @@ const EnhancedRecommendationSection = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
       className="mb-12"
+      data-section={sectionId}
     >
       {/* Section Header with Neon Border */}
       <motion.div 
@@ -88,7 +91,9 @@ const EnhancedRecommendationSection = ({
             onHoverStart={() => setHoveredIndex(index)}
             onHoverEnd={() => setHoveredIndex(null)}
             onClick={() => onPlaySong(song)}
-            className="group relative cursor-pointer"
+            className="group relative cursor-pointer card"
+            data-card
+            data-title={song.title}
             style={{
               transformStyle: 'preserve-3d',
               perspective: '1000px'
@@ -143,7 +148,8 @@ const EnhancedRecommendationSection = ({
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                   <motion.div 
                     whileHover={{ scale: 1.2 }}
-                    className="rounded-full p-4"
+                    className="rounded-full p-4 play-btn"
+                    data-action="play"
                     style={{
                       background: 'hsl(180 100% 50%)',
                       boxShadow: '0 0 30px hsl(180 100% 50% / 0.8), 0 0 60px hsl(180 100% 50% / 0.5)'
