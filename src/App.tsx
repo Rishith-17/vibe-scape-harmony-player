@@ -63,14 +63,15 @@ const VoiceIntegration = () => {
     (async () => {
       try {
         const { VoiceController, setGlobalVoiceController } = await import('./voice/voiceController');
-        const { MusicControllerImpl } = await import('./controllers/MusicControllerImpl');
+        const { musicController } = await import('./controllers/MusicControllerImpl');
         const { NavControllerImpl } = await import('./controllers/NavControllerImpl');
 
-        const musicControllerAdapter = new MusicControllerImpl(musicPlayer);
+        // Ensure singleton music controller is bound to the current music player context
+        musicController.setPlayerContext(musicPlayer);
         const navControllerAdapter = new NavControllerImpl(navigate);
 
         controller = new VoiceController(
-          musicControllerAdapter,
+          musicController,
           navControllerAdapter,
           {
             language: voiceSettings.language,
