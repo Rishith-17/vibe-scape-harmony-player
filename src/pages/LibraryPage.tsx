@@ -373,7 +373,7 @@ const LibraryPage = () => {
         ) : (
           /* Circular 3D Playlist Arrangement */
           <div 
-            className="relative w-full min-h-[600px] flex items-center justify-center perspective-[2000px]"
+            className="relative w-full min-h-[400px] flex items-center justify-start pl-32 perspective-[2000px]"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
