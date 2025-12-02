@@ -54,12 +54,12 @@ const AuthPage = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/40 to-purple-500/40 rounded-full blur-2xl animate-glow-pulse" />
             <img 
               src={processedLogo} 
-              alt="VibeScape Logo" 
+              alt="AuraWave Logo" 
               className="relative w-32 h-32 object-contain drop-shadow-[0_0_25px_rgba(59,130,246,0.6)]"
             />
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent mb-2">
-            VibeScape
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent mb-2 tracking-wide">
+            AuraWave
           </h1>
           <p className="text-gray-300/80 text-sm">
             AI-Powered Mood-Based Music Player
