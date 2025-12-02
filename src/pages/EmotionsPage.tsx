@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Upload, Camera, Image as ImageIcon, Brain, Sparkles, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -9,14 +9,47 @@ import WebcamCaptureDialog from '@/components/WebcamCaptureDialog';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
 import { motion } from 'framer-motion';
+import { emotionAnalysisService } from '@/services/EmotionAnalysisService';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
+import { useNavigate } from 'react-router-dom';
 
 const EmotionDetector = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [emotionResult, setEmotionResult] = useState<any>(null);
   const [isWebcamOpen, setIsWebcamOpen] = useState(false);
+  const [isVoiceTriggered, setIsVoiceTriggered] = useState(false);
   const { toast } = useToast();
+  const { playTrack } = useMusicPlayer();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const autoAnalyzeRef = useRef(false);
+
+  // Initialize emotion analysis service with dependencies
+  useEffect(() => {
+    emotionAnalysisService.initialize({
+      playTrack,
+      showToast: toast,
+      navigate,
+    });
+
+    // Register callback for voice-triggered capture
+    emotionAnalysisService.setOnCaptureRequest(() => {
+      console.log('[EmotionsPage] Voice-triggered capture request');
+      setIsVoiceTriggered(true);
+      autoAnalyzeRef.current = true;
+      // Open webcam on desktop, camera on native
+      if (!Capacitor.isNativePlatform()) {
+        setIsWebcamOpen(true);
+      } else {
+        handleCameraCapture();
+      }
+    });
+
+    return () => {
+      emotionAnalysisService.setOnCaptureRequest(() => {});
+    };
+  }, [playTrack, toast, navigate]);
 
   const handleImageSelect = (imageData: string) => {
     setSelectedImage(imageData);
@@ -112,14 +145,43 @@ const EmotionDetector = () => {
     }
   };
 
-  const handleWebcamCapture = (imageData: string) => {
+  const handleWebcamCapture = useCallback(async (imageData: string) => {
     setSelectedImage(imageData);
     setEmotionResult(null);
-    toast({
-      title: "Photo Captured!",
-      description: "Ready for emotion analysis",
-    });
-  };
+    
+    // If voice-triggered, auto-analyze immediately
+    if (autoAnalyzeRef.current) {
+      autoAnalyzeRef.current = false;
+      setIsVoiceTriggered(false);
+      
+      toast({
+        title: "Photo Captured!",
+        description: "Analyzing your emotion...",
+      });
+
+      // Auto-analyze the captured image
+      setIsAnalyzing(true);
+      try {
+        const emotions = await emotionAnalysisService.analyzeImage(imageData);
+        if (emotions) {
+          setEmotionResult(emotions);
+          toast({
+            title: "Analysis Complete!",
+            description: `Detected primary emotion: ${emotions[0]?.label}`,
+          });
+        }
+      } catch (error) {
+        console.error('Auto-analyze error:', error);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    } else {
+      toast({
+        title: "Photo Captured!",
+        description: "Ready for emotion analysis",
+      });
+    }
+  }, [toast]);
 
   const resetDetector = () => {
     setSelectedImage(null);
@@ -488,8 +550,12 @@ const EmotionDetector = () => {
       {/* Webcam Capture Dialog for Desktop */}
       <WebcamCaptureDialog
         isOpen={isWebcamOpen}
-        onClose={() => setIsWebcamOpen(false)}
+        onClose={() => {
+          setIsWebcamOpen(false);
+          setIsVoiceTriggered(false);
+        }}
         onCapture={handleWebcamCapture}
+        autoCapture={isVoiceTriggered}
       />
     </div>
   );

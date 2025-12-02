@@ -7,14 +7,22 @@ interface WebcamCaptureDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onCapture: (imageData: string) => void;
+  autoCapture?: boolean; // Auto-capture after camera starts (for voice commands)
 }
 
-const WebcamCaptureDialog = ({ isOpen, onClose, onCapture }: WebcamCaptureDialogProps) => {
+const WebcamCaptureDialog = ({ isOpen, onClose, onCapture, autoCapture = false }: WebcamCaptureDialogProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const autoCaptureRef = useRef(autoCapture);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  // Update ref when prop changes
+  useEffect(() => {
+    autoCaptureRef.current = autoCapture;
+  }, [autoCapture]);
 
   const startCamera = useCallback(async () => {
     try {
@@ -30,6 +38,11 @@ const WebcamCaptureDialog = ({ isOpen, onClose, onCapture }: WebcamCaptureDialog
         videoRef.current.onloadedmetadata = () => {
           videoRef.current?.play();
           setIsStreaming(true);
+          
+          // Auto-capture with countdown for voice-triggered flow
+          if (autoCaptureRef.current) {
+            setCountdown(3);
+          }
         };
       }
     } catch (err) {
@@ -74,10 +87,23 @@ const WebcamCaptureDialog = ({ isOpen, onClose, onCapture }: WebcamCaptureDialog
       startCamera();
     } else {
       stopCamera();
+      setCountdown(null);
     }
     
     return () => stopCamera();
   }, [isOpen, startCamera, stopCamera]);
+
+  // Countdown timer for auto-capture
+  useEffect(() => {
+    if (countdown === null) return;
+    
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (countdown === 0 && isStreaming) {
+      capturePhoto();
+    }
+  }, [countdown, isStreaming, capturePhoto]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -103,6 +129,11 @@ const WebcamCaptureDialog = ({ isOpen, onClose, onCapture }: WebcamCaptureDialog
             {error && (
               <div className="absolute inset-0 flex items-center justify-center p-4">
                 <p className="text-red-400 text-center">{error}</p>
+              </div>
+            )}
+            {countdown !== null && countdown > 0 && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                <div className="text-6xl font-bold text-cyan-400 animate-pulse">{countdown}</div>
               </div>
             )}
           </div>
