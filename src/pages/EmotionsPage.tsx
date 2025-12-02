@@ -33,22 +33,33 @@ const EmotionDetector = () => {
       navigate,
     });
 
-    // Register callback for voice-triggered capture
-    emotionAnalysisService.setOnCaptureRequest(() => {
-      console.log('[EmotionsPage] Voice-triggered capture request');
+    // Check if there's a pending voice-triggered capture request
+    if (emotionAnalysisService.consumePendingCapture()) {
+      console.log('[EmotionsPage] Voice-triggered capture detected on mount');
       setIsVoiceTriggered(true);
       autoAnalyzeRef.current = true;
-      // Open webcam on desktop, camera on native
+      // Open webcam on desktop (native will be handled differently)
       if (!Capacitor.isNativePlatform()) {
         setIsWebcamOpen(true);
       } else {
-        handleCameraCapture();
+        // For native, trigger camera capture
+        (async () => {
+          try {
+            const image = await CapacitorCamera.getPhoto({
+              quality: 90,
+              allowEditing: false,
+              resultType: CameraResultType.DataUrl,
+              source: CameraSource.Camera,
+            });
+            if (image.dataUrl) {
+              setSelectedImage(image.dataUrl);
+            }
+          } catch (err) {
+            console.error('Voice-triggered camera error:', err);
+          }
+        })();
       }
-    });
-
-    return () => {
-      emotionAnalysisService.setOnCaptureRequest(() => {});
-    };
+    }
   }, [playTrack, toast, navigate]);
 
   const handleImageSelect = (imageData: string) => {

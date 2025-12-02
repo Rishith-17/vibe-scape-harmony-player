@@ -26,8 +26,10 @@ class EmotionAnalysisService {
   private playTrack: PlayTrackFn | null = null;
   private showToast: ToastFn | null = null;
   private navigate: NavigateFn | null = null;
-  private onCaptureRequest: (() => void) | null = null;
   private onAnalysisComplete: ((emotion: string) => void) | null = null;
+  
+  // Global flag to signal EmotionsPage to auto-open webcam
+  public pendingVoiceCapture = false;
 
   /**
    * Register dependencies from React context
@@ -44,17 +46,22 @@ class EmotionAnalysisService {
   }
 
   /**
-   * Set callback for when webcam capture is requested
-   */
-  setOnCaptureRequest(callback: () => void) {
-    this.onCaptureRequest = callback;
-  }
-
-  /**
    * Set callback for when analysis completes
    */
   setOnAnalysisComplete(callback: (emotion: string) => void) {
     this.onAnalysisComplete = callback;
+  }
+
+  /**
+   * Check if voice-triggered capture is pending and consume the flag
+   */
+  consumePendingCapture(): boolean {
+    if (this.pendingVoiceCapture) {
+      this.pendingVoiceCapture = false;
+      console.log('[EmotionAnalysisService] Consuming pending voice capture');
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -68,15 +75,12 @@ class EmotionAnalysisService {
       return;
     }
 
-    // Navigate to emotions page
-    this.navigate('/emotions');
+    // Set flag for EmotionsPage to detect on mount
+    this.pendingVoiceCapture = true;
+    console.log('[EmotionAnalysisService] Set pendingVoiceCapture flag');
 
-    // Wait a bit for the page to load, then trigger webcam
-    setTimeout(() => {
-      if (this.onCaptureRequest) {
-        this.onCaptureRequest();
-      }
-    }, 500);
+    // Navigate to emotions page - the page will check the flag on mount
+    this.navigate('/emotions');
   }
 
   /**
