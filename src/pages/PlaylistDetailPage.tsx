@@ -30,6 +30,7 @@ interface Playlist {
   user_id: string;
   created_at: string;
   updated_at: string;
+  isEmotionPlaylist?: boolean;
 }
 
 const PlaylistDetailPage = () => {
@@ -61,25 +62,71 @@ const PlaylistDetailPage = () => {
     if (!id) return;
     
     try {
-      // Load playlist details
+      // First try to load from regular playlists
       const { data: playlistData, error: playlistError } = await supabase
         .from('playlists')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
-      if (playlistError) throw playlistError;
-      setPlaylist(playlistData);
+      if (playlistData) {
+        setPlaylist({ ...playlistData, isEmotionPlaylist: false });
 
-      // Load playlist songs
-      const { data: songsData, error: songsError } = await supabase
-        .from('playlist_songs')
-        .select('*')
-        .eq('playlist_id', id)
-        .order('position');
+        // Load playlist songs from playlist_songs table
+        const { data: songsData, error: songsError } = await supabase
+          .from('playlist_songs')
+          .select('*')
+          .eq('playlist_id', id)
+          .order('position');
 
-      if (songsError) throw songsError;
-      setSongs(songsData || []);
+        if (songsError) throw songsError;
+        setSongs(songsData || []);
+      } else {
+        // Try emotion_playlists table
+        const { data: emotionPlaylistData, error: emotionError } = await supabase
+          .from('emotion_playlists')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+
+        if (emotionError) throw emotionError;
+        
+        if (emotionPlaylistData) {
+          setPlaylist({
+            id: emotionPlaylistData.id,
+            name: emotionPlaylistData.name,
+            description: emotionPlaylistData.description || undefined,
+            user_id: emotionPlaylistData.user_id,
+            created_at: emotionPlaylistData.created_at,
+            updated_at: emotionPlaylistData.updated_at,
+            isEmotionPlaylist: true
+          });
+
+          // Load songs from emotion_playlist_songs table
+          const { data: emotionSongsData, error: emotionSongsError } = await supabase
+            .from('emotion_playlist_songs')
+            .select('*')
+            .eq('emotion_playlist_id', id)
+            .order('position');
+
+          if (emotionSongsError) throw emotionSongsError;
+          
+          // Map emotion_playlist_songs to PlaylistSong format
+          const mappedSongs: PlaylistSong[] = (emotionSongsData || []).map(s => ({
+            id: s.id,
+            song_id: s.song_id,
+            title: s.title,
+            artist: s.artist,
+            thumbnail: s.thumbnail || '',
+            url: s.url,
+            position: s.position || 0
+          }));
+          setSongs(mappedSongs);
+        } else {
+          // Playlist not found in either table
+          setPlaylist(null);
+        }
+      }
     } catch (error) {
       console.error('Error loading playlist:', error);
       toast({
@@ -157,10 +204,22 @@ const PlaylistDetailPage = () => {
   };
 
   const handleRemoveSong = async (songId: string) => {
-    if (!id) return;
+    if (!id || !playlist) return;
     
     try {
-      await removeFromPlaylist(id, songId);
+      if (playlist.isEmotionPlaylist) {
+        // Remove from emotion_playlist_songs
+        const { error } = await supabase
+          .from('emotion_playlist_songs')
+          .delete()
+          .eq('emotion_playlist_id', id)
+          .eq('song_id', songId);
+        
+        if (error) throw error;
+      } else {
+        await removeFromPlaylist(id, songId);
+      }
+      
       setSongs(songs.filter(s => s.song_id !== songId));
       toast({
         title: "Song Removed",
