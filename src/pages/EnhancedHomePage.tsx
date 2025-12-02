@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import aiMusicLogo from '@/assets/ai-music-logo.png';
+import auraWaveLogo from '@/assets/aurawave-logo.png';
 import { Shuffle, Globe, Map, Languages, Calendar } from 'lucide-react';
-import { processLogoBackground } from '@/lib/backgroundRemover';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,7 +40,6 @@ interface CachedData {
 const EnhancedHomePage = () => {
   const [recommendations, setRecommendations] = useState<RecommendationData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [processedLogo, setProcessedLogo] = useState<string>(aiMusicLogo);
   const [selectedCountry, setSelectedCountry] = useState(() => {
     return localStorage.getItem('auratune_selected_country') || 'USA';
   });
@@ -98,18 +96,6 @@ const EnhancedHomePage = () => {
     }
   };
 
-  useEffect(() => {
-    const processLogo = async () => {
-      try {
-        const transparentLogo = await processLogoBackground(aiMusicLogo);
-        setProcessedLogo(transparentLogo);
-      } catch (error) {
-        console.error('Failed to process logo:', error);
-      }
-    };
-
-    processLogo();
-  }, []);
 
   useEffect(() => {
     localStorage.setItem('auratune_selected_country', selectedCountry);
@@ -353,16 +339,17 @@ const EnhancedHomePage = () => {
           <div className="flex flex-col items-center justify-center mb-4 max-w-full">
             <motion.img 
               animate={{ 
+                y: [0, -8, 0],
                 filter: [
-                  'drop-shadow(0 0 20px rgba(0, 255, 255, 0.6))',
-                  'drop-shadow(0 0 40px rgba(0, 255, 255, 0.8))',
-                  'drop-shadow(0 0 20px rgba(0, 255, 255, 0.6))'
+                  'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))',
+                  'drop-shadow(0 0 30px rgba(59, 130, 246, 0.7))',
+                  'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))'
                 ]
               }}
-              transition={{ duration: 2, repeat: Infinity }}
-              src={processedLogo} 
-              alt="Aura Wave AI Logo" 
-              className="w-12 h-12 mb-2"
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              src={auraWaveLogo} 
+              alt="AuraWave Logo" 
+              className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-2"
             />
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-wide max-w-full" 
                 style={{ 

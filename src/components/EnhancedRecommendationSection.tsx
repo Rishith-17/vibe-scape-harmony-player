@@ -2,6 +2,16 @@ import { Play, Pause, Volume2 } from 'lucide-react';
 import { ReactNode, useState } from 'react';
 import { motion } from 'framer-motion';
 
+// Neon colors for thumbnail borders - cycling through different colors
+const thumbnailBorderColors = [
+  { border: 'hsl(190 100% 50%)', shadow: 'hsl(190 100% 50% / 0.6)' },    // neon cyan
+  { border: 'hsl(280 100% 65%)', shadow: 'hsl(280 100% 65% / 0.6)' },    // neon purple
+  { border: 'hsl(50 100% 50%)', shadow: 'hsl(50 100% 50% / 0.6)' },      // neon yellow
+  { border: 'hsl(170 100% 45%)', shadow: 'hsl(170 100% 45% / 0.6)' },    // neon teal
+  { border: 'hsl(30 100% 55%)', shadow: 'hsl(30 100% 55% / 0.6)' },      // neon orange
+  { border: 'hsl(140 100% 45%)', shadow: 'hsl(140 100% 45% / 0.6)' },    // neon green
+];
+
 interface Song {
   id: string;
   title: string;
@@ -99,27 +109,33 @@ const EnhancedRecommendationSection = ({
               perspective: '1000px'
             }}
           >
-            {/* Card Container with Thick Neon Border */}
+            {/* Card Container with Thick Neon Pink Border */}
             <motion.div
               whileHover={{ 
-                boxShadow: '0 0 40px hsl(180 100% 50% / 0.9), 0 0 80px hsl(180 100% 50% / 0.6), inset 0 0 30px hsl(180 100% 50% / 0.2)',
+                boxShadow: '0 0 40px hsl(330 100% 60% / 0.9), 0 0 80px hsl(330 100% 60% / 0.6), inset 0 0 30px hsl(330 100% 60% / 0.2)',
                 y: -10
               }}
               transition={{ type: "spring", stiffness: 300 }}
               className="relative bg-slate-900/60 rounded-2xl p-4 backdrop-blur-lg"
               style={{
-                border: '3px solid hsl(180 100% 50%)',
-                boxShadow: '0 0 20px hsl(180 100% 50% / 0.6), 0 0 40px hsl(180 100% 50% / 0.4), inset 0 0 20px hsl(180 100% 50% / 0.1)'
+                border: '3px solid hsl(330 100% 60%)',
+                boxShadow: '0 0 20px hsl(330 100% 60% / 0.6), 0 0 40px hsl(330 100% 60% / 0.4), inset 0 0 20px hsl(330 100% 60% / 0.1)'
               }}
             >
               {/* 3D Lift Shadow */}
               <div 
-                className="absolute inset-0 bg-cyan-500/20 rounded-2xl blur-2xl -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                className="absolute inset-0 bg-pink-500/20 rounded-2xl blur-2xl -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                 style={{ transform: 'translateY(20px)' }}
               />
               
-              {/* Thumbnail Container */}
-              <div className="relative mb-4 overflow-hidden rounded-xl">
+              {/* Thumbnail Container with colorful neon border */}
+              <div 
+                className="relative mb-4 overflow-hidden rounded-xl"
+                style={{
+                  border: `2px solid ${thumbnailBorderColors[index % thumbnailBorderColors.length].border}`,
+                  boxShadow: `0 0 12px ${thumbnailBorderColors[index % thumbnailBorderColors.length].shadow}`
+                }}
+              >
                 <motion.img
                   whileHover={{ scale: 1.1 }}
                   transition={{ duration: 0.3 }}
@@ -151,8 +167,8 @@ const EnhancedRecommendationSection = ({
                     className="rounded-full p-4 play-btn"
                     data-action="play"
                     style={{
-                      background: 'hsl(180 100% 50%)',
-                      boxShadow: '0 0 30px hsl(180 100% 50% / 0.8), 0 0 60px hsl(180 100% 50% / 0.5)'
+                      background: 'hsl(330 100% 60%)',
+                      boxShadow: '0 0 30px hsl(330 100% 60% / 0.8), 0 0 60px hsl(330 100% 60% / 0.5)'
                     }}
                   >
                     {isCurrentlyPlaying(song) ? (
@@ -168,13 +184,13 @@ const EnhancedRecommendationSection = ({
                   <motion.div 
                     animate={{ 
                       boxShadow: [
-                        '0 0 20px hsl(180 100% 50% / 0.8)',
-                        '0 0 40px hsl(180 100% 50% / 1)',
-                        '0 0 20px hsl(180 100% 50% / 0.8)'
+                        '0 0 20px hsl(330 100% 60% / 0.8)',
+                        '0 0 40px hsl(330 100% 60% / 1)',
+                        '0 0 20px hsl(330 100% 60% / 0.8)'
                       ]
                     }}
                     transition={{ duration: 1.5, repeat: Infinity }}
-                    className="absolute top-2 right-2 bg-cyan-500 rounded-full p-2"
+                    className="absolute top-2 right-2 bg-pink-500 rounded-full p-2"
                   >
                     <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
                   </motion.div>
