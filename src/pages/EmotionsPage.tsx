@@ -5,13 +5,16 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import EmotionResult from '@/components/EmotionResult';
 import ImageUploader from '@/components/ImageUploader';
+import WebcamCaptureDialog from '@/components/WebcamCaptureDialog';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
 import { motion } from 'framer-motion';
 
 const EmotionDetector = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [emotionResult, setEmotionResult] = useState<any>(null);
+  const [isWebcamOpen, setIsWebcamOpen] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,6 +80,12 @@ const EmotionDetector = () => {
   };
 
   const handleCameraCapture = async () => {
+    // Use webcam dialog on desktop/web, Capacitor on native
+    if (!Capacitor.isNativePlatform()) {
+      setIsWebcamOpen(true);
+      return;
+    }
+
     try {
       const image = await CapacitorCamera.getPhoto({
         quality: 90,
@@ -101,6 +110,15 @@ const EmotionDetector = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleWebcamCapture = (imageData: string) => {
+    setSelectedImage(imageData);
+    setEmotionResult(null);
+    toast({
+      title: "Photo Captured!",
+      description: "Ready for emotion analysis",
+    });
   };
 
   const resetDetector = () => {
@@ -466,6 +484,13 @@ const EmotionDetector = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Webcam Capture Dialog for Desktop */}
+      <WebcamCaptureDialog
+        isOpen={isWebcamOpen}
+        onClose={() => setIsWebcamOpen(false)}
+        onCapture={handleWebcamCapture}
+      />
     </div>
   );
 };
