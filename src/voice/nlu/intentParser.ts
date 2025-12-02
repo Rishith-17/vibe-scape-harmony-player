@@ -202,6 +202,11 @@ export function parseIntent(transcript: string): VoiceIntent {
     };
   }
   
+  // Analyse emotion command
+  if (/analy[sz]e?\s*(my\s+)?emotion|detect\s*(my\s+)?emotion|scan\s*(my\s+)?emotion|check\s*(my\s+)?emotion|mera\s+emotion|mood\s+detect/i.test(lower)) {
+    return { action: 'analyse_emotion', slots: {}, raw: transcript, confidence: 0.95 };
+  }
+  
   // Help
   if (/help|what can (i|you) (say|do)|commands/i.test(lower)) {
     return { action: 'help', slots: {}, raw: transcript, confidence: 0.9 };
@@ -228,6 +233,9 @@ Voice Commands:
 🧭 Navigation:
 - "go home"
 - "open library/emotions/settings"
+
+🎭 Emotion:
+- "analyse my emotion" - Capture photo & play matching playlist
 
 💡 System:
 - "help" or "what can I say?"

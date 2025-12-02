@@ -5,6 +5,7 @@ import { ScrollAdapter } from './adapters/ScrollAdapter';
 import { UiAdapter } from './adapters/UiAdapter';
 import { runCommand } from './commandRunner';
 import { ENHANCED_HELP_TEXT } from './nlu/intentParser.enhanced';
+import { emotionAnalysisService } from '@/services/EmotionAnalysisService';
 
 /**
  * Voice Command Runner - Orchestrates intent execution
@@ -175,6 +176,11 @@ export class VoiceCommandRunner {
 
         case 'stop_listening':
           this.uiAdapter.showSuccess('Stopped listening', !this.ttsEnabled);
+          break;
+
+        case 'analyse_emotion':
+          this.uiAdapter.showSuccess('Analysing your emotion...', !this.ttsEnabled);
+          await emotionAnalysisService.startAnalysis();
           break;
 
         case 'unknown':
