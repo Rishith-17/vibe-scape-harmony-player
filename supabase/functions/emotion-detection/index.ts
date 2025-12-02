@@ -24,19 +24,20 @@ serve(async (req) => {
 
     console.log('Sending image to HuggingFace for emotion detection...')
 
-    // Convert base64 to binary - HuggingFace expects raw binary, not JSON
+    // Convert base64 to binary if needed
     const base64Data = imageData.includes(',') ? imageData.split(',')[1] : imageData
-    const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))
 
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/dima806/facial_emotions_image_detection',
+      'https://router.huggingface.co/hf-inference/models/dima806/facial_emotions_image_detection',
       {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${huggingFaceToken}`,
-          'Content-Type': 'application/octet-stream',
+          'Content-Type': 'application/json',
         },
-        body: binaryData,
+        body: JSON.stringify({
+          inputs: base64Data
+        }),
       }
     )
 
@@ -62,9 +63,9 @@ serve(async (req) => {
     const avgScore = sortedEmotions.reduce((sum: number, e: any) => sum + e.score, 0) / sortedEmotions.length
     const scoreVariance = sortedEmotions.reduce((sum: number, e: any) => sum + Math.pow(e.score - avgScore, 2), 0) / sortedEmotions.length
     
-    // If top confidence is below 25% or scores are too evenly distributed (low variance)
-    if (topScore < 0.25 || scoreVariance < 0.005) {
-      throw new Error('No clear face detected in the image. Please upload a photo with a clear, well-lit face.')
+    // If top confidence is below 30% or scores are too evenly distributed (low variance)
+    if (topScore < 0.3 || scoreVariance < 0.01) {
+      throw new Error('No person detected in the image. Please upload a photo with a clear face.')
     }
 
     return new Response(
