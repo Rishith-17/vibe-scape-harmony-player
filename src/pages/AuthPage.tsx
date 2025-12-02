@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import vibescapeLogo from '@/assets/vibescape-logo.jpeg';
+import { processLogoBackground } from '@/lib/backgroundRemover';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -14,9 +15,17 @@ const AuthPage = () => {
   const [username, setUsername] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [processedLogo, setProcessedLogo] = useState<string>(vibescapeLogo);
   
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+
+  // Process logo to remove black background
+  useEffect(() => {
+    processLogoBackground(vibescapeLogo)
+      .then(setProcessedLogo)
+      .catch(console.error);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,12 +50,12 @@ const AuthPage = () => {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="relative inline-block mb-4">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 rounded-full blur-xl animate-pulse" />
+          <div className="relative inline-block mb-4 animate-float">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/40 to-purple-500/40 rounded-full blur-2xl animate-glow-pulse" />
             <img 
-              src={vibescapeLogo} 
+              src={processedLogo} 
               alt="VibeScape Logo" 
-              className="relative w-28 h-28 rounded-full object-cover border-2 border-blue-400/50 shadow-[0_0_30px_rgba(59,130,246,0.5)]"
+              className="relative w-32 h-32 object-contain drop-shadow-[0_0_25px_rgba(59,130,246,0.6)]"
             />
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent mb-2">

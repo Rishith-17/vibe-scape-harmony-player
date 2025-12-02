@@ -51,7 +51,7 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     const data = imageData.data;
     
     // Advanced background removal algorithm
-    // Remove white/light backgrounds and preserve colorful brain elements
+    // Remove BLACK backgrounds and preserve colorful elements (blue gradient, cyan circuits)
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
       const g = data[i + 1];
@@ -61,26 +61,24 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
       const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
       const colorIntensity = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
       
-      // More aggressive background removal
-      // Remove pixels that are:
-      // 1. Very bright (white/light backgrounds)
-      // 2. Have low color variation (gray/white areas)
-      // 3. Near the edges (likely background)
-      const pixelIndex = i / 4;
-      const x = pixelIndex % canvas.width;
-      const y = Math.floor(pixelIndex / canvas.width);
-      const isNearEdge = x < 10 || x > canvas.width - 10 || y < 10 || y > canvas.height - 10;
+      // Check if pixel is part of the blue/cyan gradient (the icon we want to keep)
+      const isBlueish = b > r && b > 50;
+      const isCyanish = g > 100 && b > 100 && g > r;
+      const isPurplish = b > g && r > 50 && b > 80;
+      const hasColor = isBlueish || isCyanish || isPurplish || colorIntensity > 30;
       
+      // Remove pixels that are:
+      // 1. Very dark (black background) with low color
+      // 2. Near-black areas without blue/cyan tones
       if (
-        luminance > 200 || // Very bright pixels
-        (luminance > 150 && colorIntensity < 30) || // Light gray areas
-        (luminance > 180 && isNearEdge) || // Light pixels near edges
-        (r > 240 && g > 240 && b > 240) // Almost white pixels
+        (luminance < 25 && !hasColor) || // Pure black pixels
+        (luminance < 40 && colorIntensity < 15) || // Dark gray without color
+        (r < 30 && g < 30 && b < 40) // Very dark with minimal blue
       ) {
         data[i + 3] = 0; // Make transparent
-      } else if (luminance > 120 && colorIntensity < 20) {
-        // Semi-transparent for borderline cases
-        data[i + 3] = Math.max(0, data[i + 3] - 150);
+      } else if (luminance < 50 && colorIntensity < 20 && !hasColor) {
+        // Semi-transparent for borderline dark cases
+        data[i + 3] = Math.max(0, Math.round((luminance / 50) * 255));
       }
     }
     
