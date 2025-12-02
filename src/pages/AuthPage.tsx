@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import vibescapeLogo from '@/assets/vibescape-logo.jpeg';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -40,10 +41,18 @@ const AuthPage = () => {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 to-teal-400 bg-clip-text text-transparent mb-2">
-            Aura Wave
+          <div className="relative inline-block mb-4">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 rounded-full blur-xl animate-pulse" />
+            <img 
+              src={vibescapeLogo} 
+              alt="VibeScape Logo" 
+              className="relative w-28 h-28 rounded-full object-cover border-2 border-blue-400/50 shadow-[0_0_30px_rgba(59,130,246,0.5)]"
+            />
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+            VibeScape
           </h1>
-          <p className="text-gray-300">
+          <p className="text-gray-300/80 text-sm">
             AI-Powered Mood-Based Music Player
           </p>
         </div>
