@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
-import vibescapeLogo from '@/assets/vibescape-logo.jpeg';
+import auraWaveLogo from '@/assets/aurawave-logo.png';
 import { processLogoBackground } from '@/lib/backgroundRemover';
 
 const AuthPage = () => {
@@ -15,14 +15,14 @@ const AuthPage = () => {
   const [username, setUsername] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [processedLogo, setProcessedLogo] = useState<string>(vibescapeLogo);
+  const [processedLogo, setProcessedLogo] = useState<string>(auraWaveLogo);
   
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
 
   // Process logo to remove black background
   useEffect(() => {
-    processLogoBackground(vibescapeLogo)
+    processLogoBackground(auraWaveLogo)
       .then(setProcessedLogo)
       .catch(console.error);
   }, []);
