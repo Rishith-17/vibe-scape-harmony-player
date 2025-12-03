@@ -14,11 +14,8 @@ serve(async (req) => {
   try {
     const { mood, country = 'USA', language = 'English', userHistory = [] } = await req.json()
     
-    const youtubeApiKey = Deno.env.get('YOUTUBE_API_KEY')
-    if (!youtubeApiKey) {
-      console.log('YouTube API key not configured, using fallback data')
-      return generateFallbackResponse(mood, country, language)
-    }
+    // Using secondary API key temporarily
+    const youtubeApiKey = 'AIzaSyDP7ktFzcpIt93trogL_rk82Zc2YJjkL2o'
 
     console.log(`Fetching recommendations for mood: ${mood}, country: ${country}, language: ${language}`)
 
