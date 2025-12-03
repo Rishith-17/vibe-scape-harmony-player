@@ -33,7 +33,7 @@ function resizeImageIfNeeded(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 
 export const removeBackground = async (imageElement: HTMLImageElement): Promise<Blob> => {
   try {
-    console.log('Starting advanced background removal process...');
+    console.log('Starting white background removal process...');
     
     // Create canvas for processing
     const canvas = document.createElement('canvas');
@@ -50,42 +50,38 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     
-    // Advanced background removal algorithm
-    // Remove BLACK backgrounds and preserve colorful elements (blue gradient, cyan circuits)
+    // Remove WHITE backgrounds - keep logo elements (headphones, face, spark lines)
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
       
-      // Calculate luminance and color intensity
+      // Calculate luminance
       const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
-      const colorIntensity = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
       
-      // Check if pixel is part of the blue/cyan gradient (the icon we want to keep)
-      const isBlueish = b > r && b > 50;
-      const isCyanish = g > 100 && b > 100 && g > r;
-      const isPurplish = b > g && r > 50 && b > 80;
-      const hasColor = isBlueish || isCyanish || isPurplish || colorIntensity > 30;
+      // Calculate how "white" the pixel is (high R, G, B values close together)
+      const isNearWhite = r > 230 && g > 230 && b > 230;
+      const isLightGray = r > 200 && g > 200 && b > 200 && luminance > 200;
+      const colorDiff = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
+      const isNeutral = colorDiff < 30; // Low color difference = grayscale
       
-      // Remove pixels that are:
-      // 1. Very dark (black background) with low color
-      // 2. Near-black areas without blue/cyan tones
-      if (
-        (luminance < 25 && !hasColor) || // Pure black pixels
-        (luminance < 40 && colorIntensity < 15) || // Dark gray without color
-        (r < 30 && g < 30 && b < 40) // Very dark with minimal blue
-      ) {
-        data[i + 3] = 0; // Make transparent
-      } else if (luminance < 50 && colorIntensity < 20 && !hasColor) {
-        // Semi-transparent for borderline dark cases
-        data[i + 3] = Math.max(0, Math.round((luminance / 50) * 255));
+      // Remove white and near-white pixels
+      if (isNearWhite || (isLightGray && isNeutral)) {
+        data[i + 3] = 0; // Make fully transparent
+      } else if (luminance > 240 && isNeutral) {
+        // Very light neutrals - make transparent
+        data[i + 3] = 0;
+      } else if (luminance > 200 && isNeutral) {
+        // Semi-transparent for borderline light gray cases
+        const alpha = Math.max(0, Math.round(((255 - luminance) / 55) * 255));
+        data[i + 3] = alpha;
       }
     }
     
     // Apply the processed image data
     ctx.putImageData(imageData, 0, 0);
     
-    console.log('Advanced background removal completed');
+    console.log('White background removal completed');
     
     // Convert canvas to blob
     return new Promise((resolve, reject) => {
@@ -103,7 +99,7 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
       );
     });
   } catch (error) {
-    console.error('Error in advanced background removal:', error);
+    console.error('Error in white background removal:', error);
     throw error;
   }
 };
