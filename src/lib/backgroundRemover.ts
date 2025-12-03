@@ -33,7 +33,12 @@ function resizeImageIfNeeded(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 
 export const removeBackground = async (imageElement: HTMLImageElement): Promise<Blob> => {
   try {
-    console.log('Starting white background removal process...');
+    console.log('Starting AI background removal process...');
+    
+    // Initialize the segmentation pipeline
+    const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b0-finetuned-ade-512-512', {
+      device: 'webgpu',
+    });
     
     // Create canvas for processing
     const canvas = document.createElement('canvas');
@@ -41,54 +46,59 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     
     if (!ctx) throw new Error('Could not get canvas context');
     
-    // Set canvas size to image dimensions
-    canvas.width = imageElement.naturalWidth;
-    canvas.height = imageElement.naturalHeight;
-    ctx.drawImage(imageElement, 0, 0);
+    // Resize image if needed and draw it to canvas
+    const wasResized = resizeImageIfNeeded(canvas, ctx, imageElement);
+    console.log(`Image ${wasResized ? 'was' : 'was not'} resized. Final dimensions: ${canvas.width}x${canvas.height}`);
     
-    // Get image data
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
+    // Get image data as base64
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+    console.log('Image converted to base64');
     
-    // Remove WHITE backgrounds - keep logo elements (headphones, face, spark lines)
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      
-      // Calculate luminance
-      const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
-      
-      // Calculate how "white" the pixel is (high R, G, B values close together)
-      const isNearWhite = r > 230 && g > 230 && b > 230;
-      const isLightGray = r > 200 && g > 200 && b > 200 && luminance > 200;
-      const colorDiff = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
-      const isNeutral = colorDiff < 30; // Low color difference = grayscale
-      
-      // Remove white and near-white pixels
-      if (isNearWhite || (isLightGray && isNeutral)) {
-        data[i + 3] = 0; // Make fully transparent
-      } else if (luminance > 240 && isNeutral) {
-        // Very light neutrals - make transparent
-        data[i + 3] = 0;
-      } else if (luminance > 200 && isNeutral) {
-        // Semi-transparent for borderline light gray cases
-        const alpha = Math.max(0, Math.round(((255 - luminance) / 55) * 255));
-        data[i + 3] = alpha;
-      }
+    // Process the image with the segmentation model
+    console.log('Processing with segmentation model...');
+    const result = await segmenter(imageData);
+    
+    console.log('Segmentation result:', result);
+    
+    if (!result || !Array.isArray(result) || result.length === 0 || !result[0].mask) {
+      throw new Error('Invalid segmentation result');
     }
     
-    // Apply the processed image data
-    ctx.putImageData(imageData, 0, 0);
+    // Create a new canvas for the masked image
+    const outputCanvas = document.createElement('canvas');
+    outputCanvas.width = canvas.width;
+    outputCanvas.height = canvas.height;
+    const outputCtx = outputCanvas.getContext('2d');
     
-    console.log('White background removal completed');
+    if (!outputCtx) throw new Error('Could not get output canvas context');
+    
+    // Draw original image
+    outputCtx.drawImage(canvas, 0, 0);
+    
+    // Apply the mask
+    const outputImageData = outputCtx.getImageData(
+      0, 0,
+      outputCanvas.width,
+      outputCanvas.height
+    );
+    const data = outputImageData.data;
+    
+    // Apply inverted mask to alpha channel
+    for (let i = 0; i < result[0].mask.data.length; i++) {
+      // Invert the mask value (1 - value) to keep the subject instead of the background
+      const alpha = Math.round((1 - result[0].mask.data[i]) * 255);
+      data[i * 4 + 3] = alpha;
+    }
+    
+    outputCtx.putImageData(outputImageData, 0, 0);
+    console.log('Mask applied successfully');
     
     // Convert canvas to blob
     return new Promise((resolve, reject) => {
-      canvas.toBlob(
+      outputCanvas.toBlob(
         (blob) => {
           if (blob) {
-            console.log('Successfully created transparent PNG');
+            console.log('Successfully created final blob');
             resolve(blob);
           } else {
             reject(new Error('Failed to create blob'));
@@ -99,9 +109,61 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
       );
     });
   } catch (error) {
-    console.error('Error in white background removal:', error);
-    throw error;
+    console.error('Error removing background:', error);
+    // Fallback to simple color-based removal
+    return removeBackgroundSimple(imageElement);
   }
+};
+
+// Simple color-based fallback - more aggressive for dark backgrounds
+const removeBackgroundSimple = async (imageElement: HTMLImageElement): Promise<Blob> => {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) throw new Error('Could not get canvas context');
+  
+  canvas.width = imageElement.naturalWidth;
+  canvas.height = imageElement.naturalHeight;
+  ctx.drawImage(imageElement, 0, 0);
+  
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const colorDiff = max - min;
+    const saturation = max === 0 ? 0 : colorDiff / max;
+    
+    // Keep ONLY the bright cyan/blue face and headphones
+    const isBrightCyan = g > 180 && b > 200 && r < 100; // Bright cyan headphones/glow
+    const isMediumCyan = g > 140 && b > 160 && r < 80 && saturation > 0.4; // Medium cyan
+    const isBrightBlue = b > 180 && b > r * 2 && b > g * 1.2 && saturation > 0.4; // Bright blue elements
+    const isYellowFace = r > 200 && g > 180 && b < 100 && saturation > 0.3; // Yellow face
+    const isOrangeSmile = r > 180 && g > 100 && b < 80 && r > g; // Orange smile
+    
+    const keepPixel = isBrightCyan || isMediumCyan || isBrightBlue || isYellowFace || isOrangeSmile;
+    
+    // Remove everything else (including dark blue-gray background)
+    if (!keepPixel) {
+      data[i + 3] = 0;
+    }
+  }
+  
+  ctx.putImageData(imageData, 0, 0);
+  
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => blob ? resolve(blob) : reject(new Error('Failed to create blob')),
+      'image/png',
+      1.0
+    );
+  });
 };
 
 export const loadImage = (file: Blob): Promise<HTMLImageElement> => {
