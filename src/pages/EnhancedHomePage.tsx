@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import auraWaveLogo from '@/assets/aurawave-logo.png';
+import { processLogoBackground } from '@/lib/backgroundRemover';
 import { Shuffle, Globe, Map, Languages, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -47,6 +48,7 @@ const EnhancedHomePage = () => {
     return localStorage.getItem('auratune_selected_language') || 'English';
   });
   const [lastUpdated, setLastUpdated] = useState<string>('');
+  const [processedLogo, setProcessedLogo] = useState<string>(auraWaveLogo);
   const { toast } = useToast();
   const { playTrack, currentTrack, isPlaying } = useMusicPlayer();
   const hasInitialized = useRef(false);
@@ -95,6 +97,19 @@ const EnhancedHomePage = () => {
       console.error('Error setting cache:', error);
     }
   };
+
+  // Process logo to remove white background
+  useEffect(() => {
+    const processLogo = async () => {
+      try {
+        const processed = await processLogoBackground(auraWaveLogo);
+        setProcessedLogo(processed);
+      } catch (error) {
+        console.error('Error processing logo:', error);
+      }
+    };
+    processLogo();
+  }, []);
 
 
   useEffect(() => {
@@ -347,7 +362,7 @@ const EnhancedHomePage = () => {
                 ]
               }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              src={auraWaveLogo} 
+              src={processedLogo} 
               alt="AuraWave Logo" 
               className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-2"
             />
