@@ -195,21 +195,19 @@ async function youtubeSearch(query: string, maxResults: number = 20): Promise<an
   // Get available keys
   let keys = await getAvailableKeys(supabase);
   
-  // If no keys in database, fall back to env variable
+  // Use hardcoded secondary API key temporarily
   if (keys.length === 0) {
-    const envKey = Deno.env.get('YOUTUBE_API_KEY');
-    if (envKey) {
-      console.log('No keys in database, using YOUTUBE_API_KEY from env');
-      keys = [{
-        id: 'env-key',
-        key_name: 'ENV_KEY',
-        api_key: envKey,
-        priority: 0,
-        status: 'enabled',
-        failure_count: 0,
-        cooldown_until: null
-      }];
-    }
+    const secondaryKey = 'AIzaSyDP7ktFzcpIt93trogL_rk82Zc2YJjkL2o';
+    console.log('Using secondary API key');
+    keys = [{
+      id: 'secondary-key',
+      key_name: 'SECONDARY_KEY',
+      api_key: secondaryKey,
+      priority: 0,
+      status: 'enabled',
+      failure_count: 0,
+      cooldown_until: null
+    }];
   }
   
   if (keys.length === 0) {
@@ -239,7 +237,7 @@ async function youtubeSearch(query: string, maxResults: number = 20): Promise<an
       // Log successful request
       await logRequest(
         supabase, 
-        key.id !== 'env-key' ? key.id : null, 
+        key.id !== 'secondary-key' ? key.id : null, 
         key.key_name, 
         'search', 
         { query, maxResults }, 
@@ -251,7 +249,7 @@ async function youtubeSearch(query: string, maxResults: number = 20): Promise<an
       );
       
       // Update stats
-      if (key.id !== 'env-key') {
+      if (key.id !== 'secondary-key') {
         await updateKeyStats(supabase, key.id);
       }
       
@@ -275,7 +273,7 @@ async function youtubeSearch(query: string, maxResults: number = 20): Promise<an
     // If quota error, disable key and try next
     if (result.statusCode === 403) {
       console.log(`Key ${key.key_name} quota exceeded, switching to next key`);
-      if (key.id !== 'env-key') {
+      if (key.id !== 'secondary-key') {
         await markKeyDisabled(supabase, key, result.error || 'Quota exceeded');
       }
       continue;
