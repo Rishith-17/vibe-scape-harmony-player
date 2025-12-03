@@ -255,6 +255,104 @@ export type Database = {
         }
         Relationships: []
       }
+      youtube_keys: {
+        Row: {
+          api_key: string
+          cooldown_until: string | null
+          created_at: string
+          failure_count: number
+          id: string
+          key_name: string
+          last_error: string | null
+          last_error_at: string | null
+          priority: number
+          status: Database["public"]["Enums"]["youtube_key_status"]
+          total_failures: number
+          total_requests: number
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          cooldown_until?: string | null
+          created_at?: string
+          failure_count?: number
+          id?: string
+          key_name: string
+          last_error?: string | null
+          last_error_at?: string | null
+          priority?: number
+          status?: Database["public"]["Enums"]["youtube_key_status"]
+          total_failures?: number
+          total_requests?: number
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          cooldown_until?: string | null
+          created_at?: string
+          failure_count?: number
+          id?: string
+          key_name?: string
+          last_error?: string | null
+          last_error_at?: string | null
+          priority?: number
+          status?: Database["public"]["Enums"]["youtube_key_status"]
+          total_failures?: number
+          total_requests?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      youtube_logs: {
+        Row: {
+          created_at: string
+          endpoint: string
+          error_code: string | null
+          error_message: string | null
+          id: string
+          key_id: string | null
+          key_name: string | null
+          params: Json | null
+          response_time_ms: number | null
+          status_code: number | null
+          success: boolean
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          key_id?: string | null
+          key_name?: string | null
+          params?: Json | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          success?: boolean
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          key_id?: string | null
+          key_name?: string | null
+          params?: Json | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          success?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_logs_key_id_fkey"
+            columns: ["key_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -263,7 +361,7 @@ export type Database = {
       hand_gesture_detection: { Args: { image_data: string }; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      youtube_key_status: "enabled" | "temporarily_disabled" | "disabled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -390,6 +488,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      youtube_key_status: ["enabled", "temporarily_disabled", "disabled"],
+    },
   },
 } as const
