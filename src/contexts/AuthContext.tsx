@@ -43,24 +43,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        console.log('[Auth] State change:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Log session when user signs in
+        // Log session when user signs in (deferred to avoid deadlock)
         if (event === 'SIGNED_IN' && session?.user) {
+          const loginMethod = session.user.app_metadata?.provider || 'email';
           setTimeout(() => {
-            logUserSession(session.user.id, 'email');
+            logUserSession(session.user.id, loginMethod);
           }, 0);
         }
       }
     );
 
-    // Check for existing session
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('[Auth] Initial session:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
