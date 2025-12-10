@@ -372,3 +372,21 @@ html, body {
 .voice-pulse {
   animation: voicePulse 0.8s ease-in-out;
 }
+
+/* Gesture hover highlight for click-to-play */
+.gesture-hover-highlight {
+  outline: 3px solid hsl(var(--neon-cyan));
+  outline-offset: 4px;
+  box-shadow: 0 0 20px hsl(var(--neon-cyan) / 0.4);
+  transition: all 0.15s ease-out;
+}
+
+@keyframes gestureClick {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.gesture-click-feedback {
+  animation: gestureClick 0.2s ease-out;
+}
