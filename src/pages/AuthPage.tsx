@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import auraWaveLogo from '@/assets/aurawave-logo.png';
-import { processLogoBackground } from '@/lib/backgroundRemover';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,25 +16,29 @@ const AuthPage = () => {
   const [username, setUsername] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [processedLogo, setProcessedLogo] = useState<string>(auraWaveLogo);
   
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  // Handle OAuth callback - check for auth tokens in URL hash
+  useEffect(() => {
+    const hashParams = new URLSearchParams(location.hash.slice(1));
+    const accessToken = hashParams.get('access_token');
+    
+    if (accessToken) {
+      // OAuth callback detected - session will be handled by AuthContext
+      navigate('/home', { replace: true });
+    }
+  }, [location, navigate]);
 
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/home', { replace: true });
     }
   }, [user, navigate]);
-
-  // Process logo to remove black background
-  useEffect(() => {
-    processLogoBackground(auraWaveLogo)
-      .then(setProcessedLogo)
-      .catch(console.error);
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +47,7 @@ const AuthPage = () => {
     try {
       if (isLogin) {
         await signIn(email, password);
-        navigate('/');
+        navigate('/home', { replace: true });
       } else {
         await signUp(email, password, username);
         // Don't navigate for signup - show success message
@@ -147,7 +150,7 @@ const AuthPage = () => {
           <div className="relative inline-block mb-4 animate-float">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/40 to-purple-500/40 rounded-full blur-2xl animate-glow-pulse" />
             <img 
-              src={processedLogo} 
+              src={auraWaveLogo} 
               alt="AuraWave Logo" 
               className="relative w-32 h-32 object-contain drop-shadow-[0_0_25px_rgba(59,130,246,0.6)]"
             />
