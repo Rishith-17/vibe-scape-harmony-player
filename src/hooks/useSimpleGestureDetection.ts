@@ -6,6 +6,7 @@ import { GesturesController } from '@/gestures/gesturesController';
 interface SimpleGestureOptions {
   enabled: boolean;
   onGesture: (gesture: string, confidence: number) => void;
+  onLandmarks?: (landmarks: any[]) => void;
 }
 
 /**
@@ -78,6 +79,10 @@ export const useSimpleGestureDetection = (options: SimpleGestureOptions) => {
         // Process landmarks through controller
         if (gesturesControllerRef.current) {
           gesturesControllerRef.current.processLandmarks(landmarks);
+        }
+        // Pass landmarks to parent for advanced gestures
+        if (options.onLandmarks) {
+          options.onLandmarks(landmarks);
         }
       });
 

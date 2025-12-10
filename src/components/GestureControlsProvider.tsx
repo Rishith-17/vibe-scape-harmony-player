@@ -1,16 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSimpleGestureDetection } from '@/hooks/useSimpleGestureDetection';
 import { useUnifiedMusicControls } from '@/hooks/useUnifiedMusicControls';
 import { useDoubleClap } from '@/hooks/useDoubleClap';
+import { useAdvancedGestures, AdvancedGestureSettings } from '@/hooks/useAdvancedGestures';
 import { musicController } from '@/controllers/MusicControllerImpl';
 import { GestureStatusIndicator } from './GestureStatusIndicator';
 import { GestureTutorial } from './GestureTutorial';
 import { TestGestureController } from './TestGestureController';
 import { ControlFeedback } from './ControlFeedback';
 import { VoiceDebugOverlay } from './VoiceDebugOverlay';
+import { VirtualCursor } from './VirtualCursor';
+import { GestureDebugOverlay } from './GestureDebugOverlay';
+import { Landmark } from '@/gestures/gestureUtils';
 
 interface GestureControlsProviderProps {
   children: React.ReactNode;
@@ -23,6 +27,15 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
   const [voiceControlActive, setVoiceControlActive] = useState(false);
+  const [advancedSettings, setAdvancedSettings] = useState<AdvancedGestureSettings>({
+    scrollEnabled: true,
+    clickEnabled: true,
+    scrollSensitivity: 1.0,
+    hoverTimeMs: 400,
+    hapticFeedback: true,
+    showDebugOverlay: import.meta.env.MODE === 'development',
+  });
+  const [currentLandmarks, setCurrentLandmarks] = useState<Landmark[] | null>(null);
   
   // Initialize singleton musicController with player context
   useEffect(() => {
@@ -84,11 +97,30 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
 
   // Enable gesture detection only when user is logged in
   const { isPlaying } = useMusicPlayer();
+
+  // Callback to receive landmarks for advanced gestures
+  const handleLandmarks = useCallback((landmarks: Landmark[]) => {
+    setCurrentLandmarks(landmarks);
+  }, []);
   
   const gestureDetection = useSimpleGestureDetection({
     enabled: !!user && gestureControlsEnabled && !isLoading,
-    onGesture: handleGestureCommand
+    onGesture: handleGestureCommand,
+    onLandmarks: handleLandmarks,
   });
+
+  // Advanced gestures (scroll + click-to-play)
+  const advancedGestures = useAdvancedGestures({
+    enabled: !!user && gestureControlsEnabled && !isLoading && gestureDetection.isActive,
+    settings: advancedSettings,
+  });
+
+  // Process landmarks through advanced gestures
+  useEffect(() => {
+    if (currentLandmarks && advancedGestures.processLandmarks) {
+      advancedGestures.processLandmarks(currentLandmarks);
+    }
+  }, [currentLandmarks, advancedGestures.processLandmarks]);
 
   // Add logging to see status
   useEffect(() => {
@@ -176,6 +208,19 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
             gestureIcon={feedback.gestureIcon}
             show={feedback.show}
             onComplete={clearFeedback}
+          />
+          {/* Virtual cursor for click-to-play */}
+          <VirtualCursor
+            position={advancedGestures.cursorPosition}
+            isVisible={advancedGestures.showCursor}
+            isPinching={advancedGestures.isPinching}
+            hoverProgress={advancedGestures.hoverProgress}
+            hoveredElement={advancedGestures.hoveredElement}
+          />
+          {/* Debug overlay (dev only) */}
+          <GestureDebugOverlay
+            debugInfo={advancedGestures.debugInfo}
+            isVisible={advancedGestures.showDebugOverlay}
           />
         </>
       )}
