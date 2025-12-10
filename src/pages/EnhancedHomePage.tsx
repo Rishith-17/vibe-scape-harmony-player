@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import auraWaveLogo from '@/assets/aurawave-logo.png';
-import { processLogoBackground } from '@/lib/backgroundRemover';
+import auraWaveIcon from '@/assets/aurawave-icon.png';
 import { Shuffle, Globe, Map, Languages, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -48,7 +47,6 @@ const EnhancedHomePage = () => {
     return localStorage.getItem('auratune_selected_language') || 'English';
   });
   const [lastUpdated, setLastUpdated] = useState<string>('');
-  const [processedLogo, setProcessedLogo] = useState<string>(auraWaveLogo);
   const { toast } = useToast();
   const { playTrack, currentTrack, isPlaying } = useMusicPlayer();
   const hasInitialized = useRef(false);
@@ -98,18 +96,6 @@ const EnhancedHomePage = () => {
     }
   };
 
-  // Process logo to remove white background
-  useEffect(() => {
-    const processLogo = async () => {
-      try {
-        const processed = await processLogoBackground(auraWaveLogo);
-        setProcessedLogo(processed);
-      } catch (error) {
-        console.error('Error processing logo:', error);
-      }
-    };
-    processLogo();
-  }, []);
 
 
   useEffect(() => {
@@ -356,13 +342,13 @@ const EnhancedHomePage = () => {
               animate={{ 
                 y: [0, -8, 0],
                 filter: [
-                  'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))',
-                  'drop-shadow(0 0 30px rgba(59, 130, 246, 0.7))',
-                  'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))'
+                  'drop-shadow(0 0 20px rgba(0, 255, 255, 0.5))',
+                  'drop-shadow(0 0 30px rgba(0, 255, 255, 0.7))',
+                  'drop-shadow(0 0 20px rgba(0, 255, 255, 0.5))'
                 ]
               }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              src={processedLogo} 
+              src={auraWaveIcon} 
               alt="AuraWave Logo" 
               className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-2"
             />

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import auraWaveLogo from '@/assets/aurawave-logo.png';
+import auraWaveIcon from '@/assets/aurawave-icon.png';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -148,11 +148,11 @@ const AuthPage = () => {
         {/* Logo/Brand */}
         <div className="text-center mb-8">
           <div className="relative inline-block mb-4 animate-float">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/40 to-purple-500/40 rounded-full blur-2xl animate-glow-pulse" />
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/40 to-purple-500/40 rounded-full blur-2xl animate-glow-pulse" />
             <img 
-              src={auraWaveLogo} 
+              src={auraWaveIcon} 
               alt="AuraWave Logo" 
-              className="relative w-32 h-32 object-contain drop-shadow-[0_0_25px_rgba(59,130,246,0.6)]"
+              className="relative w-32 h-32 object-contain drop-shadow-[0_0_25px_rgba(0,255,255,0.6)]"
             />
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent mb-2 tracking-wide">

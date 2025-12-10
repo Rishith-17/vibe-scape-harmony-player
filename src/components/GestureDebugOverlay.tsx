@@ -1,6 +1,6 @@
 /**
  * Gesture Debug Overlay
- * Dev-only overlay showing gesture detection state
+ * Simplified debug info for swipe + point gestures
  */
 
 import React from 'react';
@@ -36,33 +36,17 @@ export const GestureDebugOverlay: React.FC<GestureDebugOverlayProps> = ({
   }
 
   return (
-    <div className="fixed top-20 right-4 z-[9998] bg-black/80 text-green-400 font-mono text-xs p-3 rounded-lg border border-green-500/30 min-w-[220px]">
+    <div className="fixed top-20 right-4 z-[9998] bg-black/80 text-green-400 font-mono text-xs p-3 rounded-lg border border-green-500/30 min-w-[180px]">
       <div className="text-green-300 font-bold mb-2 flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
         Gesture Debug
       </div>
       
       <div className="space-y-1">
-        <div className="text-gray-400">── Scroll ──</div>
-        <div>palmY: {debugInfo.palmY.toFixed(3)}</div>
-        <div>velocity: {debugInfo.scrollVelocity.toFixed(4)}</div>
-        <div>direction: {debugInfo.scrollDirection || 'none'}</div>
-        <div>cooldown: {debugInfo.scrollCooldown}ms</div>
-        
-        <div className="text-gray-400 mt-2">── Swipe ──</div>
-        <div>palmX: {debugInfo.palmX.toFixed(3)}</div>
-        <div>velocity: {debugInfo.swipeVelocity.toFixed(4)}</div>
-        <div>direction: {debugInfo.swipeDirection || 'none'}</div>
-        
-        <div className="text-gray-400 mt-2">── Cursor ──</div>
-        <div>pos: ({debugInfo.cursorX.toFixed(0)}, {debugInfo.cursorY.toFixed(0)})</div>
-        <div>pinching: {debugInfo.isPinching ? '✓' : '✗'}</div>
-        <div>hover: {debugInfo.hoveredElement || 'none'}</div>
-        <div>hoverProg: {(debugInfo.hoverProgress * 100).toFixed(0)}%</div>
-        
-        <div className="text-gray-400 mt-2">── Status ──</div>
-        <div>lastGesture: {debugInfo.lastGesture || 'none'}</div>
-        <div>fps: {debugInfo.fps}</div>
+        <div>Palm: ({debugInfo.palmX.toFixed(2)}, {debugInfo.palmY.toFixed(2)})</div>
+        <div>VelX: {debugInfo.swipeVelocity.toFixed(3)}</div>
+        <div>VelY: {debugInfo.scrollVelocity.toFixed(3)}</div>
+        <div className="text-yellow-400">Last: {debugInfo.lastGesture || 'none'}</div>
       </div>
     </div>
   );
