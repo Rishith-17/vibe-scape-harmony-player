@@ -29,8 +29,10 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   const [voiceControlActive, setVoiceControlActive] = useState(false);
   const [advancedSettings, setAdvancedSettings] = useState<AdvancedGestureSettings>({
     scrollEnabled: true,
+    swipeEnabled: true,
     clickEnabled: true,
     scrollSensitivity: 1.0,
+    swipeSensitivity: 1.0,
     hoverTimeMs: 400,
     hapticFeedback: true,
     showDebugOverlay: import.meta.env.MODE === 'development',

@@ -1,6 +1,28 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @tailwind base;
+
+/* Gesture swipe highlight */
+.gesture-swipe-highlight {
+  outline: 3px solid hsl(var(--primary));
+  outline-offset: 4px;
+  animation: gesture-swipe-pulse 0.5s ease-out;
+}
+
+@keyframes gesture-swipe-pulse {
+  0% {
+    transform: scale(1);
+    outline-color: hsl(var(--primary));
+  }
+  50% {
+    transform: scale(1.02);
+    outline-color: hsl(var(--accent));
+  }
+  100% {
+    transform: scale(1);
+    outline-color: hsl(var(--primary));
+  }
+}
 @tailwind components;
 @tailwind utilities;
 
