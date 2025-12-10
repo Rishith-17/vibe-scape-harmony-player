@@ -5,14 +5,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSimpleGestureDetection } from '@/hooks/useSimpleGestureDetection';
 import { useUnifiedMusicControls } from '@/hooks/useUnifiedMusicControls';
 import { useDoubleClap } from '@/hooks/useDoubleClap';
-import { useAdvancedGestures, AdvancedGestureSettings } from '@/hooks/useAdvancedGestures';
+import { useSimplifiedGestures, SimplifiedGestureSettings } from '@/hooks/useSimplifiedGestures';
 import { musicController } from '@/controllers/MusicControllerImpl';
 import { GestureStatusIndicator } from './GestureStatusIndicator';
 import { GestureTutorial } from './GestureTutorial';
 import { TestGestureController } from './TestGestureController';
 import { ControlFeedback } from './ControlFeedback';
 import { VoiceDebugOverlay } from './VoiceDebugOverlay';
-import { VirtualCursor } from './VirtualCursor';
 import { GestureDebugOverlay } from './GestureDebugOverlay';
 import { Landmark } from '@/gestures/gestureUtils';
 
@@ -26,16 +25,12 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   const [gestureControlsEnabled, setGestureControlsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [voiceControlActive, setVoiceControlActive] = useState(false);
-  const [advancedSettings, setAdvancedSettings] = useState<AdvancedGestureSettings>({
-    scrollEnabled: true,
-    swipeEnabled: true,
-    clickEnabled: true,
-    scrollSensitivity: 1.0,
-    swipeSensitivity: 1.0,
-    hoverTimeMs: 400,
+  const [simplifiedSettings, setSimplifiedSettings] = useState<SimplifiedGestureSettings>({
+    enabled: true,
+    swipeSensitivity: 0.08,
+    scrollAmount: 200,
+    cooldownMs: 300,
     hapticFeedback: true,
-    showDebugOverlay: import.meta.env.MODE === 'development',
   });
   const [currentLandmarks, setCurrentLandmarks] = useState<Landmark[] | null>(null);
   
@@ -111,32 +106,18 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     onLandmarks: handleLandmarks,
   });
 
-  // Advanced gestures (scroll + click-to-play)
-  const advancedGestures = useAdvancedGestures({
+  // Simplified gestures (swipe + point-to-click)
+  const simplifiedGestures = useSimplifiedGestures({
     enabled: !!user && gestureControlsEnabled && !isLoading && gestureDetection.isActive,
-    settings: advancedSettings,
+    settings: simplifiedSettings,
   });
 
-  // Process landmarks through advanced gestures
+  // Process landmarks through simplified gestures
   useEffect(() => {
-    if (currentLandmarks && advancedGestures.processLandmarks) {
-      advancedGestures.processLandmarks(currentLandmarks);
+    if (currentLandmarks && simplifiedGestures.processLandmarks) {
+      simplifiedGestures.processLandmarks(currentLandmarks, 0.85);
     }
-  }, [currentLandmarks, advancedGestures.processLandmarks]);
-
-  // Add logging to see status
-  useEffect(() => {
-    console.log('🤚 Gesture & Clap Controls Status:', {
-      enabled: gestureControlsEnabled,
-      loading: isLoading,
-      user: !!user,
-      musicPlaying: isPlaying,
-      gestureStatus: gestureDetection.status,
-      gestureActive: gestureDetection.isActive,
-      lastGesture: gestureDetection.lastGesture,
-      clapListening: clapListening
-    });
-  }, [gestureControlsEnabled, isLoading, user, isPlaying, gestureDetection.status, gestureDetection.isActive, gestureDetection.lastGesture]);
+  }, [currentLandmarks, simplifiedGestures.processLandmarks]);
 
   // Show tutorial when gesture detection is first enabled and active
   useEffect(() => {
@@ -211,19 +192,28 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
             show={feedback.show}
             onComplete={clearFeedback}
           />
-          {/* Virtual cursor for click-to-play */}
-          <VirtualCursor
-            position={advancedGestures.cursorPosition}
-            isVisible={advancedGestures.showCursor}
-            isPinching={advancedGestures.isPinching}
-            hoverProgress={advancedGestures.hoverProgress}
-            hoveredElement={advancedGestures.hoveredElement}
-          />
           {/* Debug overlay (dev only) */}
-          <GestureDebugOverlay
-            debugInfo={advancedGestures.debugInfo}
-            isVisible={advancedGestures.showDebugOverlay}
-          />
+          {import.meta.env.MODE === 'development' && (
+            <GestureDebugOverlay
+              debugInfo={{
+                palmY: simplifiedGestures.debugInfo.palmY,
+                palmX: simplifiedGestures.debugInfo.palmX,
+                scrollVelocity: simplifiedGestures.debugInfo.velocityY,
+                scrollDirection: null,
+                scrollCooldown: 0,
+                swipeVelocity: simplifiedGestures.debugInfo.velocityX,
+                swipeDirection: null,
+                cursorX: 0,
+                cursorY: 0,
+                isPinching: false,
+                hoveredElement: null,
+                hoverProgress: 0,
+                lastGesture: simplifiedGestures.lastAction,
+                fps: 0,
+              }}
+              isVisible={true}
+            />
+          )}
         </>
       )}
       {/* Dev-only debug overlay - shows mic armed status and ASR instance */}
