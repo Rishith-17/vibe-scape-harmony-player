@@ -109,13 +109,15 @@ export class ScrollGestureDetector {
     const velocity = this.calculateVelocity();
     
     // Determine direction based on velocity
+    // Hand moving up in camera (negative Y velocity) = scroll up
+    // Hand moving down in camera (positive Y velocity) = scroll down
     let direction: 'up' | 'down' | null = null;
     const effectiveThreshold = this.config.velocityThreshold / this.config.sensitivity;
     
     if (velocity > effectiveThreshold) {
-      direction = 'down'; // Hand moving down in camera = scroll down
+      direction = 'down'; // Hand moving down = scroll down
     } else if (velocity < -effectiveThreshold) {
-      direction = 'up'; // Hand moving up in camera = scroll up
+      direction = 'up'; // Hand moving up = scroll up
     }
 
     // Track stable direction
