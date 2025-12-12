@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import auraWaveIcon from '@/assets/aurawave-icon.png';
+import auraWaveLogo from '@/assets/aurawave-logo-new.png';
 import { Shuffle, Globe, Map, Languages, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -342,15 +342,15 @@ const EnhancedHomePage = () => {
               animate={{ 
                 y: [0, -8, 0],
                 filter: [
-                  'drop-shadow(0 0 20px rgba(0, 255, 255, 0.5))',
-                  'drop-shadow(0 0 30px rgba(0, 255, 255, 0.7))',
-                  'drop-shadow(0 0 20px rgba(0, 255, 255, 0.5))'
+                  'drop-shadow(0 0 20px rgba(0, 100, 255, 0.6))',
+                  'drop-shadow(0 0 35px rgba(100, 0, 255, 0.8))',
+                  'drop-shadow(0 0 20px rgba(0, 100, 255, 0.6))'
                 ]
               }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              src={auraWaveIcon} 
+              src={auraWaveLogo} 
               alt="AuraWave Logo" 
-              className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-2"
+              className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-2"
             />
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-wide max-w-full" 
                 style={{ 
