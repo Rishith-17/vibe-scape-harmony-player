@@ -55,6 +55,7 @@ interface MusicPlayerContextType {
   setVolume: (volume: number) => void;
   addToQueue: (track: Track) => void;
   clearQueue: () => void;
+  stopAll: () => void;
   canSkipNext: boolean;
   canSkipPrevious: boolean;
   playlists: Playlist[];
@@ -263,6 +264,19 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     setQueue([]);
     console.log('🎵 Queue cleared');
   }, []);
+
+  const stopAll = useCallback(() => {
+    console.log('🛑 Stopping all playback');
+    playerManager.stopPlayback();
+    setCurrentTrack(null);
+    setPlaylist([]);
+    setQueue([]);
+    setHistory([]);
+    setCurrentIndex(0);
+    setPlaylists([]);
+    setEmotionPlaylists([]);
+    setLikedSongs(new Set());
+  }, [playerManager]);
 
   // Setup background playback and media session
   useEffect(() => {
@@ -862,6 +876,7 @@ export const MusicPlayerProvider = ({ children }: { children: ReactNode }) => {
     setVolume,
     addToQueue,
     clearQueue,
+    stopAll,
     canSkipNext: playlist.length > 0 || queue.length > 0, // Can skip if playlist or queue has items
     canSkipPrevious: playlist.length > 0 || history.length > 0, // Can skip if playlist or history has items
     playlists,

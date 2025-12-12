@@ -444,7 +444,26 @@ class YouTubePlayerManager {
     }
   }
 
+  stopPlayback() {
+    if (this.player && this.playerReady) {
+      try {
+        this.player.stopVideo();
+        this.isPlaying = false;
+        this.currentTime = 0;
+        this.currentTrack = null;
+        this.notifyListeners();
+        console.log('Playback stopped');
+      } catch (error) {
+        console.error('Error stopping playback:', error);
+      }
+    }
+    // Clear saved state
+    localStorage.removeItem('youtube_player_state');
+    localStorage.removeItem('vibescape_playback_state');
+  }
+
   destroy() {
+    this.stopPlayback();
     this.saveState();
     if (this.timeUpdateInterval) {
       clearInterval(this.timeUpdateInterval);

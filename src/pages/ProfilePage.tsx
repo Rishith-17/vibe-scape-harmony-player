@@ -1,6 +1,7 @@
 import { Camera, Settings, Bell, Moon, HelpCircle, Info, LogOut, Edit, Zap, Mic, Navigation2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useNavigate } from 'react-router-dom';
 import CameraAvatarDialog from '@/components/CameraAvatarDialog';
 import EditProfileDialog from '@/components/EditProfileDialog';
@@ -18,10 +19,13 @@ const ProfilePage = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isGestureSettingsOpen, setIsGestureSettingsOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { stopAll } = useMusicPlayer();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSignOut = async () => {
+    // Stop all music playback before signing out
+    stopAll();
     await signOut();
     navigate('/auth');
   };
