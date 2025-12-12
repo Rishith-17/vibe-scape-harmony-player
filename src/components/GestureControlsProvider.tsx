@@ -4,7 +4,6 @@ import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSimpleGestureDetection } from '@/hooks/useSimpleGestureDetection';
 import { useUnifiedMusicControls } from '@/hooks/useUnifiedMusicControls';
-import { useDoubleClap } from '@/hooks/useDoubleClap';
 import { musicController } from '@/controllers/MusicControllerImpl';
 import { GestureStatusIndicator } from './GestureStatusIndicator';
 import { GestureTutorial } from './GestureTutorial';
@@ -29,15 +28,6 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   }, [musicPlayer]);
   
   const { handleGestureCommand, feedback, clearFeedback } = useUnifiedMusicControls();
-
-  // Double clap detection - triggers voice via gesture system
-  const { isListening: clapListening } = useDoubleClap({
-    enabled: gestureControlsEnabled,
-    onDoubleClap: () => {
-      console.log('👏👏 Double clap detected - triggering open_hand gesture');
-      handleGestureCommand('open_hand', 0.95);
-    }
-  });
 
   // Fetch user's gesture controls preference (disabled when no user)
   useEffect(() => {
