@@ -1,35 +1,27 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSimpleGestureDetection } from '@/hooks/useSimpleGestureDetection';
 import { useUnifiedMusicControls } from '@/hooks/useUnifiedMusicControls';
 import { useDoubleClap } from '@/hooks/useDoubleClap';
-import { useSimplifiedGestures, SimplifiedGestureSettings } from '@/hooks/useSimplifiedGestures';
 import { musicController } from '@/controllers/MusicControllerImpl';
 import { GestureStatusIndicator } from './GestureStatusIndicator';
 import { GestureTutorial } from './GestureTutorial';
 import { TestGestureController } from './TestGestureController';
 import { ControlFeedback } from './ControlFeedback';
 import { VoiceDebugOverlay } from './VoiceDebugOverlay';
-import { GestureDebugOverlay } from './GestureDebugOverlay';
-import { Landmark } from '@/gestures/gestureUtils';
 
 interface GestureControlsProviderProps {
   children: React.ReactNode;
 }
 
 export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = ({ children }) => {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const musicPlayer = useMusicPlayer();
   const [gestureControlsEnabled, setGestureControlsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [simplifiedSettings, setSimplifiedSettings] = useState<SimplifiedGestureSettings>({
-    enabled: true,
-    hapticFeedback: true,
-  });
-  const [currentLandmarks, setCurrentLandmarks] = useState<Landmark[] | null>(null);
   
   // Initialize singleton musicController with player context
   useEffect(() => {
@@ -43,7 +35,7 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     enabled: gestureControlsEnabled,
     onDoubleClap: () => {
       console.log('👏👏 Double clap detected - triggering open_hand gesture');
-      handleGestureCommand('open_hand', 0.95); // Trigger same path as gesture
+      handleGestureCommand('open_hand', 0.95);
     }
   });
 
@@ -51,7 +43,6 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   useEffect(() => {
     const fetchGesturePreference = async () => {
       if (!user) {
-        // Disable when no user (auth page)
         console.log('🤚 No user - disabling gesture controls');
         setGestureControlsEnabled(false);
         setIsLoading(false);
@@ -68,7 +59,6 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
 
         if (error) {
           console.error('Error fetching gesture controls preference:', error);
-          // Default to true if error
           console.log('🤚 Error fetching preference - defaulting to ENABLED');
           setGestureControlsEnabled(true);
         } else {
@@ -89,39 +79,16 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
     fetchGesturePreference();
   }, [user]);
 
-  // Enable gesture detection only when user is logged in
-  const { isPlaying } = useMusicPlayer();
-
-  // Callback to receive landmarks for advanced gestures
-  const handleLandmarks = useCallback((landmarks: Landmark[]) => {
-    setCurrentLandmarks(landmarks);
-  }, []);
-  
   const gestureDetection = useSimpleGestureDetection({
     enabled: !!user && gestureControlsEnabled && !isLoading,
     onGesture: handleGestureCommand,
-    onLandmarks: handleLandmarks,
   });
-
-  // Simplified gestures (swipe + point-to-click)
-  const simplifiedGestures = useSimplifiedGestures({
-    enabled: !!user && gestureControlsEnabled && !isLoading && gestureDetection.isActive,
-    settings: simplifiedSettings,
-  });
-
-  // Process landmarks through simplified gestures
-  useEffect(() => {
-    if (currentLandmarks && simplifiedGestures.processLandmarks) {
-      simplifiedGestures.processLandmarks(currentLandmarks, 0.85);
-    }
-  }, [currentLandmarks, simplifiedGestures.processLandmarks]);
 
   // Show tutorial when gesture detection is first enabled and active
   useEffect(() => {
     if (gestureControlsEnabled && gestureDetection.isActive) {
       console.log('✅ Gesture detection is ACTIVE - Camera permission granted!');
       
-      // Show tutorial on first activation (check localStorage)
       const hasSeenTutorial = localStorage.getItem('vibescape_gesture_tutorial_seen');
       if (!hasSeenTutorial) {
         setShowTutorial(true);
@@ -129,13 +96,11 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
       }
       
       console.log('🤚 Active gesture controls:');
-      console.log('🖐️ Open Hand → Start Voice Control (reuses same mic instance as Tap-Mic)');
-      console.log('✊ Fist → Toggle Play/Pause (3s cooldown)');
+      console.log('🖐️ Open Hand → Start Voice Control');
+      console.log('✊ Fist → Toggle Play/Pause');
       console.log('🤘 Rock → Volume Down (-10%)');
       console.log('✌️ Peace → Volume Up (+10%)');
       console.log('👏👏 Double Clap → Activate Voice Control');
-    } else if (gestureControlsEnabled && !gestureDetection.isActive) {
-      console.log('🔄 Initializing gesture detection... Please allow camera access when prompted.');
     }
   }, [gestureControlsEnabled, gestureDetection.isActive]);
 
@@ -189,21 +154,8 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
             show={feedback.show}
             onComplete={clearFeedback}
           />
-          {/* Debug overlay (dev only) */}
-          {import.meta.env.MODE === 'development' && (
-            <GestureDebugOverlay
-              debugInfo={{
-                palmY: simplifiedGestures.debugInfo.palmY,
-                palmX: simplifiedGestures.debugInfo.palmX,
-                isPointing: simplifiedGestures.debugInfo.isPointing,
-                lastGesture: simplifiedGestures.lastAction,
-              }}
-              isVisible={true}
-            />
-          )}
         </>
       )}
-      {/* Dev-only debug overlay - shows mic armed status and ASR instance */}
       <VoiceDebugOverlay />
     </>
   );
