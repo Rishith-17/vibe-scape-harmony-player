@@ -21,15 +21,20 @@ interface PlaylistSong {
 type PlayTrackFn = (track: PlaylistSong, queue: PlaylistSong[], index: number) => void;
 type ToastFn = (opts: { title: string; description: string; variant?: 'default' | 'destructive' }) => void;
 type NavigateFn = (path: string) => void;
+type SpeakFn = (text: string) => Promise<void>;
 
 class EmotionAnalysisService {
   private playTrack: PlayTrackFn | null = null;
   private showToast: ToastFn | null = null;
   private navigate: NavigateFn | null = null;
+  private speak: SpeakFn | null = null;
   private onAnalysisComplete: ((emotion: string) => void) | null = null;
+  private pendingFollowUp: { emotion: string; awaitingConfirmation: boolean } | null = null;
   
   // Global flag to signal EmotionsPage to auto-open webcam
   public pendingVoiceCapture = false;
+  // Flag to indicate this is a voice-triggered flow
+  public isVoiceTriggered = false;
 
   /**
    * Register dependencies from React context
@@ -43,6 +48,13 @@ class EmotionAnalysisService {
     this.showToast = deps.showToast;
     this.navigate = deps.navigate;
     console.log('[EmotionAnalysisService] Initialized with dependencies');
+  }
+
+  /**
+   * Set TTS speak function
+   */
+  setSpeak(speak: SpeakFn): void {
+    this.speak = speak;
   }
 
   /**
@@ -65,6 +77,13 @@ class EmotionAnalysisService {
   }
 
   /**
+   * Check if this is a voice-triggered flow
+   */
+  isVoiceFlow(): boolean {
+    return this.isVoiceTriggered;
+  }
+
+  /**
    * Main entry point - triggered by voice command "analyse my emotion"
    */
   async startAnalysis(): Promise<void> {
@@ -77,9 +96,30 @@ class EmotionAnalysisService {
 
     // Set flag for EmotionsPage to detect on mount
     this.pendingVoiceCapture = true;
+    this.isVoiceTriggered = false;
     console.log('[EmotionAnalysisService] Set pendingVoiceCapture flag');
 
     // Navigate to emotions page - the page will check the flag on mount
+    this.navigate('/emotions');
+  }
+
+  /**
+   * Voice-triggered analysis flow with TTS feedback
+   */
+  async startAnalysisWithVoiceFlow(): Promise<void> {
+    console.log('[EmotionAnalysisService] Starting voice-triggered emotion analysis...');
+
+    if (!this.navigate || !this.showToast) {
+      console.error('[EmotionAnalysisService] Dependencies not initialized');
+      return;
+    }
+
+    // Set flags for voice-triggered flow
+    this.pendingVoiceCapture = true;
+    this.isVoiceTriggered = true;
+    console.log('[EmotionAnalysisService] Set voice-triggered capture flag');
+
+    // Navigate to emotions page - the page will auto-capture
     this.navigate('/emotions');
   }
 
@@ -111,7 +151,11 @@ class EmotionAnalysisService {
       }
 
       const primaryEmotion = result.emotions[0]?.label?.toLowerCase();
-      console.log('[EmotionAnalysisService] Detected emotion:', primaryEmotion);
+      const confidence = result.emotions[0]?.score || 0;
+      console.log('[EmotionAnalysisService] Detected emotion:', primaryEmotion, 'confidence:', confidence);
+
+      // Log emotion detection to database
+      await this.logEmotionDetection(primaryEmotion, confidence);
 
       if (this.onAnalysisComplete && primaryEmotion) {
         this.onAnalysisComplete(primaryEmotion);
@@ -119,18 +163,124 @@ class EmotionAnalysisService {
 
       // Auto-play matching playlist
       if (primaryEmotion) {
-        await this.playEmotionPlaylist(primaryEmotion);
+        const playSuccess = await this.playEmotionPlaylist(primaryEmotion);
+        
+        // If voice-triggered and no playlist found, offer to create one
+        if (!playSuccess && this.isVoiceTriggered) {
+          await this.offerPlaylistCreation(primaryEmotion);
+        }
       }
 
       return result.emotions;
     } catch (error) {
       console.error('[EmotionAnalysisService] Analysis error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Could not detect emotion';
+      
       this.showToast?.({
         title: 'Analysis Failed',
-        description: error instanceof Error ? error.message : 'Could not detect emotion',
+        description: errorMsg,
         variant: 'destructive',
       });
+
+      if (this.isVoiceTriggered && this.speak) {
+        await this.speak(errorMsg);
+      }
+
       return null;
+    } finally {
+      this.isVoiceTriggered = false;
+    }
+  }
+
+  /**
+   * Log emotion detection to database for analytics
+   */
+  private async logEmotionDetection(emotion: string, confidence: number): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase.from('emotion_logs').insert({
+        user_id: user.id,
+        emotion,
+        confidence,
+        source: this.isVoiceTriggered ? 'voice' : 'manual'
+      });
+
+      console.log('[EmotionAnalysisService] Logged emotion detection');
+    } catch (error) {
+      console.error('[EmotionAnalysisService] Failed to log emotion:', error);
+    }
+  }
+
+  /**
+   * Offer to create a playlist for the detected emotion
+   */
+  private async offerPlaylistCreation(emotion: string): Promise<void> {
+    this.pendingFollowUp = { emotion, awaitingConfirmation: true };
+    
+    const message = `Detected ${emotion}, but I couldn't find a playlist for it. Would you like me to create one?`;
+    
+    this.showToast?.({
+      title: 'Create Playlist?',
+      description: message,
+    });
+
+    if (this.speak) {
+      await this.speak(message);
+    }
+  }
+
+  /**
+   * Handle yes/no follow-up for playlist creation
+   */
+  async handleFollowUp(confirmed: boolean): Promise<void> {
+    if (!this.pendingFollowUp) return;
+
+    const { emotion } = this.pendingFollowUp;
+    this.pendingFollowUp = null;
+
+    if (confirmed) {
+      await this.createEmotionPlaylist(emotion);
+    }
+  }
+
+  /**
+   * Create an emotion playlist
+   */
+  private async createEmotionPlaylist(emotion: string): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+
+      const { error } = await supabase
+        .from('emotion_playlists')
+        .insert({
+          user_id: user.id,
+          emotion: emotion.toLowerCase(),
+          name: emotion.charAt(0).toUpperCase() + emotion.slice(1).toLowerCase(),
+          description: `Music for ${emotion} mood - created by voice command`
+        });
+
+      if (error) {
+        console.error('[EmotionAnalysisService] Create playlist error:', error);
+        return false;
+      }
+
+      const message = `Created playlist for ${emotion}.`;
+      this.showToast?.({
+        title: 'Playlist Created',
+        description: message,
+      });
+
+      if (this.speak) {
+        await this.speak(message);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[EmotionAnalysisService] Create playlist error:', error);
+      return false;
     }
   }
 
@@ -146,11 +296,15 @@ class EmotionAnalysisService {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        const msg = 'Please log in to play emotion playlists';
         this.showToast({
           title: 'Not Logged In',
-          description: 'Please log in to play emotion playlists',
+          description: msg,
           variant: 'destructive',
         });
+        if (this.isVoiceTriggered && this.speak) {
+          await this.speak(msg);
+        }
         return false;
       }
 
@@ -184,10 +338,16 @@ class EmotionAnalysisService {
           }));
 
           this.playTrack(formattedSongs[0], formattedSongs, 0);
+          
+          const msg = `Detected ${emotion}. Playing ${playlist.name}.`;
           this.showToast({
             title: 'Now Playing',
-            description: `Playing from your '${emotion}' playlist`,
+            description: msg,
           });
+
+          if (this.isVoiceTriggered && this.speak) {
+            await this.speak(msg);
+          }
           return true;
         }
       }
@@ -219,18 +379,25 @@ class EmotionAnalysisService {
           }));
 
           this.playTrack(formattedSongs[0], formattedSongs, 0);
+          
+          const msg = `Detected ${emotion}. Playing ${playlist.name}.`;
           this.showToast({
             title: 'Now Playing',
-            description: `Playing from your '${emotion}' playlist`,
+            description: msg,
           });
+
+          if (this.isVoiceTriggered && this.speak) {
+            await this.speak(msg);
+          }
           return true;
         }
       }
 
       // No matching playlist found
+      const msg = `No playlist found for emotion: ${emotion}`;
       this.showToast({
         title: 'No Playlist Found',
-        description: `No playlist found for emotion: ${emotion}`,
+        description: msg,
         variant: 'destructive',
       });
       return false;

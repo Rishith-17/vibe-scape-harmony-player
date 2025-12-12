@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      emotion_logs: {
+        Row: {
+          confidence: number
+          created_at: string
+          emotion: string
+          id: string
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence: number
+          created_at?: string
+          emotion: string
+          id?: string
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          emotion?: string
+          id?: string
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       emotion_playlist_songs: {
         Row: {
           artist: string

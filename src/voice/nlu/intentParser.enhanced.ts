@@ -362,26 +362,27 @@ export const ENHANCED_HELP_TEXT = `
 📍 Playback:
 - "play", "pause", "resume", "next", "previous"
 - "play the second song in global top music videos"
-- "play item 3 in new releases"
 - "play playlist Focus"
 - "play liked songs"
+
+📂 Playlists:
+- "create a playlist called Road Trip"
+- "open playlist Road Trip"
+- "play my Focus playlist"
+
+🎭 Emotion:
+- "detect my emotion" - Capture & play matching playlist
+- "scan my face and play music"
 
 🔍 Search:
 - "search for lo-fi beats" (auto-plays first result)
 
 🧭 Navigation:
-- "go home", "open library", "open emotions", "open profile"
+- "go home", "open library", "open emotions"
 - "go back"
 
-📜 Scrolling:
-- "scroll down", "scroll up"
-- "scroll to global top music videos"
-- "go to bottom", "go to top"
-
 🔊 Volume:
-- "volume up/down"
-- "volume to 50"
-- "mute", "unmute"
+- "volume up/down", "volume to 50"
 
 💡 System:
 - "help" - Show this list
