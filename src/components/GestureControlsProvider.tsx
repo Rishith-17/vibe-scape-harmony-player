@@ -27,9 +27,6 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
   const [showTutorial, setShowTutorial] = useState(false);
   const [simplifiedSettings, setSimplifiedSettings] = useState<SimplifiedGestureSettings>({
     enabled: true,
-    swipeSensitivity: 0.08,
-    scrollAmount: 200,
-    cooldownMs: 300,
     hapticFeedback: true,
   });
   const [currentLandmarks, setCurrentLandmarks] = useState<Landmark[] | null>(null);
@@ -198,18 +195,8 @@ export const GestureControlsProvider: React.FC<GestureControlsProviderProps> = (
               debugInfo={{
                 palmY: simplifiedGestures.debugInfo.palmY,
                 palmX: simplifiedGestures.debugInfo.palmX,
-                scrollVelocity: simplifiedGestures.debugInfo.velocityY,
-                scrollDirection: null,
-                scrollCooldown: 0,
-                swipeVelocity: simplifiedGestures.debugInfo.velocityX,
-                swipeDirection: null,
-                cursorX: 0,
-                cursorY: 0,
-                isPinching: false,
-                hoveredElement: null,
-                hoverProgress: 0,
+                isPointing: simplifiedGestures.debugInfo.isPointing,
                 lastGesture: simplifiedGestures.lastAction,
-                fps: 0,
               }}
               isVisible={true}
             />

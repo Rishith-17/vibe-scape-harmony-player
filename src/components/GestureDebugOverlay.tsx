@@ -1,25 +1,15 @@
 /**
  * Gesture Debug Overlay
- * Simplified debug info for swipe + point gestures
+ * Simplified debug info for point-to-click gesture only
  */
 
 import React from 'react';
 
 interface GestureDebugInfo {
-  palmY: number;
   palmX: number;
-  scrollVelocity: number;
-  scrollDirection: string | null;
-  scrollCooldown: number;
-  swipeVelocity: number;
-  swipeDirection: string | null;
-  cursorX: number;
-  cursorY: number;
-  isPinching: boolean;
-  hoveredElement: string | null;
-  hoverProgress: number;
+  palmY: number;
+  isPointing: boolean;
   lastGesture: string | null;
-  fps: number;
 }
 
 interface GestureDebugOverlayProps {
@@ -44,8 +34,7 @@ export const GestureDebugOverlay: React.FC<GestureDebugOverlayProps> = ({
       
       <div className="space-y-1">
         <div>Palm: ({debugInfo.palmX.toFixed(2)}, {debugInfo.palmY.toFixed(2)})</div>
-        <div>VelX: {debugInfo.swipeVelocity.toFixed(3)}</div>
-        <div>VelY: {debugInfo.scrollVelocity.toFixed(3)}</div>
+        <div>Pointing: {debugInfo.isPointing ? '👆 Yes' : 'No'}</div>
         <div className="text-yellow-400">Last: {debugInfo.lastGesture || 'none'}</div>
       </div>
     </div>
