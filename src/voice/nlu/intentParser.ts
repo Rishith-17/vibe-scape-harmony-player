@@ -202,8 +202,53 @@ export function parseIntent(transcript: string): VoiceIntent {
     };
   }
   
-  // Analyse emotion command
-  if (/analy[sz]e?\s*(my\s+)?emotion|detect\s*(my\s+)?emotion|scan\s*(my\s+)?emotion|check\s*(my\s+)?emotion|mera\s+emotion|mood\s+detect/i.test(lower)) {
+  // Create playlist command
+  // Patterns: "create a playlist called X", "make a playlist named X", "new playlist X"
+  const createPlaylistMatch = lower.match(
+    /(?:create|make)\s+(?:a\s+)?playlist\s+(?:called|named)\s+["']?([^"']+?)["']?$/i
+  ) || lower.match(
+    /new\s+playlist\s+["']?([^"']+?)["']?$/i
+  );
+  if (createPlaylistMatch && createPlaylistMatch[1]) {
+    const playlistName = createPlaylistMatch[1].trim();
+    return { 
+      action: 'create_playlist', 
+      slots: { playlistName }, 
+      raw: transcript, 
+      confidence: 0.95 
+    };
+  }
+
+  // Open playlist command
+  // Patterns: "open playlist X", "play my X playlist", "open X"
+  const openPlaylistMatch = lower.match(
+    /open\s+(?:my\s+)?playlist\s+["']?([^"']+?)["']?$/i
+  ) || lower.match(
+    /play\s+my\s+["']?([^"']+?)["']?\s+playlist$/i
+  ) || lower.match(
+    /open\s+["']?([^"']+?)["']?$/i
+  );
+  if (openPlaylistMatch && openPlaylistMatch[1]) {
+    const playlistName = openPlaylistMatch[1].trim();
+    // Avoid matching navigation commands
+    if (!['home', 'library', 'settings', 'emotions', 'search'].includes(playlistName.toLowerCase())) {
+      return { 
+        action: 'open_playlist', 
+        slots: { playlistName }, 
+        raw: transcript, 
+        confidence: 0.90 
+      };
+    }
+  }
+
+  // Detect emotion command (enhanced patterns)
+  // Patterns: "detect my emotion", "analyse my emotion", "scan my face and play music for my mood"
+  if (/analy[sz]e?\s*(my\s+)?emotion|detect\s*(my\s+)?emotion|scan\s*(my\s+)?emotion|check\s*(my\s+)?emotion|mera\s+emotion|mood\s+detect|scan\s*(my\s+)?face\s*(and)?\s*(play)?\s*(music)?/i.test(lower)) {
+    return { action: 'detect_emotion', slots: {}, raw: transcript, confidence: 0.95 };
+  }
+  
+  // Legacy analyse_emotion (keep for backward compatibility)
+  if (/analy[sz]e\s+emotion/i.test(lower)) {
     return { action: 'analyse_emotion', slots: {}, raw: transcript, confidence: 0.95 };
   }
   
@@ -230,12 +275,18 @@ Voice Commands:
 - "volume up/down"
 - "volume to 50"
 
+📂 Playlists:
+- "create a playlist called [name]" - Create new playlist
+- "open playlist [name]" - Open and play playlist
+- "play my [name] playlist" - Play specific playlist
+
 🧭 Navigation:
 - "go home"
 - "open library/emotions/settings"
 
 🎭 Emotion:
-- "analyse my emotion" - Capture photo & play matching playlist
+- "detect my emotion" - Capture photo & play matching playlist
+- "scan my face and play music" - Same as above
 
 💡 System:
 - "help" or "what can I say?"
