@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +14,7 @@ import PWAInstallPrompt from "@/services/PWAInstallPrompt";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import BottomNavigation from "@/components/BottomNavigation";
 import MiniPlayer from "@/components/MiniPlayer";
+import SplashScreen from "@/components/SplashScreen";
 import AuthPage from "./pages/AuthPage";
 import EnhancedHomePage from "./pages/EnhancedHomePage";
 import SearchPage from "./pages/SearchPage";
@@ -25,6 +26,7 @@ import InstallPage from "./pages/InstallPage";
 import NotFound from "./pages/NotFound";
 import { isFeatureEnabled } from "@/config/featureFlags";
 import { useVoiceSettings } from "@/store/voiceSettings";
+import { AnimatePresence } from "framer-motion";
 
 const queryClient = new QueryClient();
 
@@ -316,14 +318,25 @@ const VoiceSettingsPageLazy = () => {
 };
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
           <MusicPlayerProvider>
-            <Toaster />
-            <Sonner />
-            <AppContent />
+            <AnimatePresence mode="wait">
+              {showSplash && (
+                <SplashScreen onComplete={() => setShowSplash(false)} />
+              )}
+            </AnimatePresence>
+            {!showSplash && (
+              <>
+                <Toaster />
+                <Sonner />
+                <AppContent />
+              </>
+            )}
           </MusicPlayerProvider>
         </AuthProvider>
       </TooltipProvider>
