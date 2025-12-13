@@ -26,6 +26,8 @@ export type VoiceAction =
   | 'stop_listening'
   | 'help'
   | 'analyse_emotion'
+  | 'create_playlist'
+  | 'open_playlist'
   | 'unknown';
 
 export type MoodType = 'happy' | 'calm' | 'focus' | 'chill' | 'romantic' | 'energetic' | 'sad';
@@ -63,6 +65,8 @@ export interface MusicController {
   setVolume(percent: number): void; // 0..100
   adjustVolume(delta: number): void; // +/-
   isPlaying(): boolean;
+  createPlaylist(name: string): Promise<void>;
+  openPlaylist(playlistName: string): Promise<void>;
 }
 
 export interface NavControllerAdapter {
