@@ -183,6 +183,28 @@ export class VoiceCommandRunner {
           await emotionAnalysisService.startAnalysis();
           break;
 
+        case 'create_playlist':
+          if (intent.slots.playlistName) {
+            try {
+              await this.musicAdapter.createPlaylist(intent.slots.playlistName);
+              this.uiAdapter.showSuccess(`Created playlist "${intent.slots.playlistName}"`, !this.ttsEnabled);
+            } catch (error: any) {
+              this.uiAdapter.showError(error.message || 'Failed to create playlist');
+            }
+          }
+          break;
+
+        case 'open_playlist':
+          if (intent.slots.playlistName) {
+            try {
+              await this.musicAdapter.openPlaylist(intent.slots.playlistName);
+              this.uiAdapter.showSuccess(`Opening "${intent.slots.playlistName}"`, !this.ttsEnabled);
+            } catch (error: any) {
+              this.uiAdapter.showError(error.message || 'Playlist not found');
+            }
+          }
+          break;
+
         case 'unknown':
           this.uiAdapter.showLowConfidence('Try "play", "next", or "scroll down"');
           break;

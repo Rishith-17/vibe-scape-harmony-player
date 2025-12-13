@@ -212,6 +212,44 @@ export class MusicControllerImpl implements MusicController {
     }
   }
 
+  async createPlaylist(name: string): Promise<void> {
+    console.log('[MusicController] 📁 Create playlist:', name);
+    
+    try {
+      // Check if playlist already exists
+      const existingPlaylist = this.player.playlists.find(
+        p => p.name.toLowerCase() === name.toLowerCase()
+      );
+      
+      if (existingPlaylist) {
+        throw new Error(`Playlist "${name}" already exists`);
+      }
+      
+      await this.player.createPlaylist(name);
+    } catch (error) {
+      console.error('[MusicController] ❌ Create playlist failed:', error);
+      throw error;
+    }
+  }
+
+  async openPlaylist(playlistName: string): Promise<void> {
+    console.log('[MusicController] 📂 Open playlist:', playlistName);
+    
+    // Find playlist by name (case insensitive, fuzzy match)
+    const normalizedQuery = playlistName.toLowerCase().trim();
+    const playlist = this.player.playlists.find(
+      p => p.name.toLowerCase().includes(normalizedQuery) || 
+           normalizedQuery.includes(p.name.toLowerCase())
+    );
+    
+    if (!playlist) {
+      throw new Error(`Playlist "${playlistName}" not found`);
+    }
+    
+    // Navigate to playlist page
+    window.location.href = `/playlist/${playlist.id}`;
+  }
+
   setVolume(percent: number): void {
     const volume = Math.max(0, Math.min(100, percent));
     console.log('[MusicController] 🔊 Set volume to:', volume);

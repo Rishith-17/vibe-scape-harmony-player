@@ -202,6 +202,44 @@ export function parseIntent(transcript: string): VoiceIntent {
     };
   }
   
+  // Create playlist command
+  const createPlaylistMatch = lower.match(/^(create|make|new)\s+(playlist|list)\s+(.+)/i);
+  if (createPlaylistMatch && createPlaylistMatch[3]) {
+    const playlistName = createPlaylistMatch[3].trim();
+    return {
+      action: 'create_playlist',
+      slots: { playlistName },
+      raw: transcript,
+      confidence: 0.92,
+    };
+  }
+  
+  // Hinglish: "playlist X banao", "X playlist bana do"
+  const createPlaylistHindiMatch = lower.match(/(?:playlist\s+(.+)\s+bana(?:o|do)|(.+)\s+playlist\s+bana(?:o|do))/i);
+  if (createPlaylistHindiMatch) {
+    const playlistName = (createPlaylistHindiMatch[1] || createPlaylistHindiMatch[2])?.trim();
+    if (playlistName) {
+      return {
+        action: 'create_playlist',
+        slots: { playlistName },
+        raw: transcript,
+        confidence: 0.90,
+      };
+    }
+  }
+  
+  // Open playlist command (navigate to playlist page)
+  const openPlaylistMatch = lower.match(/^open\s+(?:playlist\s+)?(.+?)(?:\s+playlist)?$/i);
+  if (openPlaylistMatch && openPlaylistMatch[1] && !/(library|settings|home|emotions|search)/i.test(openPlaylistMatch[1])) {
+    const playlistName = openPlaylistMatch[1].trim();
+    return {
+      action: 'open_playlist',
+      slots: { playlistName },
+      raw: transcript,
+      confidence: 0.90,
+    };
+  }
+  
   // Analyse emotion command
   if (/analy[sz]e?\s*(my\s+)?emotion|detect\s*(my\s+)?emotion|scan\s*(my\s+)?emotion|check\s*(my\s+)?emotion|mera\s+emotion|mood\s+detect/i.test(lower)) {
     return { action: 'analyse_emotion', slots: {}, raw: transcript, confidence: 0.95 };
@@ -234,6 +272,10 @@ Voice Commands:
 - "go home"
 - "open library/emotions/settings"
 
+📁 Playlist Management:
+- "create playlist [name]" - Create new playlist
+- "open playlist [name]" - Open playlist page
+
 🎭 Emotion:
 - "analyse my emotion" - Capture photo & play matching playlist
 
@@ -245,4 +287,5 @@ Voice Commands:
 - "Arijit Singh search karo"
 - "volume ko 50 kar"
 - "agle gaane"
+- "playlist Workout banao"
 `;

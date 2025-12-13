@@ -62,4 +62,12 @@ export class MusicAdapter {
   isPlaying(): boolean {
     return this.musicController.isPlaying();
   }
+
+  async createPlaylist(name: string): Promise<void> {
+    await this.musicController.createPlaylist(name);
+  }
+
+  async openPlaylist(playlistName: string): Promise<void> {
+    await this.musicController.openPlaylist(playlistName);
+  }
 }
