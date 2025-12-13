@@ -26,9 +26,6 @@ export type VoiceAction =
   | 'stop_listening'
   | 'help'
   | 'analyse_emotion'
-  | 'create_playlist'
-  | 'open_playlist'
-  | 'detect_emotion'
   | 'unknown';
 
 export type MoodType = 'happy' | 'calm' | 'focus' | 'chill' | 'romantic' | 'energetic' | 'sad';

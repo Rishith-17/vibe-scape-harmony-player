@@ -3,7 +3,6 @@ import { MusicAdapter } from './adapters/MusicAdapter';
 import { NavigationAdapter } from './adapters/NavigationAdapter';
 import { ScrollAdapter } from './adapters/ScrollAdapter';
 import { UiAdapter } from './adapters/UiAdapter';
-import { PlaylistAdapter, playlistAdapter } from './adapters/PlaylistAdapter';
 import { runCommand } from './commandRunner';
 import { ENHANCED_HELP_TEXT } from './nlu/intentParser.enhanced';
 import { emotionAnalysisService } from '@/services/EmotionAnalysisService';
@@ -15,8 +14,6 @@ import { emotionAnalysisService } from '@/services/EmotionAnalysisService';
 export class VoiceCommandRunner {
   private lastSection: string | null = null;
   private lastQuery: string | null = null;
-  private playlistAdapter: PlaylistAdapter;
-  private ttsCallback: ((text: string) => Promise<void>) | null = null;
 
   constructor(
     private musicAdapter: MusicAdapter,
@@ -24,39 +21,7 @@ export class VoiceCommandRunner {
     private scrollAdapter: ScrollAdapter,
     private uiAdapter: UiAdapter,
     private ttsEnabled = false
-  ) {
-    this.playlistAdapter = playlistAdapter;
-  }
-
-  /**
-   * Set TTS callback for speaking responses
-   */
-  setTtsCallback(callback: (text: string) => Promise<void>): void {
-    this.ttsCallback = callback;
-  }
-
-  /**
-   * Set navigation function for playlist adapter
-   */
-  setNavigate(navigate: (path: string) => void): void {
-    this.playlistAdapter.setNavigate(navigate);
-  }
-
-  /**
-   * Set playlist play function
-   */
-  setPlayPlaylist(fn: (playlistId: string) => Promise<void>): void {
-    this.playlistAdapter.setPlayPlaylist(fn);
-  }
-
-  /**
-   * Speak a message using TTS if enabled
-   */
-  private async speak(text: string): Promise<void> {
-    if (this.ttsEnabled && this.ttsCallback) {
-      await this.ttsCallback(text);
-    }
-  }
+  ) {}
 
   /**
    * Execute a parsed voice intent
@@ -218,19 +183,6 @@ export class VoiceCommandRunner {
           await emotionAnalysisService.startAnalysis();
           break;
 
-        // New voice commands
-        case 'create_playlist':
-          await this.handleCreatePlaylist(intent.slots.playlistName!);
-          break;
-
-        case 'open_playlist':
-          await this.handleOpenPlaylist(intent.slots.playlistName!);
-          break;
-
-        case 'detect_emotion':
-          await this.handleDetectEmotion();
-          break;
-
         case 'unknown':
           this.uiAdapter.showLowConfidence('Try "play", "next", or "scroll down"');
           break;
@@ -239,56 +191,6 @@ export class VoiceCommandRunner {
           console.warn('[VoiceCommandRunner] Unknown action:', intent.action);
       }
     });
-  }
-
-  /**
-   * Handle create playlist voice command
-   */
-  private async handleCreatePlaylist(playlistName: string): Promise<void> {
-    console.log('[VoiceCommandRunner] Creating playlist:', playlistName);
-    
-    const result = await this.playlistAdapter.createPlaylist(playlistName);
-    
-    if (result.success) {
-      this.uiAdapter.showSuccess(result.message, false);
-      await this.speak(result.message);
-    } else {
-      this.uiAdapter.showError(result.message);
-      await this.speak(result.message);
-    }
-  }
-
-  /**
-   * Handle open playlist voice command
-   */
-  private async handleOpenPlaylist(playlistName: string): Promise<void> {
-    console.log('[VoiceCommandRunner] Opening playlist:', playlistName);
-    
-    this.uiAdapter.showSuccess(`Opening playlist ${playlistName}...`, false);
-    
-    const result = await this.playlistAdapter.openPlaylist(playlistName);
-    
-    if (result.success) {
-      this.uiAdapter.showSuccess(result.message, false);
-      await this.speak(result.message);
-    } else {
-      this.uiAdapter.showError(result.message);
-      await this.speak(result.message);
-    }
-  }
-
-  /**
-   * Handle detect emotion voice command
-   */
-  private async handleDetectEmotion(): Promise<void> {
-    console.log('[VoiceCommandRunner] Starting emotion detection flow...');
-    
-    // Play earcon and show initial feedback
-    this.uiAdapter.showSuccess('Analyzing emotion...', false);
-    await this.speak('Analyzing emotion.');
-    
-    // Trigger the emotion analysis flow
-    await emotionAnalysisService.startAnalysisWithVoiceFlow();
   }
 
   /**

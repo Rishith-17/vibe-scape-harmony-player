@@ -96,11 +96,6 @@ export class VoiceController {
       config.ttsEnabled
     );
 
-    // Wire up TTS callback to command runner
-    this.commandRunner.setTtsCallback(async (text: string) => {
-      await this.speak(text);
-    });
-
     // Initialize shared resources if not already created
     this.initializeSharedResources();
   }
